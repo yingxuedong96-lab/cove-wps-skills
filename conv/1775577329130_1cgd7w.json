@@ -6,14 +6,15 @@
     "timestamp": 1775577329171,
     "commandMeta": {
       "name": "校对标题编号"
-    }
+    },
+    "taskId": "task_1775577329177_dwvnwb"
   },
   {
     "id": "1775577329171_2jrdwbi",
     "role": "assistant",
     "content": "",
     "timestamp": 1775577329171,
-    "streaming": true
+    "streaming": false
   },
   {
     "id": "tool_1775577331979_8pnq",
@@ -70,69 +71,10 @@
       "toolName": "confirmEdits",
       "input": {
         "mode": "revision",
-        "summary": "## 标题编号校对报告\n\n1. **二级标题章节号修正（2处）**\n   - \"1.3 工程等别\" → \"1.2 工程等别\"（节序号连续性问题）\n   - \"1.3 工程地质\" → \"1.4 工程地质\"（节序号连续性问题）\n\n2. **附录标题格式规范（2处）**\n   - \"附录一 主要设计规范\" → \"附录 一 主要设计规范\"（补充空格）\n   - \"附录二 参考文献\" → \"附录 二 参考文献\"（补充空格）\n\n**统计信息：**\n- 共检测标题：143 个\n- 发现并修正问题：4 处\n- 所有修改已以修订模式记录，您可接受或拒绝变更",
-        "reportSnapshot": {
-          "revisionItems": [
-            {
-              "kind": "replace",
-              "deleteIndex": 2,
-              "insertIndex": 1,
-              "oldText": "1.3 工程等别",
-              "newText": "1.2 工程等别"
-            },
-            {
-              "kind": "replace",
-              "deleteIndex": 4,
-              "insertIndex": 3,
-              "oldText": "1.3 工程地质",
-              "newText": "1.4 工程地质"
-            },
-            {
-              "kind": "replace",
-              "deleteIndex": 6,
-              "insertIndex": 5,
-              "oldText": "附录一 主要设计规范",
-              "newText": "附录 一 主要设计规范"
-            },
-            {
-              "kind": "replace",
-              "deleteIndex": 8,
-              "insertIndex": 7,
-              "oldText": "附录二 参考文献",
-              "newText": "附录 二 参考文献"
-            },
-            {
-              "kind": "replace",
-              "deleteIndex": 6,
-              "insertIndex": 5,
-              "oldText": "附录一 主要设计规范",
-              "newText": "附录 一 主要设计规范"
-            },
-            {
-              "kind": "replace",
-              "deleteIndex": 8,
-              "insertIndex": 7,
-              "oldText": "附录二 参考文献",
-              "newText": "附录 二 参考文献"
-            },
-            {
-              "kind": "replace",
-              "deleteIndex": 8,
-              "insertIndex": 7,
-              "oldText": "附录二 参考文献",
-              "newText": "附录 二 参考文献"
-            },
-            {
-              "kind": "delete",
-              "index": 8,
-              "text": "附录二 参考文献"
-            }
-          ],
-          "revisionTotal": 8
-        }
+        "summary": "## 标题编号校对报告\n\n1. **二级标题章节号修正（2处）**\n   - \"1.3 工程等别\" → \"1.2 工程等别\"（节序号连续性问题）\n   - \"1.3 工程地质\" → \"1.4 工程地质\"（节序号连续性问题）\n\n2. **附录标题格式规范（2处）**\n   - \"附录一 主要设计规范\" → \"附录 一 主要设计规范\"（补充空格）\n   - \"附录二 参考文献\" → \"附录 二 参考文献\"（补充空格）\n\n**统计信息：**\n- 共检测标题：143 个\n- 发现并修正问题：4 处\n- 所有修改已以修订模式记录，您可接受或拒绝变更"
       },
-      "executing": true,
-      "codeStreaming": false
+      "output": "[Error] bridge.invoke(\"edit:confirm\") 超时（120000ms），未收到响应",
+      "durationMs": 120264
     }
   }
 ]

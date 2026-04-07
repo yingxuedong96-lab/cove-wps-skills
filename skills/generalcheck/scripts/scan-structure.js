@@ -55,7 +55,7 @@ try {
       }
       appState.letter = newLetter;
       counts.headings++;
-      var newText = '附录 ' + newLetter + (appMatch[2] ? ' ' + appMatch[2] : '');
+      var newText = '附录' + newLetter + (appMatch[2] ? ' ' + appMatch[2] : '');
       console.log('[scan] 附录: ' + text + ' → ' + newText);
       if (text !== newText) plans.push({ oldText: text, newText: newText });
       continue;

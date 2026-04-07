@@ -247,16 +247,12 @@ try {
     else if (h.type === 'level1') {
       // 一级标题：按顺序重排
       var newLetter = appendixLetterMap[h.origLetter] || currentLetter;
-      if (!appendixLevel1Map[h.origLetter]) appendixLevel1Map[h.origLetter] = {};
-      var existing = appendixLevel1Map[h.origLetter][h.origNum];
-      if (!existing) {
-        // 新编号
-        var newNum = Object.keys(appendixLevel1Map[h.origLetter]).length + 1;
-        appendixLevel1Map[h.origLetter][h.origNum] = newNum;
-      }
-      var finalNum = appendixLevel1Map[h.origLetter][h.origNum];
-      var newText = newLetter + '.' + finalNum + ' ' + h.title;
+      if (!appendixLevel1Map[h.origLetter]) appendixLevel1Map[h.origLetter] = { nextNum: 1 };
+      var finalNum = appendixLevel1Map[h.origLetter].nextNum;
+      appendixLevel1Map[h.origLetter].nextNum++;
+      appendixLevel1Map._currentLevel1 = finalNum;  // 记录当前一级编号
 
+      var newText = newLetter + '.' + finalNum + ' ' + h.title;
       if (h.text !== newText) {
         console.log('[scan] 附录一级: ' + h.text + ' → ' + newText);
         pushPlan(plans, h.text, newText, 'N-007');
@@ -264,21 +260,20 @@ try {
       counts.headings++;
     }
     else if (h.type === 'level2') {
-      // 二级标题：跟随一级标题映射
+      // 二级标题：跟随当前一级编号
       var newLetter = appendixLetterMap[h.origLetter] || currentLetter;
-      var mappedLevel1 = appendixLevel1Map[h.origLetter] && appendixLevel1Map[h.origLetter][h.origLevel1];
-      var parentLevel1 = mappedLevel1 || h.origLevel1;  // 如果父级有映射则用映射，否则保持原编号
 
-      // 建立二级映射
-      var level2Key = h.origLetter + '.' + h.origLevel1;
-      if (!appendixLevel2Map[level2Key]) appendixLevel2Map[level2Key] = {};
-      if (!appendixLevel2Map[level2Key][h.origLevel2]) {
-        var newLevel2 = Object.keys(appendixLevel2Map[level2Key]).length + 1;
-        appendixLevel2Map[level2Key][h.origLevel2] = newLevel2;
-      }
-      var finalLevel2 = appendixLevel2Map[level2Key][h.origLevel2];
+      // 获取当前一级编号（最后修正的一级编号）
+      var currentLevel1 = appendixLevel1Map._currentLevel1 || 1;
 
-      var newText = newLetter + '.' + parentLevel1 + '.' + finalLevel2 + ' ' + h.title;
+      // 二级编号按顺序重排
+      if (!appendixLevel2Map._current) appendixLevel2Map._current = {};
+      var level2Key = newLetter + '.' + currentLevel1;
+      if (!appendixLevel2Map._current[level2Key]) appendixLevel2Map._current[level2Key] = 0;
+      appendixLevel2Map._current[level2Key]++;
+      var finalLevel2 = appendixLevel2Map._current[level2Key];
+
+      var newText = newLetter + '.' + currentLevel1 + '.' + finalLevel2 + ' ' + h.title;
       if (h.text !== newText) {
         console.log('[scan] 附录二级: ' + h.text + ' → ' + newText);
         pushPlan(plans, h.text, newText, 'N-007');
@@ -286,25 +281,22 @@ try {
       counts.headings++;
     }
     else if (h.type === 'level3') {
-      // 三级标题：跟随上级映射
+      // 三级标题：跟随当前上级编号
       var newLetter = appendixLetterMap[h.origLetter] || currentLetter;
-      var mappedLevel1 = appendixLevel1Map[h.origLetter] && appendixLevel1Map[h.origLetter][h.origLevel1];
-      var parentLevel1 = mappedLevel1 || h.origLevel1;
+      var currentLevel1 = appendixLevel1Map._currentLevel1 || 1;
 
-      var level2Key = h.origLetter + '.' + h.origLevel1;
-      var mappedLevel2 = appendixLevel2Map[level2Key] && appendixLevel2Map[level2Key][h.origLevel2];
-      var parentLevel2 = mappedLevel2 || h.origLevel2;
+      // 获取当前二级编号
+      var level2Key = newLetter + '.' + currentLevel1;
+      var currentLevel2 = (appendixLevel2Map._current && appendixLevel2Map._current[level2Key]) || 1;
 
-      // 三级按顺序重排
-      var level3Key = level2Key + '.' + h.origLevel2;
-      if (!appendixLevel2Map[level3Key]) appendixLevel2Map[level3Key] = {};
-      if (!appendixLevel2Map[level3Key][h.origLevel3]) {
-        var newLevel3 = Object.keys(appendixLevel2Map[level3Key]).length + 1;
-        appendixLevel2Map[level3Key][h.origLevel3] = newLevel3;
-      }
-      var finalLevel3 = appendixLevel2Map[level3Key][h.origLevel3];
+      // 三级编号按顺序重排
+      if (!appendixLevel2Map._current3) appendixLevel2Map._current3 = {};
+      var level3Key = newLetter + '.' + currentLevel1 + '.' + currentLevel2;
+      if (!appendixLevel2Map._current3[level3Key]) appendixLevel2Map._current3[level3Key] = 0;
+      appendixLevel2Map._current3[level3Key]++;
+      var finalLevel3 = appendixLevel2Map._current3[level3Key];
 
-      var newText = newLetter + '.' + parentLevel1 + '.' + parentLevel2 + '.' + finalLevel3 + ' ' + h.title;
+      var newText = newLetter + '.' + currentLevel1 + '.' + currentLevel2 + '.' + finalLevel3 + ' ' + h.title;
       if (h.text !== newText) {
         console.log('[scan] 附录三级: ' + h.text + ' → ' + newText);
         pushPlan(plans, h.text, newText, 'N-007');

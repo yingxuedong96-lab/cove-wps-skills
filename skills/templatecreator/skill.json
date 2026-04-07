@@ -1,14 +1,14 @@
 {
   "name": "templatecreator",
-  "description": "样式模板提取与应用。从A文档提取格式模板（字体、字号、缩进、行距等），保存为JSON模板文件，然后应用到B文档。支持主标题、多级标题、正文、图表名、列表项、附录等元素识别。触发词：提取模板、应用模板、创建模板、样式模板。",
-  "version": "26.0407.1500",
+  "description": "样式模板提取与应用。基于预定义的样式规范表（公文16种标签/论文20种标签），从A文档提取格式模板，保存为JSON，然后应用到B文档。支持解析匹配、对话确认（askUser）、模板应用。触发词：提取模板、应用模板、创建模板、样式模板。",
+  "version": "26.0407.2300",
   "files": [
     "skill.json",
     "SKILL.md",
+    "scripts/style-spec-table.js",
     "scripts/extract-template.js",
     "scripts/apply-template.js",
     "scripts/list-templates.js"
   ],
-  "snapshot": "before_task",
-  "source": "server"
+  "snapshot": "before_task"
 }

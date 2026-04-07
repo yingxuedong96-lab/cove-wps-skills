@@ -1,7 +1,7 @@
 ---
 name: templatecreator
 description: >
-  样式模板提取与应用。从A文档提取格式模板，保存为JSON，然后应用到B文档。
+  样式模板提取与应用。基于预定义的样式规范表，从A文档提取格式模板，保存为JSON，然后应用到B文档。
 
   【触发词】提取模板、应用模板、创建模板、样式模板、从文档提取样式
 ---
@@ -10,17 +10,16 @@ description: >
 
 ## 功能说明
 
-本技能用于：
-1. **提取模板**：从排版好的文档（A文档）中提取样式规则，保存为JSON模板
-2. **应用模板**：将保存的模板应用到新文档（B文档），自动格式化
+本技能基于**样式规范表**进行结构化的模板提取与应用：
 
-支持的样式元素：
-- 主标题、一级~五级标题
-- 正文（字体、字号、行距、首行缩进）
-- 图名、表名
-- 列表项（多级缩进）
-- 附录标题、附录节题
-- 页眉页脚、页面设置
+1. **规范表定义**：预先定义公文和论文的所有标签（标签ID+名称）及其属性（字体、字号、缩进等）
+2. **解析匹配**：从文档扫描段落，将格式匹配到规范表的标签
+3. **对话确认**：不确定的格式通过askUser让用户确认，支持"帮我找一下"
+4. **模板应用**：将确认后的模板应用到新文档
+
+**支持的文档类型：**
+- 论文/技术报告：主标题、作者、摘要、关键词、1-5级标题、正文、图表名、参考文献、附录
+- 公文：发文机关、文号、标题、1-3级标题、正文、附件说明、落款
 
 ## 重要规则
 
@@ -34,77 +33,107 @@ description: >
 
 用户请求示例："从当前文档提取样式模板"、"提取排版模板"
 
-#### 步骤1：执行提取脚本
+#### 步骤1：选择文档类型
 
-调用 executeFile 工具：
+调用 executeFile：
 
 ```
 filePath: skills/templatecreator/scripts/extract-template.js
 params: {}
 ```
 
-#### 步骤2：处理提取结果
+脚本返回：
 
-脚本返回结果可能包含：
-
-**情况A：提取成功，无需用户确认**
-```json
-{
-  "success": true,
-  "template": { ... },
-  "message": "已提取X种样式",
-  "templatePath": "templates/xxx.json"
-}
-```
-→ 直接告知用户提取完成
-
-**情况B：检测到不确定的格式，需要用户确认**
 ```json
 {
   "success": true,
   "needUserInput": true,
-  "uncertainFormats": [
-    {"formatKey": "22pt黑体居中", "count": 1, "samples": ["XX报告"]},
-    {"formatKey": "16pt黑体左对齐", "count": 5, "samples": ["1 范围", "2 设计"]}
-  ],
-  "question": "检测到多种大字号格式，请确认哪个是主标题？"
+  "stage": "selectDocType",
+  "question": "请选择文档类型，以便使用对应的样式规范表：",
+  "options": ["论文/技术报告", "公文"]
 }
 ```
-→ **调用 askUser 工具询问用户**
 
-#### 步骤3：askUser 调用示例
+→ **调用 askUser 让用户选择**
 
-```
-question: "检测到以下格式，请确认元素类型映射：\n\n1. 22pt黑体居中（1处）：XX报告\n2. 16pt黑体左对齐（5处）：1 范围、2 设计...\n\n请选择主标题对应的格式："
-options: ["22pt黑体居中", "16pt黑体左对齐", "都不是，需要手动指定"]
-allowCustom: true
-```
+#### 步骤2：继续提取
 
-#### 步骤4：根据用户回答继续
-
-用户选择后，再次调用 executeFile 传递确认信息：
+用户选择后，再次调用：
 
 ```
 filePath: skills/templatecreator/scripts/extract-template.js
-params: {"confirmMapping": {"docTitle": "22pt黑体居中", "heading1": "16pt黑体左对齐"}}
+params: {"docType": "论文/技术报告"}
+```
+
+#### 步骤3：确认未匹配格式（如有）
+
+脚本可能返回：
+
+```json
+{
+  "success": true,
+  "needUserInput": true,
+  "stage": "confirmUnmatched",
+  "unmatchedFormats": [
+    {"formatSignature": "22pt黑体加粗居中", "count": 1, "samples": ["XX系统报告"]}
+  ],
+  "availableTags": [...],
+  "question": "检测到以下格式未能自动识别，请帮助确认..."
+}
+```
+
+→ **调用 askUser**
+
+用户可能的回复：
+- 直接指定："22pt黑体加粗居中 是 主标题"
+- 请求帮助："帮我找一下类似的格式"
+
+#### 步骤4：处理"帮我找一下"
+
+当用户说"帮我找一下"时：
+
+**LLM应当**：在当前文档中搜索类似格式的段落，提供更多示例帮助用户判断
+
+可以再次调用脚本搜索：
+
+```
+filePath: skills/templatecreator/scripts/extract-template.js
+params: {"docType": "论文", "searchFormat": "22pt黑体加粗居中"}
+```
+
+#### 步骤5：生成模板
+
+用户确认后：
+
+```
+filePath: skills/templatecreator/scripts/extract-template.js
+params: {"docType": "论文", "confirmMapping": {"22pt黑体加粗居中": "docTitle"}}
+```
+
+返回：
+
+```json
+{
+  "success": true,
+  "template": {...},
+  "matchedStyles": "主标题(1处), 一级标题(5处), 正文(150处)",
+  "message": "已提取10种样式",
+  "templatePath": "templates/模板_paper_20260407.json"
+}
 ```
 
 ---
 
 ### 场景2：应用模板
 
-用户请求示例："把模板应用到当前文档"、"用xxx模板格式化"
+用户请求："把模板应用到当前文档"、"用xxx模板格式化"
 
-#### 步骤1：列出可用模板（如用户未指定）
-
-调用 executeFile：
+#### 步骤1：列出可用模板
 
 ```
 filePath: skills/templatecreator/scripts/list-templates.js
 params: {}
 ```
-
-返回可用模板列表，让用户选择。
 
 #### 步骤2：应用模板
 
@@ -113,131 +142,103 @@ filePath: skills/templatecreator/scripts/apply-template.js
 params: {"templateName": "中航机载报告模板"}
 ```
 
-或使用模板路径：
-
-```
-params: {"templatePath": "templates/中航机载.json"}
-```
-
-#### 步骤3：处理应用结果
-
-脚本返回应用统计：
-
-```json
-{
-  "success": true,
-  "applied": {
-    "docTitle": 1,
-    "heading1": 5,
-    "heading2": 12,
-    "body": 150
-  },
-  "message": "已应用模板，共处理168个段落"
-}
-```
-
 ---
 
 ### 场景3：提取并立即应用
 
 用户请求："用A文档的样式格式化B文档"
 
-#### 步骤1：确认文档
-
-使用 askUser 确认：
-
-```
-question: "请确认操作流程：\n1. 当前打开的文档是A文档（样式源）还是B文档（待格式化）？"
-options: ["当前是A文档，我将打开B文档后继续", "当前是B文档，请先打开A文档提取样式"]
-```
-
-#### 步骤2：按场景1提取模板
-
-#### 步骤3：用户切换到B文档后，按场景2应用模板
+使用 askUser 确认流程，先提取A文档模板，再应用到B文档。
 
 ---
 
-## 模板JSON结构参考
+## 样式规范表结构
 
-```json
+### 论文报告样式标签（共20个）
+
+| 标签ID | 名称 | 检测提示 | 默认属性 |
+|--------|------|----------|----------|
+| docTitle | 论文标题 | 首段大字居中 | 22pt黑体加粗居中 |
+| heading1 | 一级标题 | 数字开头如'1 引言' | 16pt黑体加粗 |
+| heading2 | 二级标题 | 如'1.1 背景' | 15pt黑体加粗 |
+| heading3 | 三级标题 | 如'1.1.1' | 14pt黑体加粗 |
+| heading4 | 四级标题 | 如'1.1.1.1' | 12pt黑体加粗 |
+| heading5 | 五级标题 | 如'1.1.1.1.1' | 12pt黑体加粗 |
+| body | 正文 | 默认类型 | 12pt宋体两端缩进2字符 |
+| figureCaption | 图名 | '图'开头 | 9pt黑体居中 |
+| tableCaption | 表名 | '表'开头 | 9pt黑体居中 |
+| listItem | 列表项 | 列表符号 | 12pt宋体 |
+| reference | 参考文献 | 文献编号 | 10.5pt宋体悬挂缩进 |
+| referenceTitle | 参考文献标题 | '参考文献' | 14pt黑体居中加粗 |
+| abstractTitle | 摘要标题 | '摘要' | 14pt黑体居中加粗 |
+| keywords | 关键词 | '关键词' | 10.5pt宋体 |
+| appendixTitle | 附录标题 | '附录' | 16pt黑体居中加粗 |
+| appendixSection | 附录节题 | 如'A.1' | 14pt黑体加粗 |
+
+### 公文样式标签（共10个）
+
+| 标签ID | 名称 | 检测提示 | 默认属性 |
+|--------|------|----------|----------|
+| docTitle | 公文标题 | 主标题居中大字 | 22pt方正小标宋居中 |
+| docNumber | 发文字号 | 如'国发〔2024〕1号' | 16pt仿宋居中红色 |
+| issuer | 发文机关 | 发文单位名称 | 22pt方正小标宋居中红色 |
+| heading1 | 一级标题 | 汉字数字加顿号'一、' | 16pt黑体 |
+| heading2 | 二级标题 | 括号加汉字'(一)' | 16pt楷体 |
+| heading3 | 三级标题 | 阿拉伯数字加点 | 16pt仿宋加粗 |
+| body | 正文 | 默认类型 | 16pt仿宋两端缩进2字符 |
+| attachment | 附件说明 | '附件'开头 | 16pt仿宋 |
+| signature | 落款 | 右下方署名 | 16pt仿宋右齐 |
+
+### 属性定义
+
+每个标签包含以下属性（根据类型可选）：
+
+```javascript
 {
-  "name": "中航机载报告模板",
-  "version": "1.0",
-  "extractedFrom": "样式提取.docx",
-  "styles": [
-    {
-      "type": "docTitle",
-      "name": "主标题",
-      "detect": {"pattern": "firstNonEmpty", "description": "第一个非空段落"},
-      "format": {
-        "fontCN": "黑体",
-        "fontSize": 22,
-        "bold": true,
-        "alignment": "center"
-      }
-    },
-    {
-      "type": "heading1",
-      "name": "一级标题",
-      "detect": {"pattern": "^\\d+\\s", "description": "数字开头如 1 范围"},
-      "format": {
-        "fontCN": "黑体",
-        "fontSize": 16,
-        "bold": true,
-        "alignment": "left",
-        "outlineLevel": 1
-      }
-    },
-    {
-      "type": "body",
-      "name": "正文",
-      "detect": {"pattern": "default", "description": "默认段落"},
-      "format": {
-        "fontCN": "宋体",
-        "fontSize": 12,
-        "alignment": "justify",
-        "firstLineIndent": 24,
-        "lineSpacing": 22
-      }
-    }
-  ],
-  "pageSetup": {
-    "topMargin": 71,
-    "bottomMargin": 71,
-    "leftMargin": 71,
-    "rightMargin": 71
-  }
+  fontCN: "中文字体",
+  fontEN: "英文字体",
+  fontSize: 22,          // pt
+  bold: true,            // boolean
+  italic: false,
+  color: "auto",         // 或 "red"
+  alignment: "center",   // left/center/right/justify
+  firstLineIndent: 2,    // 字符数
+  leftIndent: 0,
+  hangingIndent: 0,      // 悬挂缩进
+  lineSpacing: 28,       // pt
+  spaceBefore: 12,       // pt
+  spaceAfter: 6          // pt
 }
 ```
 
-## 错误处理
+---
 
-- 如果没有打开文档，脚本返回 `{"success": false, "error": "没有打开的文档"}`
-- 如果模板不存在，返回 `{"success": false, "error": "模板不存在: xxx"}`
-- 如果文档结构无法识别，返回 `needUserInput: true` 请求用户确认
-
-## 示例对话
+## 对话示例
 
 **用户**：从当前文档提取样式模板
 
-**你**：好的，我来提取样式模板。[调用 executeFile: extract-template.js]
+**你**：[executeFile: extract-template.js]
 
-**工具返回**：
-```json
-{
-  "success": true,
-  "needUserInput": true,
-  "uncertainFormats": [...],
-  "question": "检测到多种格式，请确认..."
-}
-```
+**返回**：`{"needUserInput": true, "stage": "selectDocType", "options": ["论文/技术报告", "公文"]}`
 
-**你**：[调用 askUser] 检测到以下格式，请确认主标题是哪个...
+**你**：[askUser] 请选择文档类型...
 
-**用户选择**：22pt黑体居中
+**用户**：论文/技术报告
 
-**你**：[调用 executeFile: extract-template.js, params: {confirmMapping: {...}}]
+**你**：[executeFile: extract-template.js, params: {docType: "论文/技术报告"}]
 
-**工具返回**：`{"success": true, "templatePath": "templates/模板_20260407.json"}`
+**返回**：`{"needUserInput": true, "stage": "confirmUnmatched", "unmatchedFormats": [{"formatSignature": "22pt黑体加粗居中", ...}]}`
 
-**你**：样式模板已提取并保存，包含5种标题样式和正文样式。模板保存在：templates/模板_20260407.json
+**你**：[askUser] 检测到22pt黑体加粗居中格式未识别，请确认它属于哪种标签？
+
+**用户**：帮我找一下类似的格式
+
+**你**：让我在文档中搜索更多示例... 发现该格式出现在文档开头"XX系统报告"，这通常是主标题的位置。建议映射为"论文标题"。
+
+**用户**：好的，是论文标题
+
+**你**：[executeFile: extract-template.js, params: {docType: "论文", confirmMapping: {"22pt黑体加粗居中": "docTitle"}}]
+
+**返回**：`{"success": true, "message": "已提取10种样式"}`
+
+**你**：样式模板已提取完成！包含：论文标题(1处)、一级标题(5处)、正文(150处)等。模板保存在 templates/模板_paper_20260407.json

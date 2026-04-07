@@ -28,30 +28,30 @@ try {
 
   // 当前活跃的各级编号状态
   var state = { ch: 0, sec: 0, sub: 0, item: 0, subItem: 0 };
-  var appState = { letter: '', l1: 0, l2: 0, l3: 0 };
+  var appState = { letter: '', letterIndex: 0, l1: 0, l2: 0, l3: 0 };
   var inAppendix = false;
 
   for (var i = 0; i < paras.length; i++) {
     var text = cleanText(paras[i]);
     if (!text) continue;
 
-    // 检测附录
-    var appMatch = text.match(/^附\s*录\s*([A-Z])[\s　]*(.*)$/i);
+    // 检测附录（支持字母和中文数字）
+    var appMatch = text.match(/^附\s*录\s*([A-Z一二三四五六七八九十]+)[\s　]*(.*)$/i);
     if (appMatch) {
       inAppendix = true;
       appState.l1 = 0;
       appState.l2 = 0;
       appState.l3 = 0;
-      // 按出现顺序重排字母
-      var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-      var usedLetters = {};
-      for (var j = 0; j < plans.length; j++) {
-        var m = plans[j].newText.match(/^附录 ([A-Z])/);
-        if (m) usedLetters[m[1]] = true;
-      }
+      // 按出现顺序重排
+      appState.letterIndex++;
       var newLetter = '';
-      for (var k = 0; k < letters.length; k++) {
-        if (!usedLetters[letters[k]]) { newLetter = letters[k]; break; }
+      if (/[A-Z]/.test(appMatch[1])) {
+        // 原文是字母，按顺序重排字母
+        var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        newLetter = letters.charAt((appState.letterIndex - 1) % 26);
+      } else {
+        // 原文是中文数字，按顺序重排中文数字
+        newLetter = num2cn[appState.letterIndex] || appState.letterIndex;
       }
       appState.letter = newLetter;
       counts.headings++;

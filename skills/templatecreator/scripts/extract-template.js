@@ -346,10 +346,32 @@
     rightMargin: `${template.pageSetup.rightMargin.toFixed(2)}cm`
   };
 
+  // 生成用户可读的详细展示信息
+  const displayMessage = `✅ 样式模板提取完成！
+
+📄 源文档：${DOC.Name}
+📁 模板保存：${fullTemplatePath}
+
+📋 提取结果（共 ${template.styles.length} 种样式，${paragraphs.Count} 个段落）：
+
+${template.styles.map(s => {
+  const detail = formatStyleDetail(s);
+  return `【${s.name}】${s.count}处\n   ${detail}`;
+}).join('\n\n')}
+
+📐 页面设置：
+- 纸张：A4
+- 上边距：${pageSetupInfo.topMargin} | 下边距：${pageSetupInfo.bottomMargin}
+- 左边距：${pageSetupInfo.leftMargin} | 右边距：${pageSetupInfo.rightMargin}
+
+💡 可使用"应用模板"将此模板应用到其他文档`;
+
   return JSON.stringify({
     success: true,
+    // UI展示用的message
+    message: displayMessage,
+    // 详细数据（供LLM或高级用途）
     template: template,
-    // 详细展示信息
     styleDetails: styleDetails,
     pageSetupInfo: pageSetupInfo,
     // 汇总信息

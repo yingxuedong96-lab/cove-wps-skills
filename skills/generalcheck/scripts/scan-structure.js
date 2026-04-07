@@ -154,30 +154,169 @@ try {
     return /^[\u4e00-\u9fa5]/.test(str);
   }
 
+  // ========== 两遍扫描：先识别层级关系，再修正编号 ==========
+  // 第一遍：收集所有附录标题信息
+  var appendixHeadings = [];  // 存储所有附录标题
+
   for (var i = 0; i < totalParas; i++) {
     var text = cleanText(paras[i]);
     if (!text) continue;
 
+    // 检测附录标题
     var appendixMatch = text.match(/^附\s*录\s*([A-Z一二三四五六七八九十]?)[\s　]*(.*)$/i);
     if (appendixMatch && appendixMatch[1]) {
-      appendixIndex++;
-      currentAppendix = appendixLetterFromIndex(appendixIndex);
-      inAppendix = true;
-      resetAppendixCounters();
-      counts.headings++;
-      console.log('[scan] 检测到附录: ' + text + ' → 附录 ' + currentAppendix);
-      if (needHeading) {
-        pushPlan(plans, text, '附录 ' + currentAppendix + (appendixMatch[2] ? ' ' + appendixMatch[2] : ''), 'N-007');
-      }
+      appendixHeadings.push({
+        text: text,
+        type: 'appendix',
+        origLetter: appendixMatch[1].toUpperCase(),
+        title: appendixMatch[2]
+      });
       continue;
     }
 
-    if (inAppendix) {
-      var appendixChapterMatch = text.match(/^第([一二三四五六七八九十]+)章\s*(.*)$/);
-      if (appendixChapterMatch) {
-        inAppendix = false;
+    // 检测附录内标题（只有 heading scope 才收集）
+    if (needHeading && appendixHeadings.length > 0) {
+      // 一级标题 A.1 或 A1
+      var appM1 = text.match(/^([A-Z])\.?(\d+)\s+([^\d].*)$/);
+      if (appM1 && text.indexOf('表') !== 0 && text.indexOf('图') !== 0 && isChineseTitle(appM1[3])) {
+        appendixHeadings.push({
+          text: text,
+          type: 'level1',
+          origLetter: appM1[1].toUpperCase(),
+          origNum: parseInt(appM1[2], 10),
+          title: appM1[3]
+        });
+        continue;
+      }
+
+      // 二级标题 A.1.1
+      var appM2 = text.match(/^([A-Z])\.?(\d+)\.(\d+)\s+(.+)$/);
+      if (appM2 && text.indexOf('表') !== 0 && text.indexOf('图') !== 0 && isChineseTitle(appM2[4])) {
+        appendixHeadings.push({
+          text: text,
+          type: 'level2',
+          origLetter: appM2[1].toUpperCase(),
+          origLevel1: parseInt(appM2[2], 10),
+          origLevel2: parseInt(appM2[3], 10),
+          title: appM2[4]
+        });
+        continue;
+      }
+
+      // 三级标题 A.1.1.1
+      var appM3 = text.match(/^([A-Z])\.?(\d+)\.(\d+)\.(\d+)\s+(.+)$/);
+      if (appM3 && isChineseTitle(appM3[5])) {
+        appendixHeadings.push({
+          text: text,
+          type: 'level3',
+          origLetter: appM3[1].toUpperCase(),
+          origLevel1: parseInt(appM3[2], 10),
+          origLevel2: parseInt(appM3[3], 10),
+          origLevel3: parseInt(appM3[4], 10),
+          title: appM3[5]
+        });
+        continue;
       }
     }
+  }
+
+  // 第二遍：建立映射关系并生成修正计划
+  var appendixLetterMap = {};  // 原字母 -> 新字母
+  var appendixLevel1Map = {};  // 原字母.原一级 -> 新一级
+  var appendixLevel2Map = {};  // 原字母.原一级.原二级 -> 新二级
+
+  var newLetterIdx = 0;
+  var currentLetter = '';
+
+  for (var j = 0; j < appendixHeadings.length; j++) {
+    var h = appendixHeadings[j];
+
+    if (h.type === 'appendix') {
+      // 附录标题
+      newLetterIdx++;
+      currentLetter = String.fromCharCode(64 + newLetterIdx);
+      appendixLetterMap[h.origLetter] = currentLetter;
+
+      var newTitle = '附录 ' + currentLetter + (h.title ? ' ' + h.title : '');
+      if (h.text !== newTitle) {
+        console.log('[scan] 附录: ' + h.text + ' → ' + newTitle);
+        pushPlan(plans, h.text, newTitle, 'N-007');
+      }
+      counts.headings++;
+    }
+    else if (h.type === 'level1') {
+      // 一级标题：按顺序重排
+      var newLetter = appendixLetterMap[h.origLetter] || currentLetter;
+      if (!appendixLevel1Map[h.origLetter]) appendixLevel1Map[h.origLetter] = {};
+      var existing = appendixLevel1Map[h.origLetter][h.origNum];
+      if (!existing) {
+        // 新编号
+        var newNum = Object.keys(appendixLevel1Map[h.origLetter]).length + 1;
+        appendixLevel1Map[h.origLetter][h.origNum] = newNum;
+      }
+      var finalNum = appendixLevel1Map[h.origLetter][h.origNum];
+      var newText = newLetter + '.' + finalNum + ' ' + h.title;
+
+      if (h.text !== newText) {
+        console.log('[scan] 附录一级: ' + h.text + ' → ' + newText);
+        pushPlan(plans, h.text, newText, 'N-007');
+      }
+      counts.headings++;
+    }
+    else if (h.type === 'level2') {
+      // 二级标题：跟随一级标题映射
+      var newLetter = appendixLetterMap[h.origLetter] || currentLetter;
+      var mappedLevel1 = appendixLevel1Map[h.origLetter] && appendixLevel1Map[h.origLetter][h.origLevel1];
+      var parentLevel1 = mappedLevel1 || h.origLevel1;  // 如果父级有映射则用映射，否则保持原编号
+
+      // 建立二级映射
+      var level2Key = h.origLetter + '.' + h.origLevel1;
+      if (!appendixLevel2Map[level2Key]) appendixLevel2Map[level2Key] = {};
+      if (!appendixLevel2Map[level2Key][h.origLevel2]) {
+        var newLevel2 = Object.keys(appendixLevel2Map[level2Key]).length + 1;
+        appendixLevel2Map[level2Key][h.origLevel2] = newLevel2;
+      }
+      var finalLevel2 = appendixLevel2Map[level2Key][h.origLevel2];
+
+      var newText = newLetter + '.' + parentLevel1 + '.' + finalLevel2 + ' ' + h.title;
+      if (h.text !== newText) {
+        console.log('[scan] 附录二级: ' + h.text + ' → ' + newText);
+        pushPlan(plans, h.text, newText, 'N-007');
+      }
+      counts.headings++;
+    }
+    else if (h.type === 'level3') {
+      // 三级标题：跟随上级映射
+      var newLetter = appendixLetterMap[h.origLetter] || currentLetter;
+      var mappedLevel1 = appendixLevel1Map[h.origLetter] && appendixLevel1Map[h.origLetter][h.origLevel1];
+      var parentLevel1 = mappedLevel1 || h.origLevel1;
+
+      var level2Key = h.origLetter + '.' + h.origLevel1;
+      var mappedLevel2 = appendixLevel2Map[level2Key] && appendixLevel2Map[level2Key][h.origLevel2];
+      var parentLevel2 = mappedLevel2 || h.origLevel2;
+
+      // 三级按顺序重排
+      var level3Key = level2Key + '.' + h.origLevel2;
+      if (!appendixLevel2Map[level3Key]) appendixLevel2Map[level3Key] = {};
+      if (!appendixLevel2Map[level3Key][h.origLevel3]) {
+        var newLevel3 = Object.keys(appendixLevel2Map[level3Key]).length + 1;
+        appendixLevel2Map[level3Key][h.origLevel3] = newLevel3;
+      }
+      var finalLevel3 = appendixLevel2Map[level3Key][h.origLevel3];
+
+      var newText = newLetter + '.' + parentLevel1 + '.' + parentLevel2 + '.' + finalLevel3 + ' ' + h.title;
+      if (h.text !== newText) {
+        console.log('[scan] 附录三级: ' + h.text + ' → ' + newText);
+        pushPlan(plans, h.text, newText, 'N-007');
+      }
+      counts.headings++;
+    }
+  }
+
+  // ========== 处理正文标题 ==========
+  for (var i = 0; i < totalParas; i++) {
+    var text = cleanText(paras[i]);
+    if (!text) continue;
 
     var m1 = text.match(/^第([一二三四五六七八九十]+)章\s*(.*)$/);
     if (m1) {
@@ -216,80 +355,6 @@ try {
           pushPlan(plans, text, expectedChapter + ' ' + m1num[2], 'N-002');
         }
         continue;
-      }
-    }
-
-    if (inAppendix) {
-      // 支持两种格式：A1 标题 或 A.1 标题
-      var appM1 = text.match(/^(?:[A-Z]\.?)?(\d+)\s+([^\d].*)$/);
-      if (appM1 && text.indexOf('表') !== 0 && text.indexOf('图') !== 0 && isChineseTitle(appM1[2])) {
-        appendixTitle1++;
-        appendixTitle2 = 0;
-        appendixTitle3 = 0;
-        counts.headings++;
-        console.log('[scan] 附录一级标题: ' + text + ' → ' + currentAppendix + '.' + appendixTitle1 + ' ' + appM1[2]);
-        if (needHeading) {
-          pushPlan(plans, text, currentAppendix + '.' + appendixTitle1 + ' ' + appM1[2], 'N-007');
-        }
-        continue;
-      }
-
-      var appM2 = text.match(/^(?:[A-Z]\.?)?(\d+)\.(\d+)\s+(.+)$/);
-      if (appM2 && text.indexOf('表') !== 0 && text.indexOf('图') !== 0 && isChineseTitle(appM2[3])) {
-        if (appendixTitle1 <= 0) appendixTitle1 = 1;
-        appendixTitle2++;
-        appendixTitle3 = 0;
-        counts.headings++;
-        console.log('[scan] 附录二级标题: ' + text + ' → ' + currentAppendix + '.' + appendixTitle1 + '.' + appendixTitle2 + ' ' + appM2[3]);
-        if (needHeading) {
-          pushPlan(plans, text, currentAppendix + '.' + appendixTitle1 + '.' + appendixTitle2 + ' ' + appM2[3], 'N-007');
-        }
-        continue;
-      }
-
-      var appM3 = text.match(/^(?:[A-Z]\.?)?(\d+)\.(\d+)\.(\d+)\s+(.+)$/);
-      if (appM3 && isChineseTitle(appM3[4])) {
-        if (appendixTitle1 <= 0) appendixTitle1 = 1;
-        if (appendixTitle2 <= 0) appendixTitle2 = 1;
-        appendixTitle3++;
-        counts.headings++;
-        console.log('[scan] 附录三级标题: ' + text + ' → ' + currentAppendix + '.' + appendixTitle1 + '.' + appendixTitle2 + '.' + appendixTitle3 + ' ' + appM3[4]);
-        if (needHeading) {
-          pushPlan(plans, text, currentAppendix + '.' + appendixTitle1 + '.' + appendixTitle2 + '.' + appendixTitle3 + ' ' + appM3[4], 'N-007');
-        }
-        continue;
-      }
-
-      if (needFigure) {
-        var appFigOld = text.match(/^图\s*(\d+)\s+(.+)$/);
-        var appFigNew = text.match(/^图\s*([A-Z])(\d+)\s+(.+)$/);
-        if (appFigOld || appFigNew) {
-          appendixFigureCounter++;
-          counts.figures++;
-          pushPlan(plans, text, '图' + currentAppendix + appendixFigureCounter + ' ' + (appFigOld ? appFigOld[2] : appFigNew[3]), 'G-001-APP');
-          continue;
-        }
-      }
-
-      if (needTable) {
-        var appTableOld = text.match(/^表\s*(\d+)\s+(.+)$/);
-        var appTableNew = text.match(/^表\s*([A-Z])(\d+)\s+(.+)$/);
-        if (appTableOld || appTableNew) {
-          appendixTableCounter++;
-          counts.tables++;
-          pushPlan(plans, text, '表' + currentAppendix + appendixTableCounter + ' ' + (appTableOld ? appTableOld[2] : appTableNew[3]), 'T-001-APP');
-          continue;
-        }
-      }
-
-      if (needFormula) {
-        var appendixFormulaMatch = text.match(/^(.*?)[\(（]([A-Z]?\d+(?:\.\d+){0,3}(?:\s*[-－—]\s*\d+)*)[\)）]\s*$/);
-        if (appendixFormulaMatch) {
-          appendixFormulaCounter++;
-          counts.formulas++;
-          pushPlan(plans, text, normalizeFormulaSuffix(text) + ' (' + currentAppendix + appendixFormulaCounter + ')', 'E-001-APP');
-          continue;
-        }
       }
     }
 

@@ -981,6 +981,56 @@
   },
   "quickActions": [
     {
+      "name": "提取样式",
+      "prompt": "提取样式",
+      "skillSlugs": [],
+      "executionTrace": {
+        "version": 1,
+        "steps": [
+          {
+            "toolName": "skill",
+            "keyArgs": {
+              "name": "templatecreator"
+            }
+          },
+          {
+            "toolName": "executeFile",
+            "keyArgs": {
+              "filePath": "skills/templatecreator/scripts/extract-template.js",
+              "params": {}
+            }
+          },
+          {
+            "toolName": "askUser",
+            "keyArgs": {
+              "question": "请选择文档类型，以便使用对应的样式规范表：",
+              "options": [
+                "论文/技术报告",
+                "公文"
+              ]
+            }
+          },
+          {
+            "toolName": "executeFile",
+            "keyArgs": {
+              "filePath": "skills/templatecreator/scripts/extract-template.js",
+              "params": {
+                "docType": "论文/技术报告"
+              }
+            }
+          },
+          {
+            "toolName": "confirmEdits",
+            "keyArgs": {
+              "mode": "format"
+            }
+          }
+        ],
+        "capturedAt": 1775575598121
+      },
+      "id": "qa_1775575598122_tu5p"
+    },
+    {
       "name": "根据规则文档中的内容对当前文档进...",
       "prompt": "根据规则文档中的内容对当前文档进行排版",
       "skillSlugs": [],

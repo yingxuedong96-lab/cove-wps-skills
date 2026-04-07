@@ -364,15 +364,54 @@
     };
   });
 
+  // 生成用户可直接阅读的详细信息
+  const detailLines = [];
+  detailLines.push("✅ 样式模板提取完成！");
+  detailLines.push("");
+  detailLines.push(`📄 源文档：${DOC.Name}`);
+  detailLines.push(`📑 类型：${spec.name}`);
+  detailLines.push(`📊 共 ${template.styles.length} 种样式，${paragraphs.Count} 个段落`);
+  detailLines.push("");
+  detailLines.push("## 提取的样式详情");
+  detailLines.push("");
+
+  template.styles.forEach(s => {
+    const fmt = s.format || {};
+    const alignMap = { 0: "左对齐", 1: "居中", 2: "右对齐", 3: "两端对齐" };
+    const lineRuleMap = { 0: "单倍", 1: "最小值", 4: "固定值" };
+
+    detailLines.push(`### ${s.name}（${s.count}处）`);
+    const params = [];
+    if (fmt.fontCN) params.push(`字体: ${fmt.fontCN}`);
+    if (fmt.fontSize) params.push(`字号: ${fmt.fontSize}pt`);
+    if (fmt.bold) params.push("加粗");
+    if (fmt.italic) params.push("斜体");
+    if (fmt.alignment !== undefined) params.push(`对齐: ${alignMap[fmt.alignment] || '未知'}`);
+    if (fmt.firstLineIndent) params.push(`首行缩进: ${fmt.firstLineIndent.toFixed(1)}字符`);
+    if (fmt.leftIndent) params.push(`左缩进: ${fmt.leftIndent.toFixed(1)}字符`);
+    if (fmt.lineSpacing) params.push(`行距: ${fmt.lineSpacing.toFixed(1)}pt`);
+    if (fmt.lineSpacingRule !== undefined) params.push(`行距规则: ${lineRuleMap[fmt.lineSpacingRule] || '自动'}`);
+    if (fmt.spaceBefore) params.push(`段前: ${fmt.spaceBefore.toFixed(1)}pt`);
+    if (fmt.spaceAfter) params.push(`段后: ${fmt.spaceAfter.toFixed(1)}pt`);
+
+    detailLines.push(params.join(" | "));
+    detailLines.push("");
+  });
+
+  detailLines.push("## 页面设置");
+  detailLines.push(`- 纸张: A4`);
+  detailLines.push(`- 上边距: ${pageSetupInfo.topMargin} | 下边距: ${pageSetupInfo.bottomMargin}`);
+  detailLines.push(`- 左边距: ${pageSetupInfo.leftMargin} | 右边距: ${pageSetupInfo.rightMargin}`);
+  detailLines.push("");
+  detailLines.push(`📁 模板文件: ${templateFileName}`);
+
+  const userMessage = detailLines.join("\n");
+
   return JSON.stringify({
     success: true,
 
-    // ===== 核心展示信息 =====
-    title: "样式模板提取完成",
-    docName: DOC.Name,
-    docType: spec.name,
-    totalStyles: template.styles.length,
-    totalParagraphs: paragraphs.Count,
+    // ===== 核心展示信息（必须用message字段，UI只展示这个）=====
+    message: userMessage,
 
     // ===== 详细样式表格 =====
     stylesTable: stylesTable,
@@ -388,7 +427,6 @@
     styleDetails: styleDetails,
 
     // ===== 兼容旧格式 =====
-    message: `已提取${template.styles.length}种样式`,
     template: template
   }, null, 2);
 

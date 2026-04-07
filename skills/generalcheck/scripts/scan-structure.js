@@ -165,6 +165,7 @@ try {
       inAppendix = true;
       resetAppendixCounters();
       counts.headings++;
+      console.log('[scan] 检测到附录: ' + text + ' → 附录 ' + currentAppendix);
       if (needHeading) {
         pushPlan(plans, text, '附录 ' + currentAppendix + (appendixMatch[2] ? ' ' + appendixMatch[2] : ''), 'N-007');
       }
@@ -226,6 +227,7 @@ try {
         appendixTitle2 = 0;
         appendixTitle3 = 0;
         counts.headings++;
+        console.log('[scan] 附录一级标题: ' + text + ' → ' + currentAppendix + appendixTitle1 + ' ' + appM1[2]);
         if (needHeading) {
           pushPlan(plans, text, currentAppendix + appendixTitle1 + ' ' + appM1[2], 'N-007');
         }
@@ -238,6 +240,7 @@ try {
         appendixTitle2++;
         appendixTitle3 = 0;
         counts.headings++;
+        console.log('[scan] 附录二级标题: ' + text + ' → ' + currentAppendix + appendixTitle1 + '.' + appendixTitle2 + ' ' + appM2[3]);
         if (needHeading) {
           pushPlan(plans, text, currentAppendix + appendixTitle1 + '.' + appendixTitle2 + ' ' + appM2[3], 'N-007');
         }
@@ -250,6 +253,7 @@ try {
         if (appendixTitle2 <= 0) appendixTitle2 = 1;
         appendixTitle3++;
         counts.headings++;
+        console.log('[scan] 附录三级标题: ' + text + ' → ' + currentAppendix + appendixTitle1 + '.' + appendixTitle2 + '.' + appendixTitle3 + ' ' + appM3[4]);
         if (needHeading) {
           pushPlan(plans, text, currentAppendix + appendixTitle1 + '.' + appendixTitle2 + '.' + appendixTitle3 + ' ' + appM3[4], 'N-007');
         }

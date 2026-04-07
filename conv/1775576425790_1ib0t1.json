@@ -1,0 +1,84 @@
+[
+  {
+    "id": "1775576425832_b4cautc",
+    "role": "user",
+    "content": "提取样式",
+    "timestamp": 1775576425832,
+    "commandMeta": {
+      "name": "提取样式"
+    }
+  },
+  {
+    "id": "1775576425832_43jy5il",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775576425832,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775576429733_3w7h",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775576429733,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "templatecreator"
+      },
+      "output": "<skill_content name=\"templatecreator\">\n# Skill: templatecreator\n\n---\nname: templatecreator\ndescription: >\n  样式模板提取与应用。基于预定义的样式规范表，从A文档提取格式模板，保存为JSON，然后应用到B文档。\n\n  【触发词】提取模板、应用模板、创建模板、样式模板、从文档提取样式\n---\n\n# 样式模板技能\n\n## 功能说明\n\n本技能基于**样式规范表**进行结构化的模板提取与应用：\n\n1. **规范表定义**：预先定义公文和论文的所有标签（标签ID+名称）及其属性（字体、字号、缩进等）\n2. **解析匹配**：从文档扫描段落，将格式匹配到规范表的标签\n3. **对话确认**：不确定的格式通过askUser让用户确认，支持\"帮我找一下\"\n4. **模板应用**：将确认后的模板应用到新文档\n\n**支持的文档类型：**\n- 论文/技术报告：主标题、作者、摘要、关键词、1-5级标题、正文、图表名、参考文献、附录\n- 公文：发文机关、文号、标题、1-3级标题、正文、附件说明、落款\n\n## 重要规则\n\n**禁止编写或执行任何代码！禁止调用 executeCode！**\n\n只能使用 executeFile 工具调用本技能目录下的脚本文件。\n\n## 执行流程\n\n### 场景1：提取模板\n\n用户请求示例：\"从当前文档提取样式模板\"、\"提取排版模板\"\n\n#### 步骤1：选择文档类型\n\n调用 executeFile：\n\n```\nfilePath: skills/templatecreator/scripts/extract-template.js\nparams: {}\n```\n\n脚本返回：\n\n```json\n{\n  \"success\": true,\n  \"needUserInput\": true,\n  \"stage\": \"selectDocType\",\n  \"question\": \"请选择文档类型，以便使用对应的样式规范表：\",\n  \"options\": [\"论文/技术报告\", \"公文\"]\n}\n```\n\n→ **调用 askUser 让用户选择**\n\n#### 步骤2：继续提取\n\n用户选择后，再次调用：\n\n```\nfilePath: skills/templatecreator/scripts/extract-template.js\nparams: {\"docType\": \"论文/技术报告\"}\n```\n\n#### 步骤3：确认未匹配格式（如有）\n\n脚本可能返回：\n\n```json\n{\n  \"success\": true,\n  \"needUserInput\": true,\n  \"stage\": \"confirmUnmatched\",\n  \"unmatchedFormats\": [\n    {\"formatSignature\": \"22pt黑体加粗居中\", \"count\": 1, \"samples\": [\"XX系统报告\"]}\n  ],\n  \"availableTags\": [...],\n  \"question\": \"检测到以下格式未能自动识别，请帮助确认...\"\n}\n```\n\n→ **调用 askUser**\n\n用户可能的回复：\n- 直接指定：\"22pt黑体加粗居中 是 主标题\"\n- 请求帮助：\"帮我找一下类似的格式\"\n\n#### 步骤4：处理\"帮我找一下\"\n\n当用户说\"帮我找一下\"时：\n\n**LLM应当**：在当前文档中搜索类似格式的段落，提供更多示例帮助用户判断\n\n可以再次调用脚本搜索：\n\n```\nfilePath: skills/templatecreator/scripts/extract-template.js\nparams: {\"docType\": \"论文\", \"searchFormat\": \"22pt黑体加粗居中\"}\n```\n\n#### 步骤5：生成模板\n\n用户确认后：\n\n```\nfilePath: skills/templatecreator/scripts/extract-template.js\nparams: {\"docType\": \"论文\", \"confirmMapping\": {\"22pt黑体加粗居中\": \"docTitle\"}}\n```\n\n返回：\n\n```json\n{\n  \"success\": true,\n  \"template\": {...},\n  \"matchedStyles\": \"主标题(1处), 一级标题(5处), 正文(150处)\",\n  \"message\": \"已提取10种样式\",\n  \"templatePath\": \"templates/模板_paper_20260407.json\"\n}\n```\n\n---\n\n### 场景2：应用模板\n\n用户请求：\"把模板应用到当前文档\"、\"用xxx模板格式化\"\n\n#### 步骤1：列出可用模板\n\n```\nfilePath: skills/templatecreator/scripts/list-templates.js\nparams: {}\n```\n\n#### 步骤2：应用模板\n\n```\nfilePath: skills/templatecreator/scripts/apply-template.js\nparams: {\"templateName\": \"中航机载报告模板\"}\n```\n\n---\n\n### 场景3：提取并立即应用\n\n用户请求：\"用A文档的样式格式化B文档\"\n\n使用 askUser 确认流程，先提取A文档模板，再应用到B文档。\n\n---\n\n## 样式规范表结构\n\n### 论文报告样式标签（共20个）\n\n| 标签ID | 名称 | 检测提示 | 默认属性 |\n|--------|------|----------|----------|\n| docTitle | 论文标题 | 首段大字居中 | 22pt黑体加粗居中 |\n| heading1 | 一级标题 | 数字开头如'1 引言' | 16pt黑体加粗 |\n| heading2 | 二级标题 | 如'1.1 背景' | 15pt黑体加粗 |\n| heading3 | 三级标题 | 如'1.1.1' | 14pt黑体加粗 |\n| heading4 | 四级标题 | 如'1.1.1.1' | 12pt黑体加粗 |\n| heading5 | 五级标题 | 如'1.1.1.1.1' | 12pt黑体加粗 |\n| body | 正文 | 默认类型 | 12pt宋体两端缩进2字符 |\n| figureCaption | 图名 | '图'开头 | 9pt黑体居中 |\n| tableCaption | 表名 | '表'开头 | 9pt黑体居中 |\n| listItem | 列表项 | 列表符号 | 12pt宋体 |\n| reference | 参考文献 | 文献编号 | 10.5pt宋体悬挂缩进 |\n| referenceTitle | 参考文献标题 | '参考文献' | 14pt黑体居中加粗 |\n| abstractTitle | 摘要标题 | '摘要' | 14pt黑体居中加粗 |\n| keywords | 关键词 | '关键词' | 10.5pt宋体 |\n| appendixTitle | 附录标题 | '附录' | 16pt黑体居中加粗 |\n| appendixSection | 附录节题 | 如'A.1' | 14pt黑体加粗 |\n\n### 公文样式标签（共10个）\n\n| 标签ID | 名称 | 检测提示 | 默认属性 |\n|--------|------|----------|----------|\n| docTitle | 公文标题 | 主标题居中大字 | 22pt方正小标宋居中 |\n| docNumber | 发文字号 | 如'国发〔2024〕1号' | 16pt仿宋居中红色 |\n| issuer | 发文机关 | 发文单位名称 | 22pt方正小标宋居中红色 |\n| heading1 | 一级标题 | 汉字数字加顿号'一、' | 16pt黑体 |\n| heading2 | 二级标题 | 括号加汉字'(一)' | 16pt楷体 |\n| heading3 | 三级标题 | 阿拉伯数字加点 | 16pt仿宋加粗 |\n| body | 正文 | 默认类型 | 16pt仿宋两端缩进2字符 |\n| attachment | 附件说明 | '附件'开头 | 16pt仿宋 |\n| signature | 落款 | 右下方署名 | 16pt仿宋右齐 |\n\n### 属性定义\n\n每个标签包含以下属性（根据类型可选）：\n\n```javascript\n{\n  fontCN: \"中文字体\",\n  fontEN: \"英文字体\",\n  fontSize: 22,          // pt\n  bold: true,            // boolean\n  italic: false,\n  color: \"auto\",         // 或 \"red\"\n  alignment: \"center\",   // left/center/right/justify\n  firstLineIndent: 2,    // 字符数\n  leftIndent: 0,\n  hangingIndent: 0,      // 悬挂缩进\n  lineSpacing: 28,       // pt\n  spaceBefore: 12,       // pt\n  spaceAfter: 6          // pt\n}\n```\n\n---\n\n## 对话示例\n\n**用户**：从当前文档提取样式模板\n\n**你**：[executeFile: extract-template.js]\n\n**返回**：`{\"needUserInput\": true, \"stage\": \"selectDocType\", \"options\": [\"论文/技术报告\", \"公文\"]}`\n\n**你**：[askUser] 请选择文档类型...\n\n**用户**：论文/技术报告\n\n**你**：[executeFile: extract-template.js, params: {docType: \"论文/技术报告\"}]\n\n**返回**：`{\"needUserInput\": true, \"stage\": \"confirmUnmatched\", \"unmatchedFormats\": [{\"formatSignature\": \"22pt黑体加粗居中\", ...}]}`\n\n**你**：[askUser] 检测到22pt黑体加粗居中格式未识别，请确认它属于哪种标签？\n\n**用户**：帮我找一下类似的格式\n\n**你**：让我在文档中搜索更多示例... 发现该格式出现在文档开头\"XX系统报告\"，这通常是主标题的位置。建议映射为\"论文标题\"。\n\n**用户**：好的，是论文标题\n\n**你**：[executeFile: extract-template.js, params: {docType: \"论文\", confirmMapping: {\"22pt黑体加粗居中\": \"docTitle\"}}]\n\n**返回**：`{\"success\": true, \"message\": \"已提取10种样式\"}`\n\n**你**：样式模板已提取完成！包含：论文标题(1处)、一级标题(5处)、正文(150处)等。模板保存在 templates/模板_paper_20260407.json\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/templatecreator/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 17
+    }
+  },
+  {
+    "id": "1775576431509_z1camhp",
+    "role": "assistant",
+    "content": "根据技能说明，我将按照标准流程从当前文档提取样式模板。\n\n首先执行模板提取脚本：\n\n",
+    "timestamp": 1775576431509,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775576431947_i6ip",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775576431947,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/templatecreator/scripts/extract-template.js",
+        "params": {}
+      },
+      "output": "[ExecutionError] [executeFile] Script execution failed (skills/templatecreator/scripts/extract-template.js): Identifier 'templateFileName' has already been declared",
+      "durationMs": 20
+    }
+  },
+  {
+    "id": "1775576434554_jf9ysel",
+    "role": "assistant",
+    "content": "脚本执行出错，我将直接为您提取样式模板。让我先读取文档内容来分析样式结构：\n\n",
+    "timestamp": 1775576434554,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775576434982_580n",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775576434982,
+    "toolCall": {
+      "toolName": "getDocumentParagraphs",
+      "input": {
+        "scope": "document",
+        "page": 1,
+        "pageSize": 25
+      },
+      "output": "共 85 个段落,其中 0 个空行已忽略，显示第 1 页（每页 25 条）：\n\n[pid_1013826000] XX系统XXX报告\n[pid_1056097824] 1 范围\n[pid_506213746] 本报告规定了XX系统的设计要求、技术指标及验收标准。本报告适用于XX系统的研制、生产及验收过程。\n[pid_66520656] 1.1 术语和定义\n[pid_950710285] 下列术语和定义适用于本报告。系统指由若干相互关联的组成部分构成的、具有特定功能的整体。\n[pid_2116110844] 1.1.1 系统组成\n[pid_727666180] 系统由硬件、软件及接口三部分组成。硬件包括处理单元、存储单元及通信单元；软件包括系统软件及应用软件。\n[pid_1874736896] 1.1.1.1 硬件组成\n[pid_1004415393] 硬件是系统的物理基础，主要包括处理器、存储器、输入输出接口等。\n[pid_1523338653] 1.1.1.1.1 处理器规格\n[pid_430895665] 处理器应满足以下技术指标要求：\n[pid_622618869] 技术要求：\n[pid_46122413] 主频不低于2.0GHz；\n[pid_1771051554] 内存容量不小于8GB：\n[pid_1917313036] DDR4类型；\n[pid_442488401] 频率2666MHz以上；\n[pid_134118273] 存储容量不小于256GB。\n[pid_1588843240] /\n[pid_348766766] 图 1 系统架构示意图\n[pid_989306134] 表 1 系统技术指标\n[pid_1994999234] 指标名称\u0007\n[pid_1483503970] 指标要求\u0007\n[pid_1882001631] 备注\u0007\n[pid_106167883] \u0007\n[pid_42077141] 处理能力\u0007\n\n... 还有 60 个段落，请使用 page:2 继续翻页",
+      "durationMs": 14
+    }
+  },
+  {
+    "id": "1775576437264_pgkr5fi",
+    "role": "assistant",
+    "content": "根据文档内容分析，这是一份**技术报告/论文类文档**，包含以下典型结构：\n\n## 文档样式分析结果\n\n### 1. **主标题**\n- 内容：`XX系统XXX报告`\n- 特征：首段、大字居中（推测）\n\n### 2. **多级标题体系**\n- **一级标题**：`1 范围`\n- **二级标题**：`1.1 术语和定义`\n- **三级标题**：`1.1.1 系统组成`\n- **四级标题**：`1.1.1.1 硬件组成`\n- **五级标题**：`1.1.1.1.1 处理器规格`\n\n### 3. **正文段落**\n- 如：`本报告规定了 XX 系统的设计要求...`\n- 如：`下列术语和定义适用于本报告...`\n\n### 4. **图表元素**\n- **图名**：`图 1 系统架构示意图`\n- **表名**：`表 1 系统技术指标`\n- **表格内容**：包含指标名称、指标要求、备注等列\n\n### 5. **列表项**\n- 技术要求列表：`主频不低于 2.0GHz；`、`内存容量不小于 8GB：` 等\n\n---\n\n## 建议提取的样式标签\n\n基于上述分析，该文档符合**论文/技术报告**类型，可提取以下样式：\n\n| 标签 ID | 对应内容示例 | 数量预估 |\n|--------|-------------|---------|\n| docTitle | XX 系统 XXX 报告 | 1 |\n| heading1 | 1 范围 | 若干 |\n| heading2 | 1.1 术语和定义 | 若干 |\n| heading3 | 1.1.1 系统组成 | 若干 |\n| heading4 | 1.1.1.1 硬件组成 | 若干 |\n| heading5 | 1.1.1.1.1 处理器规格 | 若干 |\n| body | 本报告规定了... | 多数段落 |\n| figureCaption | 图 1 系统架构示意图 | 若干 |\n| tableCaption | 表 1 系统技术指标 | 若干 |\n| listItem | 主频不低于 2.0GHz； | 若干 |\n\n---\n\n由于脚本执行出现错误（变量重复声明），无法自动完成模板提取。但根据文档结构分析，**该文档属于\"论文/技术报告\"类型**，如需手动提取样式模板，建议选择此类型进行后续操作。",
+    "timestamp": 1775576437264,
+    "streaming": false
+  }
+]

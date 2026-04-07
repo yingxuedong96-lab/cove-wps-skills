@@ -347,7 +347,6 @@
   };
 
   // 尝试保存模板文件
-  const templateFileName = `模板_${docType}_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.json`;
   const templateJsonString = JSON.stringify(template, null, 2);
 
   // 生成详细的样式表格（供UI展示）
@@ -371,7 +370,7 @@
     // ===== 核心展示信息 =====
     title: "样式模板提取完成",
     docName: DOC.Name,
-    docType: docTypeName,
+    docType: spec.name,
     totalStyles: template.styles.length,
     totalParagraphs: paragraphs.Count,
 

@@ -1,0 +1,47 @@
+{
+  "_note": "steps 配置当前不会被框架自动执行，需在 SKILL.md 中写明手动步骤让 LLM 执行",
+  "description": "技术报告语义检查。对中文技术报告(.docx)进行 LLM 语义分析，检查术语一致性、模糊引用、图表引用完整性、繁体字等问题，并添加批注。触发词：语义检查、深度检查、对全文进行语义检查、语义分析。",
+  "emoji": "🔍",
+  "files": [
+    "skill.json",
+    "SKILL.md",
+    "prompts/semantic-check.md",
+    "scripts/get-document-content.js",
+    "scripts/semantic-check.js"
+  ],
+  "name": "zsLLM",
+  "resources": [
+    "prompts/semantic-check.md"
+  ],
+  "snapshot": "before_task",
+  "source": "server",
+  "steps": [
+    {
+      "id": "read_document",
+      "input": {
+        "maxLength": 15000
+      },
+      "output": "doc_content",
+      "script": "get-document-content.js",
+      "tool": "executeFile"
+    },
+    {
+      "id": "llm_analysis",
+      "input": {
+        "content": "$doc_content.content"
+      },
+      "output": "issues",
+      "then_llm": "semantic-check.md"
+    },
+    {
+      "id": "apply_comments",
+      "input": {
+        "issues": "$issues"
+      },
+      "output": "result",
+      "script": "semantic-check.js",
+      "tool": "executeFile"
+    }
+  ],
+  "version": "26.0327.1341"
+}

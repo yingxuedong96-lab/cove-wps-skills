@@ -1,0 +1,27 @@
+[
+  {
+    "id": "1775191676938_k8oayt0",
+    "role": "user",
+    "content": "根据规则文档中的内容对当前文档进行排版",
+    "timestamp": 1775191676938,
+    "attachments": [
+      {
+        "fileName": "规则.docx",
+        "filePath": "/Users/cassia/Desktop/dyx/wpsjs/3. 中水设计文档校排/规则.docx",
+        "fileType": "writer",
+        "contentPreview": "",
+        "source": "linked"
+      }
+    ],
+    "commandMeta": {
+      "name": "根据规则文档中的内容对当前文档进..."
+    }
+  },
+  {
+    "id": "1775191676938_njwrsns",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775191676938,
+    "streaming": false
+  }
+]

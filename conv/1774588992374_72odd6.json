@@ -1,0 +1,15 @@
+[
+  {
+    "id": "1774588992402_uvavm1t",
+    "role": "user",
+    "content": "技术报告LLM语义校对：对全文进行语义检查。利用大语言模型（LLM）对全文进行全量批注提醒，重点核查术语一致性、模糊引用、图表引用完整性及繁体字使用情况。",
+    "timestamp": 1774588992402
+  },
+  {
+    "id": "1774588992402_2skde8f",
+    "role": "assistant",
+    "content": "[错误] Failed to fetch",
+    "timestamp": 1774588992402,
+    "streaming": false
+  }
+]

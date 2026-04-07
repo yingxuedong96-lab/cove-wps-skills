@@ -1,0 +1,1444 @@
+[
+  {
+    "id": "1774636883011_hl5qbij",
+    "role": "user",
+    "content": "根据设计院编制规范对文档进行数值格式规范校对。去除温度单位的冗余符号、小数前补零、统一使用波浪号（～）表示范围并确保单位和幂次在每个数值后重复书写、尺寸数据需逐项标注单位，以及分数和比例应采用标准数学记号。",
+    "timestamp": 1774636883011
+  },
+  {
+    "id": "1774636883012_9xtyn9v",
+    "role": "assistant",
+    "content": "<think>用户需要对文档进行数值格式规范校对，这属于技术报告文档校对任务。查看可用技能，zslong 技能专门用于\"技术报告文档校对与格式修正\"，其触发词包括\"校对数值\"、\"校对标点\"等，正好匹配用户需求。\n\n我应该先调用 skill 工具获取 zslong 的详细使用指南，了解如何执行这个任务。</think>",
+    "timestamp": 1774636883012,
+    "streaming": false
+  },
+  {
+    "id": "tool_1774636887432_ygcd",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1774636887432,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "zslong"
+      },
+      "output": "<skill_content name=\"zslong\">\n# Skill: zslong\n\n---\nname: zslong\ndescription: >\n  技术报告文档校对。按照设计文档编制规范，\n  对中文技术报告(.docx)进行自动校对与格式修正。\n\n  支持全文校对排版、编号校对、内容规范校对、格式规范排版等场景。\n  快速触发词与 scope 的唯一对照以正文\"快速模式（单一元素）\"总表为准。\n---\n\n# 技术报告校对\n\n## ⚠️ 第一优先级：判断执行模式\n\n**按以下顺序判断：**\n\n### 1. 全文校对排版模式\n\n用户输入包含\"全文校对排版\"、\"对全文进行校对排版\"、\"校对并排版全文\"、\"全文校对并排版\"时：\n\n```\nexecuteFile:\n  filePath: \"skills/zslong/scripts/run-all-checks.js\"\n  params: { \"fixMode\": \"aggressive\", \"isSelection\": false, \"scope\": \"full_proofread\" }\n```\n\n**⚠️ 此模式按顺序执行：编号校对 → 内容校对 → 格式排版，确保编号正确后再处理后续内容。**\n\n### 2. 快速模式（单一元素）\n\n检查用户输入是否包含以下特定元素关键词：\n\n**⚠️ 关键：编号类scope走两阶段处理，内容/格式类scope走run-all-checks.js！**\n\n**⚠️ 高优先级特判：如果用户输入包含 `同上`、`同左`、`单元格`、`相邻单元格` 中任意两个，或直接包含“将单元格内的‘同上’和‘同左’替换为实际数值”这类表述，必须优先命中 `table_content`，不要落到通用 `content`。**\n\n#### 编号类触发词 → 直接执行 scan-structure.js（一步完成扫描+修复）\n\n| 触发词示例 | scope | 执行路径 |\n|-----------|-------|---------|\n| 校对编号、校对所有编号、标题编号表编号图编号公式编号 | `numbering` | scan-structure.js |\n| 校对标题编号、标题编号 | `heading` | scan-structure.js |\n| 校对表编号、表编号 | `table` | scan-structure.js |\n| 校对图编号、图编号 | `figure` | scan-structure.js |\n| 校对公式编号、公式编号 | `formula` | scan-structure.js |\n\n**编号类执行（一步完成，不调用其他脚本）：**\n\n```\nexecuteFile:\n  filePath: \"skills/zslong/scripts/scan-structure.js\"\n  params: { \"scope\": \"<匹配的scope>\" }\n```\n\n**⚠️ scan-structure.js 已完成扫描+修复，返回空 fixPlan，禁止再调用 apply-numbering-fixes.js！**\n\n**⚠️ 编号类scope禁止使用调度器（submitScheduler）！编号校对需要全局上下文，不能分片处理！**\n\n#### 内容/格式类触发词 → 走run-all-checks.js\n\n| 关键词类型 | 触发词示例 | scope |\n|-----------|-----------|-------|\n| 数值类 | 校对数值、数值格式、校对所有数值 | `value` |\n| 标点类 | 校对标点、校对所有标点 | `punctuation` |\n| 内容校对 | 校对内容、校对所有内容 | `content` |\n| 排版类 | 规范排版、全文排版、格式排版 | `format` |\n| 标题正文类 | 各级标题及正文排版、标题正文排版、标题正文 | `font` |\n| 页眉页脚排版 | 页眉、页脚、页眉页脚、页眉排版、页脚排版 | `header_footer` |\n| 页面设置 | 页面设置、页面排版、对页面进行设置、页边距、页面边距 | `page_setup` |\n| 图表排版 | 图表排版 | `figure_table_layout` |\n| 图片排版 | 图片排版 | `figure_layout` |\n| 表格排版 | 表格排版 | `table_layout` |\n| 公式排版 | 公式排版、对公式排版 | `formula_layout` |\n| 图名排版 | 图名排版、图名格式 | `figure_caption` |\n| 图片居中 | 图片居中 | `figure_center` |\n| 表名排版 | 表名排版、表名格式 | `table_caption` |\n| 表格内容 | 校对表格内容、表格内容同上同左、同上同左替换、将单元格内的“同上”和“同左”替换为实际数值、根据设计文档编制规范将单元格内的“同上”和“同左”文字分别替换为上方或左侧相邻单元格的实际数值 | `table_content` |\n\n**内容/格式类执行：**\n\n```\nexecuteFile:\n  filePath: \"skills/zslong/scripts/run-all-checks.js\"\n  params: { \"fixMode\": \"aggressive\", \"isSelection\": false, \"scope\": \"<匹配的scope>\" }\n```\n\n**⚠️ 禁止执行 detect-mode.js！禁止询问修复策略！直接执行！**\n\n---\n\n## Stage 划分\n\n```\nStage 1: 编号校对（文本修改）← scan-structure.js（使用段落扫描避免 Find.Execute 漏检）\n    ↓\nStage 2: 内容规范（文本修改）← run-all-checks.js\n    ↓\nStage 4: 格式规范排版（字体字号行距页面设置）← run-all-checks.js\n```\n\n**重要**：\n- 编号校对走 `scan-structure.js`，使用段落扫描构建章节上下文后统一修复\n- 内容/格式校对走 `run-all-checks.js`\n- 格式规范排版放在最后执行，确保所有文本内容修改完成后再统一排版\n\n---\n\n## ⚡ 快速模式（按阶段归类）\n\n### Stage 1: 编号校对（scan-structure.js）\n\n| scope | 说明 | 执行脚本 |\n|-------|------|---------|\n| `numbering` | 标题+表+图+公式编号 | scan-structure.js |\n| `heading` | 仅标题编号（N-002~008） | scan-structure.js |\n| `table` | 仅表编号（T-001） | scan-structure.js |\n| `figure` | 仅图编号（G-001） | scan-structure.js |\n| `formula` | 仅公式编号（E-001） | scan-structure.js |\n\n### Stage 2: 内容规范（run-all-checks.js）\n\n| scope | 说明 |\n|-------|------|\n| `content` | 数值格式+图表标点+表格内容（全部） |\n| `value` | V-006~013 数值格式 |\n| `punctuation` | M-001~005 图表标点 |\n| `table_content` | T-005~006 同上同左替换 |\n\n### Stage 4: 格式规范排版（run-all-checks.js）\n\n| scope | 说明 |\n|-------|------|\n| `format` | 字体字号行距页面设置 |\n| `font` | 标题与正文规范（F-001~F-005） |\n| `figure_caption` | 图名格式规范（G-002） |\n| `figure_center` | 图片居中对齐（G-004） |\n| `figure_layout` | 图片排版（G-002 + G-004） |\n| `table_caption` | 表名格式规范（T-002） |\n| `table_layout` | 表格排版（T-002 + T-004 + T-007） |\n| `figure_table_layout` | 图表排版（G-002 + G-004 + T-002 + T-004 + T-007） |\n| `formula_layout` | 公式排版（E-002, E-003） |\n| `header_footer` | 页眉页脚排版（HF-001~003） |\n| `page_setup` | 页面设置（PG-001~002） |\n\n---\n\n## 编号校对详细流程\n\n编号校对通过 `scan-structure.js` 执行，使用段落扫描：\n\n```text\nfilePath: \"skills/zslong/scripts/scan-structure.js\"\nparams: { \"scope\": \"<numbering/heading/table/figure/formula>\" }\n```\n\n**技术实现**：\n- 单次遍历段落，记录当前章号/节号\n- 图/表编号：识别旧格式 `图1` / `表1`，转换为 `图X.Y-Z` / `表X.Y-Z`\n- 公式编号：识别旧格式 `(1-2)`，转换为 `(X.Y-Z)`\n\n**输出**：\n```json\n{\n  \"success\": true,\n  \"fixed\": 50,\n  \"commented\": 0,\n  \"revisionLog\": [...],\n  \"summary\": { \"totalIssues\": 50 }\n}\n```\n\n---\n\n## 内容/格式校对流程（run-all-checks.js）\n\n调用 `executeFile`：\n\n```text\nfilePath: \"skills/zslong/scripts/run-all-checks.js\"\nparams: {\n  \"fixMode\": \"aggressive\",\n  \"isSelection\": false,\n  \"scope\": \"<content/value/punctuation/format/font/...>\"\n}\n```\n\n**返回值**：\n```json\n{\n  \"fixed\": number,\n  \"commented\": number,\n  \"revisionLog\": [...],\n  \"summary\": {\n    \"totalIssues\": number,\n    \"byRule\": { \"V-006\": 5, \"M-001\": 3 },\n    \"scope\": \"content\"\n  }\n}\n```\n\n---\n\n## 规则详情\n\n### Stage 1 编号规则\n\n| 规则ID | 检查项 | 示例 |\n|--------|--------|------|\n| N-002 | 一级标题编号连续性 | 第一章→第三章，应为第二章 |\n| N-003 | 二级标题章节号正确 | 3.1 在第二章下，应为 2.1 |\n| N-004 | 二级标题节序号连续 | 2.1 → 2.3，应为 2.2 |\n| N-005 | 三级标题编号 |\n| N-006 | 四级标题编号 |\n| N-007 | 附录标题编号格式 | 附录内应为 A1、A2 格式 |\n| G-001 | 图编号连续性 | 图2-1 → 图2-3，应为 图2-2 |\n| T-001 | 表编号连续性 | 表1-1 → 表1-3，应为 表1-2 |\n| E-001 | 公式编号连续性 | (2-1) → (2-3)，应为 (2-2) |\n\n### Stage 2 规则列表\n\n#### 数值格式（V系列）\n\n| 规则ID | 检查项 | 示例 | 修复方式 |\n|--------|--------|------|----------|\n| V-006 | 温度偏差格式 | 20℃±2℃ → 20±2℃ | 自动修复 |\n| V-007 | 小数补零 | .5 → 0.5 | 自动修复 |\n| V-008 | 数值范围格式 | 10-15 → 10～15 | 自动修复 |\n| V-009 | 单位范围格式 | 10mm-20mm → 10～20mm | 自动修复 |\n| V-010 | 百分比范围 | 10～20% → 10%～20% | 自动修复 |\n| V-011 | 幂次范围 | 1～5×10³ → 每个数值后应写出幂次 | 批注提醒 |\n| V-012 | 体积尺寸 | 240×240×60mm → 240mm×240mm×60mm | 自动修复 |\n| V-013 | 中文数值书写 | 四分之三→3/4 | 批注提醒 |\n\n#### 图表标点（M系列）\n\n| 规则ID | 检查项 | 示例 |\n|--------|--------|------|\n| M-001 | 图名标点 | 图1 大坝剖面图。 → 图1 大坝剖面图 |\n| M-002 | 表名标点 | 表2-1 材料参数表。 → 表2-1 材料参数表 |\n| M-005 | 中文括号 | (混凝土面板) → （混凝土面板） |\n\n#### 表格内容规范（T系列）\n\n| 规则ID | 检查项 | 示例 |\n|--------|--------|------|\n| T-005 | 同上替换 | 表格中\"同上\"替换为上方单元格的数值 |\n| T-006 | 同左替换 | 表格中\"同左\"替换为左侧单元格的数值 |\n\n### Stage 4 规则列表\n\n| 规则ID | 检查项 | 要求 |\n|--------|--------|------|\n| F-001 | 一级标题 | 宋体加粗，小四号（12磅），20磅行间距 |\n| F-002 | 二级标题 | 宋体加粗，小四号（12磅），20磅行间距 |\n| F-003 | 三级标题 | 宋体，小四号（12磅），20磅行间距 |\n| F-004 | 四级标题 | 宋体，小四号（12磅），20磅行间距 |\n| F-005 | 正文 | 宋体，小四号，首行缩进2字，20磅行间距 |\n| G-002 | 图名字体字号 | 小四号宋体，居中 |\n| G-004 | 图片居中 | 图片居中对齐 |\n| T-002 | 表名字体字号 | 小四号宋体，居中 |\n| T-004 | 表格宽度 | 表格与页面等宽 |\n| T-007 | 跨页重复表头 | 表格首行跨页时重复 |\n| E-002 | 公式居中 | 公式应居中书写 |\n| E-003 | 公式编号位置 | 编号右对齐 |\n| HF-001 | 页眉页脚字体字号 | 宋体+Arial，小五号(9磅) |\n| HF-002 | 页眉线 | 通长细线，0.5磅 |\n| HF-003 | 页脚线 | 通长双细线，0.5磅 |\n| PG-001 | 页边距 | 上下2.54cm，左右3.17cm |\n| PG-002 | 页眉页脚距边界 | 1.5cm |\n\n---\n\n## 完整模式（走标准流程）\n\n**触发条件**：用户说\"校对这个文档\"、\"帮我检查一下\"，未指定具体范围。\n\n### Step 0 — 检测文档与模式选择\n\n调用 `executeFile`：\n\n```text\nfilePath: \"skills/zslong/scripts/detect-mode.js\"\nparams: {}\n```\n\n返回值：`{ charCount: number, isSelection: boolean, mode: 'direct' | 'schedule' }`\n\n### Step 1 — 询问修复策略\n\n询问唯一问题：**自动修复策略**\n- 激进模式：格式+内容全部自动修复\n- 标准模式：格式自动修复，内容类批注（推荐）\n- 保守模式：全部只批注不修改\n\n### Step 2 — 执行校对\n\n直接执行 run-all-checks.js：\n```\nexecuteFile: skills/zslong/scripts/run-all-checks.js\nparams: { \"fixMode\": \"<用户选择>\", \"isSelection\": false, \"scope\": \"numbering\" }\n```\n\n然后执行内容/格式校对：\n```\nexecuteFile: skills/zslong/scripts/run-all-checks.js\nparams: { \"fixMode\": \"<用户选择>\", \"isSelection\": false, \"scope\": \"content\" }\n```\n\n### Step 3 — 输出报告\n\n生成 Markdown 格式汇总报告。\n\n---\n\n## 异常处理\n\n**调度提交失败时**：\n\n> 任务提交失败：{error 原因}。请检查后重试。\n\n**脚本报错时**：\n\n> 操作失败：{错误信息}。请确认文档已打开后重试。\n\n**文档为空时**：\n\n> 文档内容为空，无法执行校对。\n\n---\n\n## 规则分类速查\n\n| 类别 | 规则ID | 执行脚本 | 处理方式 |\n|------|--------|---------|---------|\n| 编号 | N-002~010, G-001, T-001, E-001 | run-all-checks.js | 自动修复 |\n| 内容 | V-006~013, M-001~005, T-005~006 | run-all-checks.js | 批注/修复 |\n| 格式 | F-001~005, G-002~004, T-002~007, E-002~003, HF-001~003, PG-001~002 | run-all-checks.js | 直接修复 |\n\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/zslong/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 6
+    }
+  },
+  {
+    "id": "1774636890106_dnqu7bk",
+    "role": "assistant",
+    "content": "<think>用户要求对文档进行数值格式规范校对，涉及温度单位、小数补零、范围符号、单位重复、尺寸标注、分数比例等。根据 zslong 技能文档，这属于“数值类”校对，对应 scope 为 `value`（规则 V-006~V-013）。\n\n直接调用 run-all-checks.js，scope 设为 \"value\"，fixMode 设为 \"aggressive\" 以自动修复。</think>",
+    "timestamp": 1774636890106,
+    "streaming": false
+  },
+  {
+    "id": "tool_1774636892303_pz33",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1774636892303,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/zslong/scripts/run-all-checks.js",
+        "params": {
+          "fixMode": "aggressive",
+          "isSelection": false,
+          "scope": "value"
+        }
+      },
+      "output": "{\"error\":\"Error: [LoopGuard] 循环执行超限：超过 20000ms 或 100000 次迭代，已强制终止\",\"fixed\":0,\"commented\":0,\"revisionLog\":[]}",
+      "durationMs": 20043
+    }
+  },
+  {
+    "id": "1774636915065_gczmn9g",
+    "role": "assistant",
+    "content": "<think>用户需要的是数值格式规范校对，但直接执行 run-all-checks.js 导致循环超限。这可能是因为文档太大（18万字），脚本在遍历所有段落时超时了。\n\n让我尝试分块处理或者优化执行方式。不过根据技能说明，对于大文档应该使用调度器（submitScheduler）来分片处理。\n\n但是等等，用户明确要求的是\"数值格式规范校对\"，对应 scope 是 \"value\"。让我重新检查流程：\n\n1. 文档有 181216 字，属于大文档\n2. 对于大文档的批量操作，应该使用 submitScheduler\n3. 但根据 zslong 的说明，编号类不能用调度器，但内容/格式类可以\n\n让我先尝试用更小的范围测试，或者直接使用调度器来处理这个大文档。\n\n实际上，看错误信息是\"LoopGuard\"触发的保护机制，说明脚本执行时间过长。对于18万字的文档，可能需要分批处理。\n\n让我尝试使用调度器来处理这个任务。\n</think>",
+    "timestamp": 1774636915065,
+    "streaming": false
+  },
+  {
+    "id": "tool_1774636918329_il29",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1774636918329,
+    "toolCall": {
+      "toolName": "submitScheduler",
+      "input": {
+        "skill": "zslong",
+        "scheduleParams": {
+          "fixMode": "aggressive",
+          "scope": "value"
+        }
+      },
+      "output": "{\"schedulerId\":\"sched_1774636919177_4rmij2\",\"totalTasks\":62,\"message\":\"已提交，共 62 个任务，正在后台执行，完成后将通知你。\"}",
+      "durationMs": 365,
+      "schedulerProgress": {
+        "schedulerId": "sched_1774636919177_4rmij2",
+        "current": 62,
+        "total": 62,
+        "failed": 62,
+        "status": "failed",
+        "taskResults": [
+          {
+            "taskIndex": 0,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 42
+          },
+          {
+            "taskIndex": 1,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 40
+          },
+          {
+            "taskIndex": 2,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 39
+          },
+          {
+            "taskIndex": 3,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 38
+          },
+          {
+            "taskIndex": 4,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 38
+          },
+          {
+            "taskIndex": 5,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 8
+          },
+          {
+            "taskIndex": 6,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 7,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 8,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 9,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 10,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 9
+          },
+          {
+            "taskIndex": 11,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 12,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 13,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 14,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 11
+          },
+          {
+            "taskIndex": 15,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 9
+          },
+          {
+            "taskIndex": 16,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 9
+          },
+          {
+            "taskIndex": 17,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 18,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 19,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 20,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 9
+          },
+          {
+            "taskIndex": 21,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 22,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 11
+          },
+          {
+            "taskIndex": 23,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 24,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 25,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 26,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 27,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 11
+          },
+          {
+            "taskIndex": 28,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 29,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 18
+          },
+          {
+            "taskIndex": 30,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 8
+          },
+          {
+            "taskIndex": 31,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 32,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 11
+          },
+          {
+            "taskIndex": 33,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 12
+          },
+          {
+            "taskIndex": 34,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 11
+          },
+          {
+            "taskIndex": 35,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 36,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 37,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 38,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 39,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 11
+          },
+          {
+            "taskIndex": 40,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 12
+          },
+          {
+            "taskIndex": 41,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 42,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 43,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 44,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 45,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 12
+          },
+          {
+            "taskIndex": 46,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 47,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 48,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 11
+          },
+          {
+            "taskIndex": 49,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 9
+          },
+          {
+            "taskIndex": 50,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 8
+          },
+          {
+            "taskIndex": 51,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 9
+          },
+          {
+            "taskIndex": 52,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 9
+          },
+          {
+            "taskIndex": 53,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 9
+          },
+          {
+            "taskIndex": 54,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 9
+          },
+          {
+            "taskIndex": 55,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 56,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 57,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          },
+          {
+            "taskIndex": 58,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 12
+          },
+          {
+            "taskIndex": 59,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 9
+          },
+          {
+            "taskIndex": 60,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 12
+          },
+          {
+            "taskIndex": 61,
+            "result": "Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "failed": true,
+            "durationMs": 10
+          }
+        ],
+        "logs": [
+          {
+            "message": "调度启动，共 62 个任务",
+            "level": "info",
+            "timestamp": 1774636919177
+          },
+          {
+            "message": "Skill 加载成功",
+            "level": "info",
+            "timestamp": 1774636919177
+          },
+          {
+            "message": "config: {\n  \"skill\": \"zslong\",\n  \"scheduleParams\": {\n    \"fixMode\": \"aggressive\",\n    \"scope\": \"value\"\n  }\n}",
+            "level": "info",
+            "timestamp": 1774636919177
+          },
+          {
+            "message": "initResult: {\n  \"tasks\": \"[62 items]\",\n  \"promptTemplate\": \"文档片段（第 {{chunkIndex}} 段 / 共 {{totalChunks}} 段）：\\n\\n{{text}}\\n\\n请检查上述文本中的格式和内容问题，输出JSON数组格式的问题列表。\",\n  \"system\": \"你是一名技术报告校对员。按照Q/BIDR-G-JS00-101-002-2017规范，检查文档片段中的格式和内容问题。\\n\\n## 检查规则\\n- V-006: 温度偏差格式（如 20℃±2℃ 应为 20±2℃）\\n- V-008: 数值范围应使用波浪号（如 10-15 应为 10～15）\\n- M-001/002: 图表名称末尾不应有标点\\n- M-005: 中文内容应使用中文括号\\n- T-006: 表格中不应使用\\\"同上\\\"或\\\"同左\\\"\\n\\n## 执行规范\\n- 禁止调用任何工具\\n- 直接分析消息中提供的文本\\n\\n## 输出格式\\n[{\\\"index\\\":段号,\\\"rule\\\":\\\"规则ID\\\",\\\"original\\\":\\\"原文\\\",\\\"suggested\\\":\\\"建议\\\",\\\"reason\\\":\\\"原因\\\",\\\"autoFix\\\":是否可自动修复}]\\n\\n无问题时输出：[]\",\n  \"concurrency\": 5,\n  \"continueOnError\": true,\n  \"errorBudget\": 0.5,\n  \"taskCallbackScript\": \"scripts/apply-comments.js\",\n  \"aggregatorScript\": \"scripts/aggregate-issues.js\"\n}",
+            "level": "info",
+            "timestamp": 1774636919177
+          },
+          {
+            "message": "并行模式，最大并发数: 5",
+            "level": "info",
+            "timestamp": 1774636919177
+          },
+          {
+            "message": "→ 任务 1/62 开始",
+            "level": "info",
+            "timestamp": 1774636919182
+          },
+          {
+            "message": "→ 任务 2/62 开始",
+            "level": "info",
+            "timestamp": 1774636919187
+          },
+          {
+            "message": "→ 任务 3/62 开始",
+            "level": "info",
+            "timestamp": 1774636919191
+          },
+          {
+            "message": "→ 任务 4/62 开始",
+            "level": "info",
+            "timestamp": 1774636919195
+          },
+          {
+            "message": "→ 任务 5/62 开始",
+            "level": "info",
+            "timestamp": 1774636919199
+          },
+          {
+            "message": "✗ 任务 1 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919224
+          },
+          {
+            "message": "✗ 任务 2 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919227
+          },
+          {
+            "message": "✗ 任务 3 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919230
+          },
+          {
+            "message": "✗ 任务 4 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919233
+          },
+          {
+            "message": "✗ 任务 5 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919237
+          },
+          {
+            "message": "任务 1 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919271
+          },
+          {
+            "message": "→ 任务 6/62 开始",
+            "level": "info",
+            "timestamp": 1774636919275
+          },
+          {
+            "message": "✗ 任务 6 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919283
+          },
+          {
+            "message": "任务 2 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919287
+          },
+          {
+            "message": "→ 任务 7/62 开始",
+            "level": "info",
+            "timestamp": 1774636919290
+          },
+          {
+            "message": "✗ 任务 7 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919300
+          },
+          {
+            "message": "任务 3 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919303
+          },
+          {
+            "message": "→ 任务 8/62 开始",
+            "level": "info",
+            "timestamp": 1774636919306
+          },
+          {
+            "message": "✗ 任务 8 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919316
+          },
+          {
+            "message": "任务 4 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919318
+          },
+          {
+            "message": "→ 任务 9/62 开始",
+            "level": "info",
+            "timestamp": 1774636919321
+          },
+          {
+            "message": "✗ 任务 9 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919331
+          },
+          {
+            "message": "任务 5 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919333
+          },
+          {
+            "message": "→ 任务 10/62 开始",
+            "level": "info",
+            "timestamp": 1774636919336
+          },
+          {
+            "message": "✗ 任务 10 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919346
+          },
+          {
+            "message": "任务 6 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919370
+          },
+          {
+            "message": "→ 任务 11/62 开始",
+            "level": "info",
+            "timestamp": 1774636919372
+          },
+          {
+            "message": "✗ 任务 11 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919382
+          },
+          {
+            "message": "任务 7 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919385
+          },
+          {
+            "message": "→ 任务 12/62 开始",
+            "level": "info",
+            "timestamp": 1774636919388
+          },
+          {
+            "message": "✗ 任务 12 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919398
+          },
+          {
+            "message": "任务 8 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919400
+          },
+          {
+            "message": "→ 任务 13/62 开始",
+            "level": "info",
+            "timestamp": 1774636919403
+          },
+          {
+            "message": "✗ 任务 13 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919413
+          },
+          {
+            "message": "任务 9 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919415
+          },
+          {
+            "message": "→ 任务 14/62 开始",
+            "level": "info",
+            "timestamp": 1774636919418
+          },
+          {
+            "message": "✗ 任务 14 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919428
+          },
+          {
+            "message": "任务 10 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919431
+          },
+          {
+            "message": "→ 任务 15/62 开始",
+            "level": "info",
+            "timestamp": 1774636919433
+          },
+          {
+            "message": "✗ 任务 15 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919444
+          },
+          {
+            "message": "任务 11 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919467
+          },
+          {
+            "message": "→ 任务 16/62 开始",
+            "level": "info",
+            "timestamp": 1774636919470
+          },
+          {
+            "message": "✗ 任务 16 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919479
+          },
+          {
+            "message": "任务 12 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919482
+          },
+          {
+            "message": "→ 任务 17/62 开始",
+            "level": "info",
+            "timestamp": 1774636919485
+          },
+          {
+            "message": "✗ 任务 17 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919494
+          },
+          {
+            "message": "任务 13 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919497
+          },
+          {
+            "message": "→ 任务 18/62 开始",
+            "level": "info",
+            "timestamp": 1774636919500
+          },
+          {
+            "message": "✗ 任务 18 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919510
+          },
+          {
+            "message": "任务 14 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919512
+          },
+          {
+            "message": "→ 任务 19/62 开始",
+            "level": "info",
+            "timestamp": 1774636919515
+          },
+          {
+            "message": "✗ 任务 19 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919525
+          },
+          {
+            "message": "任务 15 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919527
+          },
+          {
+            "message": "→ 任务 20/62 开始",
+            "level": "info",
+            "timestamp": 1774636919530
+          },
+          {
+            "message": "✗ 任务 20 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919540
+          },
+          {
+            "message": "任务 16 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919564
+          },
+          {
+            "message": "→ 任务 21/62 开始",
+            "level": "info",
+            "timestamp": 1774636919566
+          },
+          {
+            "message": "✗ 任务 21 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919575
+          },
+          {
+            "message": "任务 17 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919577
+          },
+          {
+            "message": "→ 任务 22/62 开始",
+            "level": "info",
+            "timestamp": 1774636919580
+          },
+          {
+            "message": "✗ 任务 22 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919590
+          },
+          {
+            "message": "任务 18 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919593
+          },
+          {
+            "message": "→ 任务 23/62 开始",
+            "level": "info",
+            "timestamp": 1774636919595
+          },
+          {
+            "message": "✗ 任务 23 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919606
+          },
+          {
+            "message": "任务 19 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919608
+          },
+          {
+            "message": "→ 任务 24/62 开始",
+            "level": "info",
+            "timestamp": 1774636919611
+          },
+          {
+            "message": "✗ 任务 24 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919621
+          },
+          {
+            "message": "任务 20 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919624
+          },
+          {
+            "message": "→ 任务 25/62 开始",
+            "level": "info",
+            "timestamp": 1774636919627
+          },
+          {
+            "message": "✗ 任务 25 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919637
+          },
+          {
+            "message": "任务 21 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919666
+          },
+          {
+            "message": "→ 任务 26/62 开始",
+            "level": "info",
+            "timestamp": 1774636919668
+          },
+          {
+            "message": "✗ 任务 26 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919678
+          },
+          {
+            "message": "任务 22 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919681
+          },
+          {
+            "message": "→ 任务 27/62 开始",
+            "level": "info",
+            "timestamp": 1774636919683
+          },
+          {
+            "message": "✗ 任务 27 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919693
+          },
+          {
+            "message": "任务 23 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919696
+          },
+          {
+            "message": "→ 任务 28/62 开始",
+            "level": "info",
+            "timestamp": 1774636919698
+          },
+          {
+            "message": "✗ 任务 28 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919709
+          },
+          {
+            "message": "任务 24 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919711
+          },
+          {
+            "message": "→ 任务 29/62 开始",
+            "level": "info",
+            "timestamp": 1774636919714
+          },
+          {
+            "message": "✗ 任务 29 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919724
+          },
+          {
+            "message": "任务 25 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919726
+          },
+          {
+            "message": "→ 任务 30/62 开始",
+            "level": "info",
+            "timestamp": 1774636919729
+          },
+          {
+            "message": "✗ 任务 30 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919747
+          },
+          {
+            "message": "任务 26 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919776
+          },
+          {
+            "message": "→ 任务 31/62 开始",
+            "level": "info",
+            "timestamp": 1774636919780
+          },
+          {
+            "message": "✗ 任务 31 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919788
+          },
+          {
+            "message": "任务 27 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919791
+          },
+          {
+            "message": "→ 任务 32/62 开始",
+            "level": "info",
+            "timestamp": 1774636919794
+          },
+          {
+            "message": "✗ 任务 32 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919804
+          },
+          {
+            "message": "任务 28 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919807
+          },
+          {
+            "message": "→ 任务 33/62 开始",
+            "level": "info",
+            "timestamp": 1774636919810
+          },
+          {
+            "message": "✗ 任务 33 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919821
+          },
+          {
+            "message": "任务 29 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919824
+          },
+          {
+            "message": "→ 任务 34/62 开始",
+            "level": "info",
+            "timestamp": 1774636919826
+          },
+          {
+            "message": "✗ 任务 34 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919838
+          },
+          {
+            "message": "任务 30 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919841
+          },
+          {
+            "message": "→ 任务 35/62 开始",
+            "level": "info",
+            "timestamp": 1774636919843
+          },
+          {
+            "message": "✗ 任务 35 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919854
+          },
+          {
+            "message": "任务 31 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919882
+          },
+          {
+            "message": "→ 任务 36/62 开始",
+            "level": "info",
+            "timestamp": 1774636919885
+          },
+          {
+            "message": "✗ 任务 36 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919895
+          },
+          {
+            "message": "任务 32 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919898
+          },
+          {
+            "message": "→ 任务 37/62 开始",
+            "level": "info",
+            "timestamp": 1774636919900
+          },
+          {
+            "message": "✗ 任务 37 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919911
+          },
+          {
+            "message": "任务 33 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919914
+          },
+          {
+            "message": "→ 任务 38/62 开始",
+            "level": "info",
+            "timestamp": 1774636919917
+          },
+          {
+            "message": "✗ 任务 38 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919927
+          },
+          {
+            "message": "任务 34 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919930
+          },
+          {
+            "message": "→ 任务 39/62 开始",
+            "level": "info",
+            "timestamp": 1774636919933
+          },
+          {
+            "message": "✗ 任务 39 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919943
+          },
+          {
+            "message": "任务 35 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919946
+          },
+          {
+            "message": "→ 任务 40/62 开始",
+            "level": "info",
+            "timestamp": 1774636919948
+          },
+          {
+            "message": "✗ 任务 40 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919959
+          },
+          {
+            "message": "任务 36 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636919983
+          },
+          {
+            "message": "→ 任务 41/62 开始",
+            "level": "info",
+            "timestamp": 1774636919985
+          },
+          {
+            "message": "✗ 任务 41 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636919997
+          },
+          {
+            "message": "任务 37 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920001
+          },
+          {
+            "message": "→ 任务 42/62 开始",
+            "level": "info",
+            "timestamp": 1774636920004
+          },
+          {
+            "message": "✗ 任务 42 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920014
+          },
+          {
+            "message": "任务 38 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920018
+          },
+          {
+            "message": "→ 任务 43/62 开始",
+            "level": "info",
+            "timestamp": 1774636920021
+          },
+          {
+            "message": "✗ 任务 43 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920031
+          },
+          {
+            "message": "任务 39 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920034
+          },
+          {
+            "message": "→ 任务 44/62 开始",
+            "level": "info",
+            "timestamp": 1774636920038
+          },
+          {
+            "message": "✗ 任务 44 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920047
+          },
+          {
+            "message": "任务 40 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920051
+          },
+          {
+            "message": "→ 任务 45/62 开始",
+            "level": "info",
+            "timestamp": 1774636920054
+          },
+          {
+            "message": "✗ 任务 45 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920064
+          },
+          {
+            "message": "任务 41 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920115
+          },
+          {
+            "message": "→ 任务 46/62 开始",
+            "level": "info",
+            "timestamp": 1774636920118
+          },
+          {
+            "message": "✗ 任务 46 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920129
+          },
+          {
+            "message": "任务 42 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920132
+          },
+          {
+            "message": "→ 任务 47/62 开始",
+            "level": "info",
+            "timestamp": 1774636920135
+          },
+          {
+            "message": "✗ 任务 47 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920145
+          },
+          {
+            "message": "任务 43 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920148
+          },
+          {
+            "message": "→ 任务 48/62 开始",
+            "level": "info",
+            "timestamp": 1774636920151
+          },
+          {
+            "message": "✗ 任务 48 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920161
+          },
+          {
+            "message": "任务 44 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920164
+          },
+          {
+            "message": "→ 任务 49/62 开始",
+            "level": "info",
+            "timestamp": 1774636920167
+          },
+          {
+            "message": "✗ 任务 49 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920178
+          },
+          {
+            "message": "任务 45 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920181
+          },
+          {
+            "message": "→ 任务 50/62 开始",
+            "level": "info",
+            "timestamp": 1774636920184
+          },
+          {
+            "message": "✗ 任务 50 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920193
+          },
+          {
+            "message": "任务 46 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920217
+          },
+          {
+            "message": "→ 任务 51/62 开始",
+            "level": "info",
+            "timestamp": 1774636920220
+          },
+          {
+            "message": "✗ 任务 51 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920228
+          },
+          {
+            "message": "任务 47 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920231
+          },
+          {
+            "message": "→ 任务 52/62 开始",
+            "level": "info",
+            "timestamp": 1774636920234
+          },
+          {
+            "message": "✗ 任务 52 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920243
+          },
+          {
+            "message": "任务 48 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920246
+          },
+          {
+            "message": "→ 任务 53/62 开始",
+            "level": "info",
+            "timestamp": 1774636920250
+          },
+          {
+            "message": "✗ 任务 53 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920259
+          },
+          {
+            "message": "任务 49 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920262
+          },
+          {
+            "message": "→ 任务 54/62 开始",
+            "level": "info",
+            "timestamp": 1774636920265
+          },
+          {
+            "message": "✗ 任务 54 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920275
+          },
+          {
+            "message": "任务 50 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920278
+          },
+          {
+            "message": "→ 任务 55/62 开始",
+            "level": "info",
+            "timestamp": 1774636920282
+          },
+          {
+            "message": "✗ 任务 55 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920291
+          },
+          {
+            "message": "任务 51 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920326
+          },
+          {
+            "message": "→ 任务 56/62 开始",
+            "level": "info",
+            "timestamp": 1774636920328
+          },
+          {
+            "message": "✗ 任务 56 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920338
+          },
+          {
+            "message": "任务 52 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920341
+          },
+          {
+            "message": "→ 任务 57/62 开始",
+            "level": "info",
+            "timestamp": 1774636920344
+          },
+          {
+            "message": "✗ 任务 57 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920354
+          },
+          {
+            "message": "任务 53 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920356
+          },
+          {
+            "message": "→ 任务 58/62 开始",
+            "level": "info",
+            "timestamp": 1774636920359
+          },
+          {
+            "message": "✗ 任务 58 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920369
+          },
+          {
+            "message": "任务 54 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920375
+          },
+          {
+            "message": "→ 任务 59/62 开始",
+            "level": "info",
+            "timestamp": 1774636920378
+          },
+          {
+            "message": "✗ 任务 59 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920390
+          },
+          {
+            "message": "任务 55 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920393
+          },
+          {
+            "message": "→ 任务 60/62 开始",
+            "level": "info",
+            "timestamp": 1774636920395
+          },
+          {
+            "message": "✗ 任务 60 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920405
+          },
+          {
+            "message": "任务 56 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920450
+          },
+          {
+            "message": "→ 任务 61/62 开始",
+            "level": "info",
+            "timestamp": 1774636920454
+          },
+          {
+            "message": "✗ 任务 61 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920466
+          },
+          {
+            "message": "任务 57 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920471
+          },
+          {
+            "message": "→ 任务 62/62 开始",
+            "level": "info",
+            "timestamp": 1774636920474
+          },
+          {
+            "message": "✗ 任务 62 失败: Error: [LocalAuthProvider] No API key configured for provider: openai",
+            "level": "error",
+            "timestamp": 1774636920484
+          },
+          {
+            "message": "任务 58 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920488
+          },
+          {
+            "message": "任务 59 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920492
+          },
+          {
+            "message": "任务 60 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920495
+          },
+          {
+            "message": "任务 61 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920513
+          },
+          {
+            "message": "任务 62 回调脚本失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/apply-comments.js",
+            "level": "warn",
+            "timestamp": 1774636920517
+          },
+          {
+            "message": "聚合脚本运行中: aggregate-issues.js",
+            "level": "info",
+            "timestamp": 1774636920520
+          },
+          {
+            "message": "聚合失败: Error: [executeFile] Cannot read script file: skills/zslong/scripts/aggregate-issues.js",
+            "level": "error",
+            "timestamp": 1774636920533
+          },
+          {
+            "message": "■ 调度结束 · 状态: failed · 成功: 0 · 失败: 62",
+            "level": "info",
+            "timestamp": 1774636920533
+          }
+        ],
+        "taskOutputs": {},
+        "activeTaskIndices": [],
+        "summary": "共处理 0 个任务，62 个失败。"
+      },
+      "executing": false
+    }
+  },
+  {
+    "id": "1774636920094_c0o7ppj",
+    "role": "assistant",
+    "content": "<think>任务已提交调度器，有 62 个分片正在后台处理数值格式规范。</think>已成功提交数值格式规范校对任务，共 62 个分片正在后台执行，完成后将通知您。",
+    "timestamp": 1774636920094,
+    "streaming": false
+  }
+]

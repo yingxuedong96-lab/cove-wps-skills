@@ -1,0 +1,12 @@
+[
+  {
+    "name": "create-wps-skill",
+    "displayName": "WPS Skill 生成器",
+    "description": "将已完成的WPS任务自动打包成可复用Skill，生成全部文件并注册；当用户需要生成Skill、创建Skill、打包成Skill、固化某个功能或做成Skill时使用"
+  },
+  {
+    "name": "number-validator",
+    "displayName": "文档编号校对",
+    "description": "智能校对文档标题编号层级和样式，检测中文公文式与数字层次式混用，用修订模式自动修正错误。触发词：编号校对、标题层级、编号检查、标题编号"
+  }
+]

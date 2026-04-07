@@ -1,0 +1,104 @@
+[
+  {
+    "id": "1774275991319_dzrek77",
+    "role": "user",
+    "content": "根据中水规范校对当前文档",
+    "timestamp": 1774275991319
+  },
+  {
+    "id": "1774275991319_mjrwron",
+    "role": "assistant",
+    "content": "<think>用户要求根据中水规范校对当前文档。从可用技能列表中可以看到有一个 \"zswps\" 技能，专门用于\"中水北方院技术报告文档校对\"，触发词包括\"中水校对\"、\"报告编制\"等。\n\n用户的请求\"根据中水规范校对当前文档\"正好匹配这个技能的触发词范围。我应该先调用 skill 工具获取该技能的详细使用指南，然后再执行具体操作。\n</think>",
+    "timestamp": 1774275991319,
+    "streaming": false
+  },
+  {
+    "id": "tool_1774275992992_644k",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1774275992992,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "zswps"
+      },
+      "output": "<skill_content name=\"zswps\">\n# Skill: zswps\n\n---\nname: zswps\ndescription: >\n  中水北方院技术报告文档校对。按照Q/BIDR-G-JS00-101-002-2017报告编制规定，\n  对中文水利水电技术报告(.docx)进行自动校对与格式修正。\n---\n\n# 中水北方院技术报告校对\n\n## ⚡ 快速模式（跳过所有检测步骤，直接执行）\n\n**触发条件**：用户请求包含\"编号\"、\"表\"、\"图\"、\"公式\"关键词时。\n\n**⚠️ 重要：快速模式下，禁止执行 detect-mode.js，直接执行 run-all-checks.js！**\n\n| 用户请求关键词 | scope |\n|---------------|-------|\n| \"校对编号\" / \"检查编号\" / \"只校对编号\" | `chapter` |\n| \"校对表\" / \"检查表编号\" | `table` |\n| \"校对图\" / \"检查图编号\" | `figure` |\n| \"校对公式\" / \"检查公式编号\" | `formula` |\n\n**执行步骤（只执行一步，不执行 detect-mode.js）**：\n\n```\nexecuteFile:\n  filePath: \"skills/zswps/scripts/run-all-checks.js\"\n  params: { \"fixMode\": \"aggressive\", \"isSelection\": false, \"scope\": \"chapter\" }\n```\n\n**输出格式**：\n\n```markdown\n# 编号校对结果\n\n## 统计\n- 检查段落数：{paraCount}\n- 发现问题：{totalIssues} 处\n- 自动修复：{fixed} 处\n\n## 修订清单\n| 规则 | 问题 | 原文 | 修改为 |\n|------|------|------|--------|\n| N-002 | 编号 3 → 2 | 3 设计依据 | 2 设计依据 |\n\n## 规则统计\n| 规则 | 数量 |\n|------|------|\n| N-002 | 2 |\n```\n\n---\n\n## 完整模式（走标准流程）\n\n**触发条件**：用户说\"校对这个文档\"、\"帮我检查一下\"，未指定具体范围。\n\n**⚠️ 完整模式才执行 detect-mode.js 和询问流程。**\n\n### Step 0 — 检测文档与模式选择\n\n调用 `executeFile`：\n\n```text\nfilePath: \"skills/zswps/scripts/detect-mode.js\"\nparams: {}\n```\n\n返回值：`{ charCount: number, isSelection: boolean, mode: 'direct' | 'schedule' }`\n\n- `charCount = 0`：回复\"文档内容为空\"，终止。\n- `mode = 'schedule'` 且 charCount > 15000：准备使用调度器模式。\n- 继续执行 Step 1。\n\n### Step 1 — 询问修复策略\n\n使用 `askUser` 工具，询问唯一问题：\n\n**自动修复策略**\n- 激进模式：格式+内容全部自动修复\n- 标准模式：格式自动修复，内容类批注（推荐）\n- 保守模式：全部只批注不修改\n\n**自动处理的参数**：\n- `scope`: 根据 Step 0 的 `isSelection` 自动判断，有选区则只校对选区\n- `semanticCheck`: 默认开启\n- `fixMode`: 用户选择\n\n记录用户选择：`fixMode`。\n\n### Step 1.5 — 模式分支\n\n**若 Step 0 返回 `mode = 'schedule'`**（大文档 > 15000 字符）：\n\n调用 `executeFile`：\n```text\nfilePath: \"skills/zswps/scripts/init-schedule.js\"\nparams: {\n  \"fixMode\": \"<fixMode>\",\n  \"scope\": \"<isSelection ? 'selection' : 'full'>\"\n}\n```\n\n返回调度配置后，按分片执行，最后汇总结果。\n\n**若 `mode = 'direct'`**：\n\n继续执行 Step 2。\n\n### Step 2 — 执行校对（单一脚本）\n\n调用 `executeFile`：\n\n```text\nfilePath: \"skills/zswps/scripts/run-all-checks.js\"\nparams: {\n  \"fixMode\": \"<用户选择的 fixMode>\",\n  \"isSelection\": \"<Step 0 返回的 isSelection>\",\n  \"enableSemantic\": true,\n  \"scope\": \"all\"  // 可选: 'all' | 'chapter' | 'table' | 'figure' | 'formula'\n}\n```\n\n**scope 参数说明**：\n- `all`: 执行所有检查（默认）\n- `chapter`: 只执行章节编号检查（N-002~008）\n- `table`: 只执行表编号检查（T-001）\n- `figure`: 只执行图编号检查（G-001）\n- `formula`: 只执行公式编号检查（E-001）\n\n返回值：\n\n```json\n{\n  \"fixed\": number,       // 自动修复数量\n  \"commented\": number,   // 添加批注数量\n  \"revisionLog\": [       // 修订清单\n    {\n      \"rule\": \"N-002\",\n      \"name\": \"一级标题编号不连续\",\n      \"paraIndex\": 15,\n      \"original\": \"3 设计依据\",\n      \"suggested\": \"2 设计依据\",\n      \"message\": \"编号 3 → 2\"\n    }\n  ],\n  \"summary\": {\n    \"totalIssues\": number,\n    \"byRule\": { \"V-006\": 5, \"M-001\": 3, ... },\n    \"scope\": \"all\"\n  },\n  \"paraCount\": number,   // 检查段落数\n  \"tableCount\": number   // 检查表格数\n}\n```\n\n### Step 3 — 语义检查\n\n语义检查默认开启，已在 Step 2 中执行。\n\n若需要额外深度语义分析：\n- 使用 `skill_resource` 读取语义检查 prompt：\n```text\nskillName: \"zswps\"\nresourcePath: \"prompts/semantic-check.md\"\n```\n- 对文档进行 LLM 语义分析，检测：\n  - 术语一致性（L-001）\n  - 模糊引用（L-002）\n  - 图表引用完整性（L-003）\n  - 繁体字检测（L-004）\n- 对发现的问题调用 `apply-comments.js` 添加批注。\n\n### Step 4 — 输出报告\n\n生成 Markdown 格式汇总报告：\n\n```markdown\n# 校对报告\n\n## 统计概览\n- 检查范围：{根据 isSelection 自动判断：选区/全文}\n- 检查类型：{scope 参数：all/chapter/table/figure/formula}\n- 字符数：{charCount}\n- 发现问题：{totalIssues} 处\n- 自动修复：{fixed} 处\n- 添加批注：{commented} 处\n\n## 修订清单\n| 规则ID | 问题描述 | 原文 | 修改为 |\n|--------|---------|------|--------|\n| N-002 | 编号 3 → 2 | 3 设计依据 | 2 设计依据 |\n| ... | ... | ... | ... |\n\n## 修复记录\n| 规则ID | 问题描述 | 处理方式 | 数量 |\n|--------|---------|---------|------|\n...\n\n## 待人工确认事项\n...\n\n## 建议\n...\n```\n\n告知用户校对完成，并报告修复和批注数量。\n\n---\n\n## 异常处理\n\n**调度提交失败（busy / init_failed）时，按以下格式回复后立即停止：**\n\n> 任务提交失败：{error 原因}。请检查后重试。\n\n**脚本报错时，回复：**\n\n> 操作失败：{错误信息}。请确认文档已打开后重试。\n\n**文档为空时：**\n\n> 文档内容为空，无法执行校对。\n\n---\n\n## 规则分类速查\n\n| 类别 | 规则ID | 检测方式 | 默认处理 |\n|------|--------|---------|---------|\n| 格式 | F-001~006, P-001~012, PG-001~013 | 属性检测 | 直接修复 |\n| 内容 | V-006~012, M-001~006 | 正则匹配 | 批注/修复 |\n| 结构 | N-002~008 | 结构分析 | **自动修复** |\n| 图表公式 | T-001, G-001, E-001 | 结构分析 | **自动修复** |\n| 语义 | L-001~004 | LLM分析 | 批注 |\n\n---\n\n## 大文档处理（mode = 'schedule'）\n\n当文档字符数超过 15000 时，自动进入调度器模式：\n\n1. 调用 `init-schedule.js` 初始化调度器\n2. 文档分片处理（每片约 3000 字符）\n3. 并发执行检查（最大并发数 5）\n4. 汇总结果后应用修复/批注\n\n---\n\n## 性能优化说明\n\n优化后的流程：\n- **executeFile 调用次数**：从 5-6 次减少到 2 次\n- **数据传输**：docStructure（50-200KB）不再经过 LLM 中转\n- **内部数据流转**：所有检查在单一脚本内完成\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/zswps/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 6
+    }
+  },
+  {
+    "id": "1774275993861_92vqbs9",
+    "role": "assistant",
+    "content": "<think>用户请求根据中水规范校对当前文档，这是一个完整的校对任务。根据skill文档，我需要：\n\n1. 首先执行 detect-mode.js 检测文档和模式选择\n2. 然后根据返回结果决定后续流程\n\n让我先执行 Step 0 - 检测文档与模式选择。\n</think>",
+    "timestamp": 1774275993861,
+    "streaming": false
+  },
+  {
+    "id": "tool_1774275994564_9nr4",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1774275994564,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/zswps/scripts/detect-mode.js",
+        "params": {}
+      },
+      "output": "{\"charCount\":4542,\"isSelection\":false,\"mode\":\"direct\"}",
+      "durationMs": 24
+    }
+  },
+  {
+    "id": "1774275995275_uc1o1ct",
+    "role": "assistant",
+    "content": "<think><think>\n</think>",
+    "timestamp": 1774275995275,
+    "streaming": false
+  },
+  {
+    "id": "tool_1774275995908_n0z2",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1774275995908,
+    "toolCall": {
+      "toolName": "askUser",
+      "input": {
+        "question": "请选择自动修复策略：",
+        "options": [
+          "激进模式：格式+内容全部自动修复",
+          "标准模式：格式自动修复，内容类批注（推荐）",
+          "保守模式：全部只批注不修改"
+        ]
+      },
+      "output": "激进模式：格式+内容全部自动修复",
+      "durationMs": 10256
+    }
+  },
+  {
+    "id": "1774276006681_y9edw47",
+    "role": "assistant",
+    "content": "<think><think>\n</think>",
+    "timestamp": 1774276006681,
+    "streaming": false
+  },
+  {
+    "id": "tool_1774276006829_q5a3",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1774276006829,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/zswps/scripts/run-all-checks.js",
+        "params": {
+          "fixMode": "aggressive",
+          "isSelection": false,
+          "enableSemantic": true,
+          "scope": "all"
+        }
+      },
+      "output": "{\"fixed\":61,\"commented\":322,\"revisionLog\":[{\"rule\":\"N-010\",\"name\":\"参考文献编号重复\",\"paraIndex\":396,\"original\":\"[5] 孙八等《工程测量学》测绘出版社 2020年\",\"suggested\":\"[6] 孙八等《工程测量学》测绘出版社 2020年\",\"message\":\"参考文献编号 [5] 重复，已调整为 [6]\"},{\"rule\":\"N-007\",\"name\":\"附录标题编号格式错误\",\"paraIndex\":390,\"original\":\"4.7 参考文献格式测试\",\"suggested\":\"C4.7 参考文献格式测试\",\"message\":\"附录C下的标题编号应为 C4 格式\"},{\"rule\":\"N-003\",\"name\":\"二级标题章节号错误\",\"paraIndex\":390,\"original\":\"4.7 参考文献格式测试\",\"suggested\":\"1.4 参考文献格式测试\",\"message\":\"章节号错误：4.7 → 1.4\"},{\"rule\":\"N-007\",\"name\":\"附录标题编号格式错误\",\"paraIndex\":388,\"original\":\"4.6 页眉格式测试\",\"suggested\":\"C4.6 页眉格式测试\",\"message\":\"附录C下的标题编号应为 C4 格式\"},{\"rule\":\"N-003\",\"name\":\"二级标题章节号错误\",\"paraIndex\":388,\"original\":\"4.6 页眉格式测试\",\"suggested\":\"1.3 页眉格式测试\",\"message\":\"章节号错误：4.6 → 1.3\"},{\"rule\":\"N-007\",\"name\":\"附录标题编号格式错误\",\"paraIndex\":385,\"original\":\"4.5 数值表示测试\",\"suggested\":\"C4.5 数值表示测试\",\"message\":\"附录C下的标题编号应为 C4 格式\"},{\"rule\":\"N-003\",\"name\":\"二级标题章节号错误\",\"paraIndex\":385,\"original\":\"4.5 数值表示测试\",\"suggested\":\"1.2 数值表示测试\",\"message\":\"章节号错误：4.5 → 1.2\"},{\"rule\":\"G-001\",\"name\":\"图编号格式不规范\",\"paraIndex\":383,\"original\":\"图六  压力管道布置图\",\"suggested\":\"图 1-3  压力管道布置图\",\"message\":\"图编号格式不规范，建议改为 \\\"图 1-3\\\" 格式\"},{\"rule\":\"N-007\",\"name\":\"附录标题编号格式错误\",\"paraIndex\":381,\"original\":\"4.4 图格式测试\",\"suggested\":\"C4.4 图格式测试\",\"message\":\"附录C下的标题编号应为 C4 格式\"},{\"rule\":\"N-003\",\"name\":\"二级标题章节号错误\",\"paraIndex\":381,\"original\":\"4.4 图格式测试\",\"suggested\":\"1.1 图格式测试\",\"message\":\"章节号错误：4.4 → 1.1\"},{\"rule\":\"G-001\",\"name\":\"图编号格式不规范\",\"paraIndex\":379,\"original\":\"图五  示意图\",\"suggested\":\"图 1-2  示意图\",\"message\":\"图编号格式不规范，建议改为 \\\"图 1-2\\\" 格式\"},{\"rule\":\"N-007\",\"name\":\"附录编号\",\"paraIndex\":376,\"original\":\"附录三  公式测试\",\"suggested\":\"附录 C  公式测试\",\"message\":\"附录编号 \\\"三\\\" → \\\"C\\\"\"},{\"rule\":\"G-001\",\"name\":\"图编号格式不规范\",\"paraIndex\":374,\"original\":\"图四  调压室结构图\",\"suggested\":\"图 1-1  调压室结构图\",\"message\":\"图编号格式不规范，建议改为 \\\"图 1-1\\\" 格式\"},{\"rule\":\"N-007\",\"name\":\"附录标题编号格式错误\",\"paraIndex\":372,\"original\":\"1 补充说明\",\"suggested\":\"B1 补充说明\",\"message\":\"附录B下的标题编号应为 B1 格式\"},{\"rule\":\"N-007\",\"name\":\"附录编号\",\"paraIndex\":371,\"original\":\"附录二  补充资料\",\"suggested\":\"附录 B  补充资料\",\"message\":\"附录编号 \\\"二\\\" → \\\"B\\\"\"},{\"rule\":\"T-001\",\"name\":\"表编号格式不规范\",\"paraIndex\":353,\"original\":\"表五  参数汇总表\",\"suggested\":\"表 1-1  参数汇总表\",\"message\":\"表编号格式不规范，建议改为 \\\"表 1-1\\\" 格式\"},{\"rule\":\"M-006\",\"name\":\"范围符号\",\"paraIndex\":352,\"original\":\"5077-1997\",\"suggested\":\"5077～1997\",\"message\":\"数值范围应使用波浪号\\\"～\\\"\"},{\"rule\":\"M-006\",\"name\":\"范围符号\",\"paraIndex\":351,\"original\":\"50201-2014\",\"suggested\":\"50201～2014\",\"message\":\"数值范围应使用波浪号\\\"～\\\"\"},{\"rule\":\"M-006\",\"name\":\"范围符号\",\"paraIndex\":350,\"original\":\"5212-2005\",\"suggested\":\"5212～2005\",\"message\":\"数值范围应使用波浪号\\\"～\\\"\"},{\"rule\":\"N-007\",\"name\":\"附录标题编号格式错误\",\"paraIndex\":349,\"original\":\"1 主要设计规范\",\"suggested\":\"A1 主要设计规范\",\"message\":\"附录A下的标题编号应为 A1 格式\"},{\"rule\":\"N-007\",\"name\":\"附录编号\",\"paraIndex\":347,\"original\":\"附录一  参考资料\",\"suggested\":\"附录 A  参考资料\",\"message\":\"附录编号 \\\"一\\\" → \\\"A\\\"\"},{\"rule\":\"V-008\",\"name\":\"数值范围格式\",\"paraIndex\":344,\"original\":\"4-6\",\"suggested\":\"4～6\",\"message\":\"数值范围应使用波浪号\\\"～\\\"连接\"},{\"rule\":\"V-008\",\"name\":\"数值范围格式\",\"paraIndex\":341,\"original\":\"4-5\",\"suggested\":\"4～5\",\"message\":\"数值范围应使用波浪号\\\"～\\\"连接\"},{\"rule\":\"M-006\",\"name\":\"范围符号\",\"paraIndex\":338,\"original\":\"4-4\",\"suggested\":\"4～4\",\"message\":\"数值范围应使用波浪号\\\"～\\\"\"},{\"rule\":\"M-006\",\"name\":\"范围符号\",\"paraIndex\":335,\"original\":\"4-3\",\"suggested\":\"4～3\",\"message\":\"数值范围应使用波浪号\\\"～\\\"\"},{\"rule\":\"M-006\",\"name\":\"范围符号\",\"paraIndex\":332,\"original\":\"4-2\",\"suggested\":\"4～2\",\"message\":\"数值范围应使用波浪号\\\"～\\\"\"},{\"rule\":\"M-006\",\"name\":\"范围符号\",\"paraIndex\":330,\"original\":\"4-1\",\"suggested\":\"4～1\",\"message\":\"数值范围应使用波浪号\\\"～\\\"\"},{\"rule\":\"N-003\",\"name\":\"二级标题章节号错误\",\"paraIndex\":328,\"original\":\"4.3 公式格式测试\",\"suggested\":\"3.3 公式格式测试\",\"message\":\"章节号错误：4.3 → 3.3\"},{\"rule\":\"T-001\",\"name\":\"表编号格式不规范\",\"paraIndex\":308,\"original\":\"表七  表格宽度测试表\",\"suggested\":\"表 3-2  表格宽度测试表\",\"message\":\"表编号格式不规范，建议改为 \\\"表 3-2\\\" 格式\"},{\"rule\":\"T-001\",\"name\":\"表编号格式不规范\",\"paraIndex\":295,\"original\":\"表六  表格格式测试表\",\"suggested\":\"表 3-1  表格格式测试表\",\"message\":\"表编号格式不规范，建议改为 \\\"表 3-1\\\" 格式\"},{\"rule\":\"N-003\",\"name\":\"二级标题章节号错误\",\"paraIndex\":294,\"original\":\"4.2 表格格式测试\",\"suggested\":\"3.2 表格格式测试\",\"message\":\"章节号错误：4.2 → 3.2\"},{\"rule\":\"N-003\",\"name\":\"二级标题章节号错误\",\"paraIndex\":292,\"original\":\"4.1 无标题格式测试\",\"suggested\":\"3.1 无标题格式测试\",\"message\":\"章节号错误：4.1 → 3.1\"},{\"rule\":\"N-002\",\"name\":\"一级标题编号不连续\",\"paraIndex\":291,\"original\":\"第三章 格式规范专项测试\",\"suggested\":\"第四章 格式规范专项测试\",\"message\":\"编号 三 → 四\"},{\"rule\":\"T-001\",\"name\":\"表编号格式不规范\",\"paraIndex\":114,\"original\":\"表四  工程量明细表\",\"suggested\":\"表 3-1  工程量明细表\",\"message\":\"表编号格式不规范，建议改为 \\\"表 3-1\\\" 格式\"},{\"rule\":\"G-001\",\"name\":\"图编号格式不规范\",\"paraIndex\":100,\"original\":\"图三  厂区平面布置图\",\"suggested\":\"图 2.4-2  厂区平面布置图\",\"message\":\"图编号格式不规范，建议改为 \\\"图 2.4-2\\\" 格式\"},{\"rule\":\"G-001\",\"name\":\"图编号格式不规范\",\"paraIndex\":98,\"original\":\"图二  厂房剖面图（甲、乙）\",\"suggested\":\"图 2.4-1  厂房剖面图（甲、乙）\",\"message\":\"图编号格式不规范，建议改为 \\\"图 2.4-1\\\" 格式\"},{\"rule\":\"N-003\",\"name\":\"二级标题编号不连续\",\"paraIndex\":96,\"original\":\"2.4 厂房设计\",\"suggested\":\"2.3 厂房设计\",\"message\":\"编号 2.4 → 2.3\"},{\"rule\":\"M-006\",\"name\":\"范围符号\",\"paraIndex\":94,\"original\":\"2-1\",\"suggested\":\"2～1\",\"message\":\"数值范围应使用波浪号\\\"～\\\"\"},{\"rule\":\"G-001\",\"name\":\"图编号格式不规范\",\"paraIndex\":85,\"original\":\"图一  进水口结构布置图。\",\"suggested\":\"图 2-1  进水口结构布置图。\",\"message\":\"图编号格式不规范，建议改为 \\\"图 2-1\\\" 格式\"},{\"rule\":\"N-003\",\"name\":\"二级标题章节号错误\",\"paraIndex\":82,\"original\":\"1.1 进水口设计\",\"suggested\":\"2.1 进水口设计\",\"message\":\"章节号错误：1.1 → 2.1\"},{\"rule\":\"M-006\",\"name\":\"范围符号\",\"paraIndex\":77,\"original\":\"5—2\",\"suggested\":\"5～2\",\"message\":\"数值范围应使用波浪号\\\"～\\\"\"},{\"rule\":\"N-003\",\"name\":\"二级标题编号不连续\",\"paraIndex\":75,\"original\":\"1.3 标点符号测试\",\"suggested\":\"1.4 标点符号测试\",\"message\":\"编号 1.3 → 1.4\"},{\"rule\":\"V-010\",\"name\":\"百分比范围\",\"paraIndex\":72,\"original\":\"10～20%\",\"suggested\":\"10%～20%\",\"message\":\"百分比范围每个数值都应带百分号\"},{\"rule\":\"V-008\",\"name\":\"数值范围格式\",\"paraIndex\":71,\"original\":\"8-12\",\"suggested\":\"8～12\",\"message\":\"数值范围应使用波浪号\\\"～\\\"连接\"},{\"rule\":\"V-009\",\"name\":\"单位范围格式\",\"paraIndex\":71,\"original\":\"6m-9m\",\"suggested\":\"6～9m\",\"message\":\"单位范围应写作\\\"数值～数值单位\\\"格式\"},{\"rule\":\"V-009\",\"name\":\"单位范围格式\",\"paraIndex\":71,\"original\":\"1.5m—2.0m\",\"suggested\":\"1.5～2.0m\",\"message\":\"单位范围应写作\\\"数值～数值单位\\\"格式\"},{\"rule\":\"M-006\",\"name\":\"范围符号\",\"paraIndex\":71,\"original\":\"25-0\",\"suggested\":\"25～0\",\"message\":\"数值范围应使用波浪号\\\"～\\\"\"},{\"rule\":\"V-007\",\"name\":\"小数补零\",\"paraIndex\":70,\"original\":\".05\",\"suggested\":\"0.05\",\"message\":\"小数点前应补零\"},{\"rule\":\"V-007\",\"name\":\"小数补零\",\"paraIndex\":70,\"original\":\".1\",\"suggested\":\"0.1\",\"message\":\"小数点前应补零\"},{\"rule\":\"V-007\",\"name\":\"小数补零\",\"paraIndex\":70,\"original\":\".5\",\"suggested\":\"0.5\",\"message\":\"小数点前应补零\"},{\"rule\":\"V-007\",\"name\":\"小数补零\",\"paraIndex\":70,\"original\":\".05\",\"suggested\":\"0.05\",\"message\":\"小数点前应补零\"},{\"rule\":\"V-006\",\"name\":\"温度偏差格式\",\"paraIndex\":69,\"original\":\"20℃±2℃\",\"suggested\":\"20±2℃\",\"message\":\"温度偏差应写作\\\"数值±偏差℃\\\"格式\"},{\"rule\":\"V-006\",\"name\":\"温度偏差格式\",\"paraIndex\":69,\"original\":\"28℃±3℃\",\"suggested\":\"28±3℃\",\"message\":\"温度偏差应写作\\\"数值±偏差℃\\\"格式\"},{\"rule\":\"T-001\",\"name\":\"表编号格式不规范\",\"paraIndex\":66,\"original\":\"表三  材料参数表\",\"suggested\":\"表 1.2-3  材料参数表\",\"message\":\"表编号格式不规范，建议改为 \\\"表 1.2-3\\\" 格式\"},{\"rule\":\"M-005\",\"name\":\"中文括号\",\"paraIndex\":36,\"original\":\"(单位:m)\",\"suggested\":\"（单位:m）\",\"message\":\"中文内容应使用中文括号\\\"（）\\\"\"},{\"rule\":\"M-006\",\"name\":\"范围符号\",\"paraIndex\":35,\"original\":\"5180-2003\",\"suggested\":\"5180～2003\",\"message\":\"数值范围应使用波浪号\\\"～\\\"\"},{\"rule\":\"T-001\",\"name\":\"表编号格式不规范\",\"paraIndex\":14,\"original\":\"表一  引水发电建筑物级别表\",\"suggested\":\"表 1.2-1  引水发电建筑物级别表\",\"message\":\"表编号格式不规范，建议改为 \\\"表 1.2-1\\\" 格式\"},{\"rule\":\"M-006\",\"name\":\"范围符号\",\"paraIndex\":8,\"original\":\"5180-2003\",\"suggested\":\"5180～2003\",\"message\":\"数值范围应使用波浪号\\\"～\\\"\"},{\"rule\":\"M-006\",\"name\":\"范围符号\",\"paraIndex\":7,\"original\":\"50201-2014\",\"suggested\":\"50201～2014\",\"message\":\"数值范围应使用波浪号\\\"～\\\"\"},{\"rule\":\"M-006\",\"name\":\"范围符号\",\"paraIndex\":7,\"original\":\"11012-2022\",\"suggested\":\"11012～2022\",\"message\":\"数值范围应使用波浪号\\\"～\\\"\"},{\"rule\":\"N-004\",\"name\":\"三级标题编号错误\",\"paraIndex\":6,\"original\":\"1.1.3 洪水标准\",\"suggested\":\"1.1.2 洪水标准\",\"message\":\"编号 1.1.3 → 1.1.2\"}],\"summary\":{\"totalIssues\":383,\"byRule\":{\"F-004\":285,\"N-010\":1,\"N-007\":9,\"N-003\":10,\"F-002\":16,\"G-001\":6,\"F-001\":2,\"T-001\":7,\"M-006\":17,\"E-004\":7,\"V-008\":3,\"N-002\":1,\"N-008\":1,\"T-006\":4,\"V-011\":2,\"V-010\":1,\"V-009\":2,\"V-007\":4,\"V-006\":2,\"M-005\":1,\"N-004\":1,\"F-003\":1},\"scope\":\"all\"},\"paraCount\":407,\"tableCount\":9}",
+      "durationMs": 2468
+    }
+  }
+]

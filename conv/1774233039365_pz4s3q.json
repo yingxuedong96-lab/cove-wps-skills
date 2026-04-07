@@ -1,0 +1,94 @@
+[
+  {
+    "id": "1774233039375_yadp646",
+    "role": "user",
+    "content": "你好",
+    "timestamp": 1774233039375
+  },
+  {
+    "id": "1774233039375_i4epeij",
+    "role": "assistant",
+    "content": "<think>好的，用户打招呼说“你好”，我需要回应。作为WPS Office的JS插件助手，应该保持专业且友好的态度。首先确认用户是否需要帮助处理文档，但用户可能只是测试或开始对话。根据回复风格要求，直接回答，不列选项，不解释局限。所以简单回复“你好！需要帮助处理文档吗？”即可，既友好又直接询问需求，符合规范</think>你好！需要帮助处理文档吗？",
+    "timestamp": 1774233039375,
+    "streaming": false
+  },
+  {
+    "id": "revision_1774233043520",
+    "role": "revision",
+    "content": "",
+    "revisions": [
+      {
+        "index": 1,
+        "type": "2",
+        "author": "zhongshui校对",
+        "date": "2026-03-23T00:00:15.000Z",
+        "text": "50201-2014"
+      },
+      {
+        "index": 2,
+        "type": "1",
+        "author": "zhongshui校对",
+        "date": "2026-03-23T00:00:15.000Z",
+        "text": "50201～2014"
+      },
+      {
+        "index": 3,
+        "type": "2",
+        "author": "zhongshui校对",
+        "date": "2026-03-23T00:00:15.000Z",
+        "text": "11012-2022"
+      },
+      {
+        "index": 4,
+        "type": "1",
+        "author": "zhongshui校对",
+        "date": "2026-03-23T00:00:15.000Z",
+        "text": "11012～2022"
+      },
+      {
+        "index": 5,
+        "type": "2",
+        "author": "zhongshui校对",
+        "date": "2026-03-23T00:00:15.000Z",
+        "text": "同上"
+      },
+      {
+        "index": 6,
+        "type": "1",
+        "author": "zhongshui校对",
+        "date": "2026-03-23T00:00:15.000Z",
+        "text": "1级"
+      },
+      {
+        "index": 7,
+        "type": "2",
+        "author": "zhongshui校对",
+        "date": "2026-03-23T00:00:15.000Z",
+        "text": "同左"
+      },
+      {
+        "index": 8,
+        "type": "1",
+        "author": "zhongshui校对",
+        "date": "2026-03-23T00:00:15.000Z",
+        "text": "1级"
+      },
+      {
+        "index": 9,
+        "type": "2",
+        "author": "zhongshui校对",
+        "date": "2026-03-23T00:00:15.000Z",
+        "text": "5180-2003"
+      },
+      {
+        "index": 10,
+        "type": "1",
+        "author": "zhongshui校对",
+        "date": "2026-03-23T00:00:15.000Z",
+        "text": "5180～2003"
+      }
+    ],
+    "revisionsTotalCount": 42,
+    "timestamp": 1774233043520
+  }
+]

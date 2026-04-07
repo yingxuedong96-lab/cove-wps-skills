@@ -1,0 +1,18 @@
+[
+  {
+    "id": "1775204306694_33gvy7o",
+    "role": "user",
+    "content": "排版",
+    "timestamp": 1775204306694,
+    "commandMeta": {
+      "name": "排版"
+    }
+  },
+  {
+    "id": "1775204306694_2xbdqxh",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775204306694,
+    "streaming": false
+  }
+]

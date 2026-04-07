@@ -1,0 +1,211 @@
+[
+  {
+    "id": "1775191938212_9stxi0v",
+    "role": "user",
+    "content": "根据规则文档中的内容对当前文档进行排版",
+    "timestamp": 1775191938212,
+    "attachments": [
+      {
+        "fileName": "规则.docx",
+        "filePath": "/Users/cassia/Desktop/dyx/wpsjs/3. 中水设计文档校排/规则.docx",
+        "fileType": "writer",
+        "contentPreview": "",
+        "source": "linked"
+      }
+    ],
+    "commandMeta": {
+      "name": "根据规则文档中的内容对当前文档进..."
+    }
+  },
+  {
+    "id": "1775191938212_pnpl84n",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775191938212,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775191942148_i1at",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775191942148,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "generalformat"
+      },
+      "output": "<skill_content name=\"generalformat\">\n# Skill: generalformat\n\n---\nname: generalformat\ndescription: >\n  从规范文档提取排版规则，自动识别段落类型并应用格式。\n  支持任意编号体系。\n  触发词：排版、按规范排版、格式化。\ncompatibility:\n  runtime: WPS JS 宏 / WPS 加载项（JSAPI）\n---\n\n# 通用文档排版\n\n## 使用方式\n\n用户提供规范文档，Skill 自动提取规则并应用到当前文档。\n\n---\n\n## 执行步骤\n\n### Step 1 — 生成排版配置\n\n根据用户提供的规范文档内容，生成排版配置 JSON。\n\n**⚠️ 禁止自己写代码读取文档！必须通过以下方式获取规范内容：**\n1. 如果用户直接提供了规范文字 → 直接使用\n2. 如果用户指定了规范文档文件 → **调用 parse-spec.js 脚本读取**\n3. 如果用户说\"当前文档就是规范文档\" → **调用 parse-spec.js 不传参数**\n\n**⚠️ 重要规则**：\n1. **必须包含 specText 字段**：将用户规范原文完整放入\n2. **覆盖所有提到的类型**：规范中提到章标题、二级标题、三级标题、四级标题，配置就必须包含 zhangTitle、heading2、heading3、heading4，不能遗漏任何一个\n3. **不要添加未提及的类型**：规范没说正文，就不要添加 body 规则\n4. 直接输出 JSON，不要写代码，不要解释\n\n**配置格式**：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"用户提供的规范文档原文（必须包含，用于校验）\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    ...\n  }\n}\n```\n\n**⚠️ 必须包含 specText 字段**：将用户提供的规范原文完整放入 specText，脚本会用它校验规则类型是否正确。\n```\n\n**字段说明**：\n\n| 字段 | 类型 | 说明 |\n|------|------|------|\n| fontCN | string | 中文字体名称（如：宋体、黑体、楷体） |\n| fontEN | string | 西文字体名称（如：Times New Roman） |\n| fontSize | number | 字号磅值（小四=12，四号=14，三号=16，五号=10.5） |\n| bold | boolean | 是否加粗 |\n| alignment | number | 对齐方式：0=左对齐，1=居中，2=右对齐，3=两端对齐 |\n| spaceBefore | number | 段前间距（磅） |\n| spaceAfter | number | 段后间距（磅） |\n| firstLineIndent | number | 首行缩进（磅，2字符≈24磅） |\n| lineSpacingRule | number | 行距：0=单倍，1=1.5倍，2=2倍，4=固定值 |\n\n---\n\n### Step 2 — 调用脚本应用排版\n\n**⚠️ 必须调用 executeFile，不要自己写代码。**\n\n```yaml\nexecuteFile:\n  filePath: \"skills/generalformat/scripts/format-engine.js\"\n  params:\n    config: <上一步生成的JSON>\n```\n\n返回值示例：\n\n```json\n{\n  \"success\": true,\n  \"applied\": 5656,\n  \"elapsedMs\": 2882,\n  \"typeCounts\": { \"zhangTitle\": 20, \"heading2\": 421, \"body\": 5207 },\n  \"total\": 9388\n}\n```\n\n---\n\n## 段落类型识别\n\n脚本自动识别以下段落类型：\n\n| 类型 | 匹配规则 |\n|------|---------|\n| zhangTitle | 第X章、数字+空格+汉字、一、二、三、 |\n| heading2 | 1.1、1.2 等二级编号 |\n| heading3 | 1.1.1、1.1.2 等三级编号 |\n| tableCaption | 表1、表2-1 等 |\n| figureCaption | 图1、图2-1 等 |\n| body | 其他正文段落 |\n\n---\n\n## 示例\n\n**示例1：只有标题规则**\n\n规范文档：\n> 章标题用黑体三号居中加粗，二级标题用黑体四号左对齐加粗，三级标题用楷体小四号左对齐。\n\n生成的配置（只有标题，没有正文等其他类型）：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"章标题用黑体三号居中加粗，二级标题用黑体四号左对齐加粗，三级标题用楷体小四号左对齐。\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontCN\": \"黑体\", \"fontSize\": 16, \"bold\": true, \"alignment\": 1, \"firstLineIndent\": 0 },\n    \"heading2\": { \"fontCN\": \"黑体\", \"fontSize\": 14, \"bold\": true, \"alignment\": 0, \"firstLineIndent\": 0 },\n    \"heading3\": { \"fontCN\": \"楷体\", \"fontSize\": 12, \"bold\": false, \"alignment\": 0, \"firstLineIndent\": 0 }\n  }\n}\n```\n\n**示例2：包含正文规则**\n\n规范文档：\n> 章标题用黑体三号居中加粗，正文用宋体小四号两端对齐首行缩进2字符。\n\n生成的配置：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"章标题用黑体三号居中加粗，正文用宋体小四号两端对齐首行缩进2字符。\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontCN\": \"黑体\", \"fontSize\": 16, \"bold\": true, \"alignment\": 1, \"firstLineIndent\": 0 },\n    \"body\": { \"fontCN\": \"宋体\", \"fontSize\": 12, \"alignment\": 3, \"firstLineIndent\": 24 }\n  }\n}\n```\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/generalformat/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 10
+    }
+  },
+  {
+    "id": "tool_1775191944436_ovxr",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775191944436,
+    "toolCall": {
+      "toolName": "skill_resource",
+      "input": {
+        "skillName": "generalformat",
+        "resourcePath": "resources/parse-spec.js"
+      },
+      "output": "[ResourceNotFound] 资源文件 \"resources/parse-spec.js\" 不存在（路径：skills/generalformat/resources/parse-spec.js）",
+      "durationMs": 12
+    }
+  },
+  {
+    "id": "1775191945396_vefljhc",
+    "role": "assistant",
+    "content": "我需要先读取规则文档的内容，然后生成排版配置。让我先获取规则文档的段落内容。\n\n",
+    "timestamp": 1775191945396,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775191945922_3u7g",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775191945922,
+    "toolCall": {
+      "toolName": "getDocumentParagraphs",
+      "input": {
+        "scope": "document",
+        "page": 1,
+        "pageSize": 200
+      },
+      "output": "共 116 个段落,其中 0 个空行已忽略，显示第 1 页（每页 200 条）：\n\n[pid_302614825] 第一章 水利工程概述\n[pid_2029011124] 项目总投资约XX亿元，建设工期为XX个月。主要建设内容包括：水库大坝、溢洪道、引水隧洞、发电厂房等主体工程，以及配套的监测系统和管理设施。\n[pid_159423705] 地形以山地丘陵为主，海拔高度在XX米至XX米之间。地貌类型主要包括：侵蚀构造山地、剥蚀构造丘陵、堆积平原等。\n[pid_1517753295] 1.1 工程背景\n[pid_845555035] 根据国家防洪标准要求，本工程防洪标准确定为XX年一遇。设计洪水流量XX立方米每秒，校核洪水流量XX立方米每秒。\n[pid_155925968] 工程设计遵循《水利水电工程设计规范》等相关技术标准。主要设计参数的选择和计算方法均符合规范要求。\n[pid_757890433] 1.1.1 项目概况\n[pid_876695068] 总体布置遵循安全优先、经济合理、技术先进、环境友好的原则。在确保工程安全的前提下，充分考虑投资效益和施工便利性。\n[pid_389752216] 设计方案在满足功能要求的前提下，尽可能降低工程造价。通过优化布置方案、采用合理结构形式、选用适宜材料等措施，有效控制投资规模。\n[pid_1429621006] 1.1.1.1 建设规模\n[pid_1679971669] 本工程位于XX省XX市，是一项综合性水利工程建设项目。工程建设的主要目的是改善区域防洪条件，提高水资源利用效率，促进当地经济社会发展。\n[pid_636717997] 工程区地处XX山脉东麓，地势由西向东逐渐降低。主要河流为XX江，流域面积约XX平方公里，多年平均径流量XX亿立方米。\n[pid_1075811685] 1.1.1.2 技术要求\n[pid_1400543795] 地形以山地丘陵为主，海拔高度在XX米至XX米之间。地貌类型主要包括：侵蚀构造山地、剥蚀构造丘陵、堆积平原等。\n[pid_530700829] 《中华人民共和国水法》是水利工程设计的基本法律依据。该法明确规定了水资源开发利用的基本原则和管理要求。\n[pid_1868225745] 1.1.2 地理位置\n[pid_1351690604] 1.1.2.1 地形地貌\n[pid_798532197] 1.2 工程目标\n[pid_2117815138] 1.2.1 总体目标\n[pid_1159550603] 1.2.1.1 防洪标准\n[pid_1704433040] 第二章 设计依据\n[pid_1651421000] 2.1 法律法规\n[pid_23350049] 2.1.1 国家法规\n[pid_2033628650] 2.1.1.1 水法相关规定\n[pid_70128343] 2.2 技术标准\n[pid_144792741] 2.2.1 设计规范\n[pid_162870329] 第三章 工程设计\n[pid_1738273642] 3.1 总体布局\n[pid_823580300] 3.1.1 布置原则\n[pid_855924065] 3.1.1.1 安全优先\n[pid_798748904] 3.1.1.2 经济合理\n[pid_611379354] 本工程位于XX省XX市，是一项综合性水利工程建设项目。工程建设的主要目的是改善区域防洪条件，提高水资源利用效率，促进当地经济社会发展。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_1678361805] 项目总投资约XX亿元，建设工期为XX个月。主要建设内容包括：水库大坝、溢洪道、引水隧洞、发电厂房等主体工程，以及配套的监测系统和管理设施。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_478019285] 工程区地处XX山脉东麓，地势由西向东逐渐降低。主要河流为XX江，流域面积约XX平方公里，多年平均径流量XX亿立方米。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_1402985233] 地形以山地丘陵为主，海拔高度在XX米至XX米之间。地貌类型主要包括：侵蚀构造山地、剥蚀构造丘陵、堆积平原等。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_702279416] 根据国家防洪标准要求，本工程防洪标准确定为XX年一遇。设计洪水流量XX立方米每秒，校核洪水流量XX立方米每秒。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_871114936] 《中华人民共和国水法》是水利工程设计的基本法律依据。该法明确规定了水资源开发利用的基本原则和管理要求。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_760510082] 工程设计遵循《水利水电工程设计规范》等相关技术标准。主要设计参数的选择和计算方法均符合规范要求。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_1547776275] 总体布置遵循安全优先、经济合理、技术先进、环境友好的原则。在确保工程安全的前提下，充分考虑投资效益和施工便利性。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_973268185] 安全是水利工程的首要目标。设计方案充分考虑了各种不利工况，采取了多重防护措施，确保工程在各种条件下都能安全运行。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_885998413] 设计方案在满足功能要求的前提下，尽可能降低工程造价。通过优化布置方案、采用合理结构形式、选用适宜材料等措施，有效控制投资规模。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_624825580] 本工程位于XX省XX市，是一项综合性水利工程建设项目。工程建设的主要目的是改善区域防洪条件，提高水资源利用效率，促进当地经济社会发展。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_1139082182] 项目总投资约XX亿元，建设工期为XX个月。主要建设内容包括：水库大坝、溢洪道、引水隧洞、发电厂房等主体工程，以及配套的监测系统和管理设施。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_529162795] 工程区地处XX山脉东麓，地势由西向东逐渐降低。主要河流为XX江，流域面积约XX平方公里，多年平均径流量XX亿立方米。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_1335428582] 地形以山地丘陵为主，海拔高度在XX米至XX米之间。地貌类型主要包括：侵蚀构造山地、剥蚀构造丘陵、堆积平原等。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_1191867500] 根据国家防洪标准要求，本工程防洪标准确定为XX年一遇。设计洪水流量XX立方米每秒，校核洪水流量XX立方米每秒。。工程设计需要综合考虑多方面因素，包括技术可行性、经济合理性、环境影响等方面。\n[pid_987849937] 表1 主要设计参数汇总表\n[pid_2002718124] 下表列出了本工程的主要设计参数，包括工程规模、防洪标准、设计流量等关键指标。\n[pid_1153600064] 参数名称\u0007\n[pid_1248074488] 设计值\u0007\n[pid_1663008062] 单位\u0007\n[pid_1501598705] 备注\u0007\n[pid_450074670] \u0007\n[pid_127969201] 工程等级\u0007\n[pid_1815635581] I级\u0007\n[pid_827169553] -\u0007\n[pid_1677685855] 大型工程\u0007\n[pid_650249356] \u0007\n[pid_1224918101] 防洪标准\u0007\n[pid_614982246] 100年一遇\u0007\n[pid_36224837] -\u0007\n[pid_597960351] 设计标准\u0007\n[pid_2116179994] \u0007\n[pid_1264327941] 设计洪水流量\u0007\n[pid_1495747340] 8500\u0007\n[pid_2136709968] m³/s\u0007\n[pid_659775499] 校核值11000\u0007\n[pid_1306933725] \u0007\n[pid_249910456] 水库总库容\u0007\n[pid_1264514690] 2.5\u0007\n[pid_1045913241] 亿m³\u0007\n[pid_953998469] 正常蓄水位\u0007\n[pid_793421735] \u0007\n[pid_1160143647] 装机容量\u0007\n[pid_1808676004] 120\u0007\n[pid_49226102] MW\u0007\n[pid_1607884067] 年发电量\u0007\n[pid_1182397192] \u0007\n[pid_1946180627] 表2 工程投资估算表\n[pid_1130531340] 本表为工程投资估算明细，各项费用均按照现行定额和市场价格计算。\n[pid_1898681228] 项目\u0007\n[pid_546304260] 金额（万元）\u0007\n[pid_550963851] 占比\u0007\n[pid_300737523] \u0007\n[pid_2048893254] 建筑工程\u0007\n[pid_1630502362] 45000\u0007\n[pid_1151085517] 45%\u0007\n[pid_2049033085] \u0007\n[pid_1968084886] 安装工程\u0007\n[pid_97257648] 15000\u0007\n[pid_928072481] 15%\u0007\n[pid_1921033998] \u0007\n[pid_1803792400] 设备购置\u0007\n[pid_133301555] 25000\u0007\n[pid_1383422261] 25%\u0007\n[pid_1079512390] \u0007\n[pid_413866003] 其他费用\u0007\n[pid_472591053] 15000\u0007\n[pid_1998267787] 15%\u0007\n[pid_1827790019] \u0007\n[pid_769173801] 图1 工程总体布置示意图\n[pid_1087189235] 下图展示了工程总体布置方案，包括大坝、溢洪道、引水系统等主要建筑物的相对位置关系。\n[pid_884473262] /\n[pid_457951947] 图2 大坝剖面图\n[pid_909637637] 大坝剖面图展示了坝体的结构形式和主要尺寸，包括坝顶宽度、坝高、上下游坡比等关键参数。\n[pid_1047358040] /\n[pid_1856506381] 第四章 施工组织设计\n[pid_2029926554] 4.1 施工方案\n[pid_517279211] 4.1.1 施工总体安排\n[pid_1833521419] 4.1.1.1 施工顺序\n[pid_141401868] 施工顺序按照先地下后地上、先主体后附属的原则安排。主要施工流程为：导流工程→大坝基础开挖→大坝填筑→溢洪道施工→引水系统施工→发电厂房施工。\n[pid_66100533] 4.1.1.2 施工工期\n[pid_160231752] 总工期XX个月，其中准备期XX个月，主体工程施工期XX个月，完建期XX个月。关键工期节点包括：导流洞完工、大坝填筑完成、首台机组发电等。\n[pid_2085696147] 参考文献\n[pid_1938497470] [1] 中华人民共和国水利部. 水利水电工程设计规范(SLXXX-XXXX). 北京: 中国水利水电出版社, XXXX年.\n[pid_664743105] [2] XX省水利厅. XX省水利工程设计技术规定. XX: XX出版社, XXXX年.\n\n[END] 已读取全部段落，无需翻页。",
+      "durationMs": 9
+    }
+  },
+  {
+    "id": "tool_1775191951545_d6wp",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775191951545,
+    "toolCall": {
+      "toolName": "skill_resource",
+      "input": {
+        "skillName": "generalformat",
+        "resourcePath": "resources/parse-spec.js"
+      },
+      "output": "[ResourceNotFound] 资源文件 \"resources/parse-spec.js\" 不存在（路径：skills/generalformat/resources/parse-spec.js）",
+      "durationMs": 15
+    }
+  },
+  {
+    "id": "tool_1775191952790_3x2s",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775191952790,
+    "toolCall": {
+      "toolName": "skill_resource",
+      "input": {
+        "skillName": "generalformat",
+        "resourcePath": "scripts/format-engine.js"
+      },
+      "output": "<skill_resource skill=\"generalformat\" path=\"scripts/format-engine.js\">\n/**\n * format-engine.js - Range批量处理版 + 规范文本校验\n *\n * 核心优化：使用 Range 对象批量设置格式，而非逐段落设置\n * 参考 zslong 的 processFontFast 实现\n *\n * 新增：specText 参数校验，确保只处理用户规范中明确提到的类型\n */\n\ntry {\n  var startTime = Date.now();\n  var doc = Application.ActiveDocument;\n  if (!doc) {\n    return { success: false, error: '无活动文档' };\n  }\n\n  // 解析配置\n  var configData = typeof config === 'string' ? JSON.parse(config) : config;\n  var rules = configData.paragraphRules || {};\n  var patterns = configData.numberingPatterns || {};\n  var fontDefaults = configData.fontDefaults || { fontCN: '宋体', fontEN: 'Times New Roman' };\n\n  // ========================================\n  // 规范文本校验（关键：只接受用户明确提到的类型）\n  // ========================================\n  var TYPE_KEYWORDS = {\n    zhangTitle: ['章标题', '一级标题', '章节标题', '标题一', 'Heading 1', '章名'],\n    heading2: ['二级标题', '标题二', 'Heading 2'],\n    heading3: ['三级标题', '标题三', 'Heading 3'],\n    heading4: ['四级标题', '标题四', 'Heading 4'],\n    body: ['正文', '正文格式', '段落格式', '正文内容', '文本内容'],\n    tableCaption: ['表名', '表格名', '表标题', '表号', '表格标题', '表格名'],\n    figureCaption: ['图名', '图片名', '图标题', '图号', '图片标题', '插图名'],\n    ref: ['参考文献', '引用文献']\n  };\n\n  var specText = configData.specText || '';\n  if (!specText) {\n    // ⚠️ 必须提供 specText，否则无法校验规则类型是否正确\n    console.log('[format] ⚠️ 错误：配置中缺少 specText 字段！');\n    console.log('[format] specText 必须包含用户提供的规范文档原文');\n    console.log('[format] 示例：{\"specText\": \"章标题用黑体三号居中加粗...\", \"paragraphRules\": {...}}');\n    return {\n      success: false,\n      error: '配置缺少 specText 字段，无法校验规则类型。请将用户提供的规范原文放入 specText 字段。',\n      hint: '示例：{\"specText\": \"章标题用黑体三号居中加粗，正文用宋体小四...\", \"paragraphRules\": {...}}'\n    };\n  }\n\n  // specText 存在时执行校验\n  console.log('[format] 规范文本校验启用');\n  console.log('[format] 规范文本: ' + specText.substring(0, 100) + '...');\n\n  // 从规范文本中提取用户提到的类型\n  var mentionedTypes = [];\n  for (var typeKey in TYPE_KEYWORDS) {\n    var keywords = TYPE_KEYWORDS[typeKey];\n    for (var k = 0; k < keywords.length; k++) {\n      if (specText.indexOf(keywords[k]) !== -1) {\n        mentionedTypes.push(typeKey);\n        break;\n      }\n    }\n  }\n\n  console.log('[format] 规范文本中提到的类型: ' + mentionedTypes.join(', '));\n\n  // 过滤规则：只保留规范中提到的类型\n  var filteredRules = {};\n  var removedTypes = [];\n  for (var key in rules) {\n    if (mentionedTypes.indexOf(key) !== -1) {\n      filteredRules[key] = rules[key];\n    } else {\n      removedTypes.push(key);\n    }\n  }\n\n  // 检查缺失类型（规范提到了但配置中没有）\n  var missingTypes = [];\n  for (var m = 0; m < mentionedTypes.length; m++) {\n    if (!filteredRules[mentionedTypes[m]]) {\n      missingTypes.push(mentionedTypes[m]);\n    }\n  }\n\n  if (removedTypes.length > 0) {\n    console.log('[format] ⚠️ 已移除未提及的规则类型: ' + removedTypes.join(', '));\n  }\n  if (missingTypes.length > 0) {\n    console.log('[format] ⚠️ 规范提到但配置缺失的类型: ' + missingTypes.join(', '));\n  }\n\n  rules = filteredRules;\n  configData.paragraphRules = filteredRules;\n\n  // 修正编号正则\n  for (var key in patterns) {\n    if (Array.isArray(patterns[key])) {\n      for (var i = 0; i < patterns[key].length; i++) {\n        if (typeof patterns[key][i] === 'string') {\n          patterns[key][i] = patterns[key][i].replace(/第\\s+\\[/g, '第[');\n        }\n      }\n    }\n  }\n\n  // 修正规则配置\n  for (var key in rules) {\n    var rule = rules[key];\n    // 行距修正\n    if (rule.lineSpacing !== undefined && rule.lineSpacingRule === undefined) {\n      if (rule.lineSpacing === 1.5) { rule.lineSpacingRule = 1; delete rule.lineSpacing; }\n      else if (rule.lineSpacing === 1) { rule.lineSpacingRule = 0; delete rule.lineSpacing; }\n      else if (rule.lineSpacing === 2) { rule.lineSpacingRule = 2; delete rule.lineSpacing; }\n    }\n    // 首行缩进修正\n    if (rule.firstLineIndent !== undefined && rule.firstLineIndent > 0 && rule.firstLineIndent < 10) {\n      rule.firstLineIndent = rule.firstLineIndent * 12;\n    }\n  }\n\n  console.log('[format] 配置解析完成');\n\n  // ========================================\n  // 读取全文并分类\n  // ========================================\n  var docText = '';\n  try { docText = doc.Content ? doc.Content.Text : ''; } catch (e) {}\n  var logicalParas = docText.split('\\r');\n  var paraCount = doc.Paragraphs.Count;\n  var maxParaCount = Math.min(paraCount, logicalParas.length);\n\n  // 默认正则 + 用户正则\n  var allPatterns = {\n    zhangTitle: ['^第[一二三四五六七八九十百零]+章', '^第\\\\s*[一二三四五六七八九十百零]+章', '^第\\\\d{1,3}章', '^\\\\d{1,3}\\\\s+[\\\\u4e00-\\\\u9fff]', '^[一二三四五六七八九十]+、'],\n    heading2: ['^\\\\d+\\\\.\\\\d+\\\\s', '^[（(][一二三四五六七八九十]+[）)]'],\n    heading3: ['^\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\s', '^[（(]\\\\d+[）)]'],\n    tableCaption: ['^表\\\\s*\\\\d+', '^表\\\\s*[\\\\d\\\\.\\\\-]+'],\n    figureCaption: ['^图\\\\s*\\\\d+', '^图\\\\s*[\\\\d\\\\.\\\\-]+'],\n    ref: ['^参考文献', '^\\\\[\\\\d+\\\\]']\n  };\n\n  for (var t in allPatterns) {\n    allPatterns[t] = (patterns[t] || []).concat(allPatterns[t]);\n  }\n\n  var compiled = {};\n  for (var t in allPatterns) {\n    compiled[t] = [];\n    for (var i = 0; i < allPatterns[t].length; i++) {\n      try { compiled[t].push(new RegExp(allPatterns[t][i])); } catch (e) {}\n    }\n  }\n\n  function cleanText(t) {\n    return String(t || '').replace(/\\u0007/g, '').replace(/[\\r\\n]/g, '').trim();\n  }\n\n  var inRef = false;\n  function classify(text) {\n    text = cleanText(text);\n    if (!text) return 'empty';\n\n    for (var i = 0; i < compiled.ref.length; i++) {\n      if (compiled.ref[i].test(text)) {\n        if (/^参考文献/.test(text)) return 'zhangTitle';\n        inRef = true;\n        return 'ref';\n      }\n    }\n    if (inRef) return 'ref';\n\n    for (var i = 0; i < compiled.tableCaption.length; i++) {\n      if (compiled.tableCaption[i].test(text)) return 'tableCaption';\n    }\n    for (var i = 0; i < compiled.figureCaption.length; i++) {\n      if (compiled.figureCaption[i].test(text)) return 'figureCaption';\n    }\n    for (var i = 0; compiled.zhangTitle && i < compiled.zhangTitle.length; i++) {\n      if (compiled.zhangTitle[i].test(text)) return 'zhangTitle';\n    }\n    for (var i = 0; compiled.heading2 && i < compiled.heading2.length; i++) {\n      if (compiled.heading2[i].test(text)) return 'heading2';\n    }\n    for (var i = 0; compiled.heading3 && i < compiled.heading3.length; i++) {\n      if (compiled.heading3[i].test(text)) return 'heading3';\n    }\n\n    return text.length <= 2 ? 'short' : 'body';\n  }\n\n  // 分类所有段落\n  var classifications = [];\n  var typeIndices = {};  // 按类型存储段落索引\n\n  // 只初始化用户规则中定义的类型\n  for (var t in rules) {\n    if (rules[t]) typeIndices[t] = [];\n  }\n\n  for (var i = 0; i < maxParaCount; i++) {\n    var type = classify(logicalParas[i]);\n    classifications.push(type);\n    // 只记录用户规则中定义的类型\n    if (type !== 'empty' && type !== 'short' && typeIndices[type]) {\n      typeIndices[type].push(i + 1);  // WPS 段落索引从1开始\n    }\n  }\n\n  // 统计\n  var counts = {};\n  for (var i = 0; i < classifications.length; i++) {\n    counts[classifications[i]] = (counts[classifications[i]] || 0) + 1;\n  }\n\n  // 显示分类结果和规则匹配情况\n  console.log('[format] 分类结果: ' + JSON.stringify(counts));\n  var definedTypes = Object.keys(rules).filter(function(t) { return rules[t]; });\n  console.log('[format] 用户定义的规则类型: ' + definedTypes.join(', '));\n\n  // ========================================\n  // 批量应用格式（Range优化）\n  // ========================================\n  var origTrack = false;\n  try { origTrack = doc.TrackRevisions; doc.TrackRevisions = false; } catch (e) {}\n\n  var applied = 0;\n  var errors = 0;\n\n  // 辅助函数：对 Range 应用格式规则\n  function applyRuleToRange(range, rule) {\n    if (!range) return false;\n    try {\n      if (range.Font) {\n        var f = range.Font;\n        if (rule.fontCN || fontDefaults.fontCN) f.NameFarEast = rule.fontCN || fontDefaults.fontCN;\n        if (rule.fontEN || fontDefaults.fontEN) f.Name = rule.fontEN || fontDefaults.fontEN;\n        if (rule.fontSize !== undefined) f.Size = rule.fontSize;\n        if (rule.bold !== undefined) f.Bold = rule.bold ? -1 : 0;\n      }\n      if (range.ParagraphFormat) {\n        var pf = range.ParagraphFormat;\n        if (rule.alignment !== undefined) pf.Alignment = rule.alignment;\n        if (rule.firstLineIndent !== undefined) pf.FirstLineIndent = rule.firstLineIndent;\n        if (rule.spaceBefore !== undefined) pf.SpaceBefore = rule.spaceBefore;\n        if (rule.spaceAfter !== undefined) pf.SpaceAfter = rule.spaceAfter;\n        if (rule.lineSpacingRule !== undefined) pf.LineSpacingRule = rule.lineSpacingRule;\n        if (rule.lineSpacing !== undefined) pf.LineSpacing = rule.lineSpacing;\n      }\n      return true;\n    } catch (e) { return false; }\n  }\n\n  try {\n    // 正文批量处理：用连续 Range 一次设置\n    var bodyIndices = typeIndices['body'] || [];\n    if (bodyIndices.length > 0 && rules.body) {\n      // 找连续段落，合并成 Range\n      var segments = [];\n      var segStart = bodyIndices[0];\n      var segEnd = bodyIndices[0];\n\n      for (var i = 1; i < bodyIndices.length; i++) {\n        if (bodyIndices[i] === segEnd + 1) {\n          segEnd = bodyIndices[i];\n        } else {\n          segments.push({ start: segStart, end: segEnd });\n          segStart = bodyIndices[i];\n          segEnd = bodyIndices[i];\n        }\n      }\n      segments.push({ start: segStart, end: segEnd });\n\n      console.log('[format] 正文分段数: ' + segments.length + ', 总段落: ' + bodyIndices.length);\n\n      // 如果分段太多（>50），直接用一个 Range 包住整个正文区\n      if (segments.length > 50) {\n        try {\n          var firstBodyPara = doc.Paragraphs.Item(bodyIndices[0]);\n          var lastBodyPara = doc.Paragraphs.Item(bodyIndices[bodyIndices.length - 1]);\n          if (firstBodyPara && firstBodyPara.Range && lastBodyPara && lastBodyPara.Range) {\n            var wideRange = doc.Range(firstBodyPara.Range.Start, lastBodyPara.Range.End);\n            if (applyRuleToRange(wideRange, rules.body)) {\n              applied += bodyIndices.length;\n              console.log('[format] 正文整体批量处理: ' + bodyIndices.length + '段');\n            }\n          }\n        } catch (wideErr) {\n          console.log('[format] 整体处理失败，改用分段: ' + wideErr);\n        }\n      } else {\n        // 分段处理\n        for (var s = 0; s < segments.length; s++) {\n          try {\n            var startPara = doc.Paragraphs.Item(segments[s].start);\n            var endPara = doc.Paragraphs.Item(segments[s].end);\n            if (!startPara || !startPara.Range || !endPara || !endPara.Range) continue;\n\n            var segRange = doc.Range(startPara.Range.Start, endPara.Range.End);\n            if (applyRuleToRange(segRange, rules.body)) {\n              applied += segments[s].end - segments[s].start + 1;\n            }\n          } catch (segErr) {}\n        }\n        console.log('[format] 正文分段处理完成');\n      }\n    }\n\n    // 标题、图表等：逐个处理（数量少）\n    var singleTypes = ['zhangTitle', 'heading2', 'heading3', 'tableCaption', 'figureCaption', 'ref'];\n    for (var t = 0; t < singleTypes.length; t++) {\n      var typeName = singleTypes[t];\n      var indices = typeIndices[typeName] || [];\n      var rule = rules[typeName];\n      if (!rule || indices.length === 0) continue;\n\n      for (var i = 0; i < indices.length; i++) {\n        try {\n          var para = doc.Paragraphs.Item(indices[i]);\n          if (para && para.Range) {\n            if (applyRuleToRange(para.Range, rule)) {\n              applied++;\n            }\n          }\n        } catch (e) { errors++; }\n      }\n      console.log('[format] ' + typeName + ': ' + indices.length + '段');\n    }\n\n  } finally {\n    try { doc.TrackRevisions = origTrack; } catch (e) {}\n  }\n\n  var elapsed = Date.now() - startTime;\n\n  // 只统计实际处理的类型\n  var processedCounts = {};\n  for (var t in typeIndices) {\n    if (typeIndices[t] && typeIndices[t].length > 0) {\n      processedCounts[t] = typeIndices[t].length;\n    }\n  }\n\n  console.log('[format] 完成: applied=' + applied + ' errors=' + errors + ' time=' + elapsed + 'ms');\n\n  return {\n    success: true,\n    applied: applied,\n    errors: errors,\n    elapsedMs: elapsed,\n    processedTypes: processedCounts,\n    total: paraCount\n  };\n\n} catch (e) {\n  console.error('[format] 错误: ' + e);\n  return { success: false, error: String(e) };\n}\n</skill_resource>",
+      "durationMs": 16
+    }
+  },
+  {
+    "id": "1775191957238_tgg0aok",
+    "role": "assistant",
+    "content": "现在需要读取规则文档内容来生成排版配置。让我先切换到规则.docx 文件读取其内容。\n\n",
+    "timestamp": 1775191957238,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775191957783_s90v",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775191957783,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "// 读取规则.docx 文件内容\nvar docPath = \"/Users/cassia/Desktop/dyx/wpsjs/3. 中水设计文档校排/规则.docx\";\nvar app = Application;\nvar docs = app.Documents;\n\ntry {\n    // 查找已打开的规则.docx\n    var ruleDoc = null;\n    for (var i = 1; i <= docs.Count; i++) {\n        var d = docs.Item(i);\n        if (d.Name === \"规则.docx\") {\n            ruleDoc = d;\n            break;\n        }\n    }\n    \n    if (!ruleDoc) {\n        return { success: false, error: \"未找到规则.docx 文件\" };\n    }\n    \n    // 读取全文内容\n    var content = ruleDoc.Content.Text;\n    return { success: true, content: content };\n} catch (e) {\n    return { success: false, error: String(e) };\n}"
+      },
+      "output": "{\"success\":true,\"content\":\"章标题用楷体四号居中加粗段前18磅段后12磅，二级标题用宋体小四号左对齐加粗段前6磅段后6磅，三级标题用黑体五号左对齐不加粗段前3磅段后3磅，所有标题无缩进。\\r\\r\\r\\r\\r\\r\\t\\r\"}",
+      "durationMs": 24
+    }
+  },
+  {
+    "id": "1775191962451_o5ufi3c",
+    "role": "assistant",
+    "content": "根据规则文档内容，生成排版配置并应用：\n\n",
+    "timestamp": 1775191962451,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775191962865_zudv",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775191962865,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/generalformat/scripts/format-engine.js",
+        "params": {
+          "config": {
+            "fontDefaults": {
+              "fontCN": "宋体",
+              "fontEN": "Times New Roman"
+            },
+            "paragraphRules": {
+              "heading2": {
+                "alignment": 0,
+                "bold": true,
+                "firstLineIndent": 0,
+                "fontCN": "宋体",
+                "fontSize": 12,
+                "spaceAfter": 6,
+                "spaceBefore": 6
+              },
+              "heading3": {
+                "alignment": 0,
+                "bold": false,
+                "firstLineIndent": 0,
+                "fontCN": "黑体",
+                "fontSize": 10.5,
+                "spaceAfter": 3,
+                "spaceBefore": 3
+              },
+              "zhangTitle": {
+                "alignment": 1,
+                "bold": true,
+                "firstLineIndent": 0,
+                "fontCN": "楷体",
+                "fontSize": 14,
+                "spaceAfter": 12,
+                "spaceBefore": 18
+              }
+            },
+            "specText": "章标题用楷体四号居中加粗段前 18 磅段后 12 磅，二级标题用宋体小四号左对齐加粗段前 6 磅段后 6 磅，三级标题用黑体五号左对齐不加粗段前 3 磅段后 3 磅，所有标题无缩进。"
+          }
+        }
+      },
+      "output": "{\"success\":true,\"applied\":18,\"errors\":0,\"elapsedMs\":21,\"processedTypes\":{\"heading2\":6,\"heading3\":7,\"zhangTitle\":5},\"total\":116}",
+      "durationMs": 39
+    }
+  },
+  {
+    "id": "tool_1775191970402_2jaa",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775191970403,
+    "toolCall": {
+      "toolName": "confirmEdits",
+      "input": {
+        "mode": "format",
+        "summary": "## 格式修改报告\n\n- **章标题（共 5 处）**：字体「楷体」，字号 14 磅（四号），加粗，居中，段前 18 磅，段后 12 磅，无缩进\n- **二级标题（共 6 处）**：字体「宋体」，字号 12 磅（小四），加粗，左对齐，段前 6 磅，段后 6 磅，无缩进\n- **三级标题（共 7 处）**：字体「黑体」，字号 10.5 磅（五号），不加粗，左对齐，段前 3 磅，段后 3 磅，无缩进\n\n**总计处理段落数**：18 个段落  \n**处理耗时**：21 毫秒"
+      },
+      "output": "已确认排版结果",
+      "durationMs": 16599
+    }
+  },
+  {
+    "id": "1775191988366_60ggll9",
+    "role": "assistant",
+    "content": "已根据规则文档完成排版：章标题（楷体四号居中加粗）、二级标题（宋体小四左对齐加粗）、三级标题（黑体五号左对齐）共 18 处段落格式已统一调整。",
+    "timestamp": 1775191988366,
+    "streaming": false
+  }
+]

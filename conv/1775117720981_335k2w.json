@@ -1,0 +1,15 @@
+[
+  {
+    "id": "1775117721348_85xlx3y",
+    "role": "user",
+    "content": "根据测试排版规则说明对当前文档进行排版",
+    "timestamp": 1775117721348
+  },
+  {
+    "id": "1775117721348_8f002ny",
+    "role": "assistant",
+    "content": "（无思考内容，仅作为占位）",
+    "timestamp": 1775117721348,
+    "streaming": false
+  }
+]

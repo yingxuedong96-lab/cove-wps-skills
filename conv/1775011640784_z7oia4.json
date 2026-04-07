@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1775011640847_fce8tft",
+    "role": "user",
+    "content": "章标题（一级标题）采用黑体、三号字（16磅）、居中对齐、加粗，段前12磅、段后6磅，无缩进。",
+    "timestamp": 1775011640847
+  },
+  {
+    "id": "1775011640847_jbnbyue",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775011640847,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775011642398_1afn",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775011642399,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "// 将所有一级标题（章标题）设置为黑体三号加粗居中，段前12磅段后6磅无缩进\nvar doc = Application.ActiveDocument;\nvar range = doc.Range();\nrange.Find.ClearFormatting();\nrange.Find.Font.Name = \"黑体\";\nrange.Find.Font.Size = 16;\nrange.Find.Font.Bold = true;\nrange.Find.ParagraphFormat.Alignment = 1; // 居中\nrange.Find.ParagraphFormat.SpaceBefore = 12 *"
+      },
+      "executing": true,
+      "codeStreaming": true
+    }
+  }
+]

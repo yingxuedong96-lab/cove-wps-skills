@@ -1,0 +1,15 @@
+[
+  {
+    "id": "1774589011290_mfjcfgc",
+    "role": "user",
+    "content": "/GWformat 根据集团公文排版格式要求对文档排版",
+    "timestamp": 1774589011290
+  },
+  {
+    "id": "1774589011290_ui788cz",
+    "role": "assistant",
+    "content": "[错误] Failed to fetch",
+    "timestamp": 1774589011290,
+    "streaming": false
+  }
+]

@@ -1,0 +1,64 @@
+[
+  {
+    "id": "1775025371927_0zeptbx",
+    "role": "user",
+    "content": "章标题（一级标题）采用黑体、三号字（16磅）、居中对齐、加粗，段前12磅、段后6磅，无缩进。",
+    "timestamp": 1775025371927
+  },
+  {
+    "id": "1775025371927_0rwid1h",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775025371927,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775025375052_u5m2",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775025375052,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "generalformat"
+      },
+      "output": "<skill_content name=\"generalformat\">\n# Skill: generalformat\n\n---\nname: generalformat\ndescription: >\n  通用文档排版技能。接收宿主 Agent 解析生成的 JSON 配置，自动识别段落类型\n  并批量应用格式。支持章标题、正文、图表名、公式、页眉页脚等元素排版。\n  触发词：排版、格式化、统一格式、按规范排版、中水格式、国标格式。\ncompatibility:\n  runtime: WPS JS 宏 / WPS 加载项（JSAPI）\n---\n\n# 通用文档排版\n\n## 前置条件\n\n宿主 Agent 必须已解析用户意图生成 `$formatConfig` 变量（JSON 配置字符串或对象）。\n\n## 执行步骤\n\n调用 `executeFile`：\n\n```yaml\nfilePath: \"skills/generalformat/scripts/format-engine.js\"\nparams:\n  config: \"$formatConfig\"\n```\n\n## 参数说明\n\n- `config`：排版配置 JSON\n  - `isSelection`：是否只处理选区（默认 false）\n  - `paragraphRules`：各段落类型的排版规则\n  - `fontDefaults`：默认字体 { fontCN, fontEN }\n\n## 返回值\n\n```json\n{\n  \"success\": true,\n  \"applied\": 180,\n  \"skipped\": 20,\n  \"failed\": 0,\n  \"elapsedMs\": 2350\n}\n```\n\n## 段落类型\n\n| 类型 | 识别规则 |\n|------|---------|\n| `zhangTitle` | 章标题（如 \"1 概述\"） |\n| `heading2` | 二级标题（如 \"1.1 设计依据\"） |\n| `heading3` | 三级标题 |\n| `heading3Plus` | 四级及以下标题 |\n| `body` | 正文段落 |\n| `tableCaption` | 表名 |\n| `figureCaption` | 图名 |\n\n## 配置示例\n\n```json\n{\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontCN\": \"黑体\", \"fontSize\": 16, \"bold\": true, \"alignment\": 1 },\n    \"heading2\": { \"fontCN\": \"黑体\", \"fontSize\": 14, \"bold\": true, \"alignment\": 0 },\n    \"body\": { \"fontCN\": \"宋体\", \"fontSize\": 12, \"firstLineIndent\": 24 }\n  }\n}\n```\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/generalformat/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 7
+    }
+  },
+  {
+    "id": "tool_1775025376084_jok5",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775025376084,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/generalformat/scripts/format-engine.js",
+        "params": {
+          "config": {
+            "paragraphRules": {
+              "zhangTitle": {
+                "alignment": 1,
+                "bold": true,
+                "fontCN": "黑体",
+                "fontSize": 16,
+                "spaceAfter": 6,
+                "spaceBefore": 12
+              }
+            }
+          }
+        }
+      },
+      "output": "{\"success\":true,\"applied\":0,\"skipped\":0,\"failed\":0,\"elapsedMs\":366}",
+      "durationMs": 378
+    }
+  },
+  {
+    "id": "1775025378405_wnvs8p5",
+    "role": "assistant",
+    "content": "章标题格式已应用（当前文档中未检测到符合识别规则的章标题段落）。",
+    "timestamp": 1775025378405,
+    "streaming": false
+  }
+]

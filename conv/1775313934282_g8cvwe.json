@@ -1,0 +1,18 @@
+[
+  {
+    "id": "1775313934367_998dvkc",
+    "role": "user",
+    "content": "排版",
+    "timestamp": 1775313934367,
+    "commandMeta": {
+      "name": "排版"
+    }
+  },
+  {
+    "id": "1775313934367_kuco52k",
+    "role": "assistant",
+    "content": "我将开始对文档进行排版处理。首先，让我获取文档的段落结构以了解当前内容布局。\n\n",
+    "timestamp": 1775313934367,
+    "streaming": false
+  }
+]

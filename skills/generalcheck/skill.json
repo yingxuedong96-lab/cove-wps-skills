@@ -1,0 +1,18 @@
+{
+  "description": "通用编号校对。对文档中的标题编号、图编号、表编号、公式编号进行自动校对与修正，自动开启修订模式。触发词：校对编号、校对标题编号、校对图编号、校对表编号、校对公式编号、校对引用。",
+  "emoji": "🔍",
+  "files": [
+    "skill.json",
+    "SKILL.md",
+    "scripts/scan-structure.js",
+    "scripts/apply-numbering-fixes.js",
+    "references/rules.md"
+  ],
+  "name": "generalcheck",
+  "resources": [
+    "references/rules.md"
+  ],
+  "snapshot": "before_task",
+  "source": "server",
+  "version": "26.0407.2150"
+}

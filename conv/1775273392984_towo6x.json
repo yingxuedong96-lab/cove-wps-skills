@@ -1,0 +1,18 @@
+[
+  {
+    "id": "1775273393057_8ph7b9r",
+    "role": "user",
+    "content": "排版",
+    "timestamp": 1775273393057,
+    "commandMeta": {
+      "name": "排版"
+    }
+  },
+  {
+    "id": "1775273393057_c98yj4h",
+    "role": "assistant",
+    "content": "<function_skill>\n<name>GBT9704</name>\n</function_skill>",
+    "timestamp": 1775273393057,
+    "streaming": false
+  }
+]

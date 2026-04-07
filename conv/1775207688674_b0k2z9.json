@@ -1,0 +1,61 @@
+[
+  {
+    "id": "1775207688751_i0ual3p",
+    "role": "user",
+    "content": "公式居中对齐，公式编号右对齐，公式用宋体四号。generalformat",
+    "timestamp": 1775207688751
+  },
+  {
+    "id": "1775207688751_qedhojk",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775207688751,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775207690806_0227",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775207690806,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "generalformat"
+      },
+      "output": "<skill_content name=\"generalformat\">\n# Skill: generalformat\n\n---\nname: generalformat\ndescription: >\n  从规范文档提取排版规则，自动识别段落类型并应用格式。\n  支持任意编号体系。\n  触发词：排版、按规范排版、格式化。\ncompatibility:\n  runtime: WPS JS 宏 / WPS 加载项（JSAPI）\n---\n\n# 通用文档排版\n\n## 使用方式\n\n用户提供规范文档，Skill 自动提取规则并应用到当前文档。\n\n---\n\n## 执行步骤\n\n### Step 1 — 生成排版配置\n\n根据用户提供的规范文档内容，生成排版配置 JSON。\n\n**⚠️ 禁止自己写代码读取文档！必须通过以下方式获取规范内容：**\n1. 如果用户直接提供了规范文字 → 直接使用，生成JSON配置\n2. 如果用户指定了规范文档文件 → **调用 parse-spec.js 脚本读取**\n3. 如果用户说\"当前文档就是规范文档\" → **调用 parse-spec.js 不传参数**\n\n**⚠️ 特殊规则处理（图片、表格、公式）**：\n这些规则从 specText 自动识别，不需要在 paragraphRules 中添加：\n- \"图片居中\" → 自动居中所有图片段落\n- \"表格等宽/与页面等宽\" → 自动设置表格宽度\n- \"跨页重复表头\" → 自动设置表格首行重复\n- \"公式居中\" → 自动居中公式段落\n- \"公式编号右对齐\" → 自动设置公式编号右对齐（制表位）\n\n**即使只有这些特殊规则，也要生成配置并调用 format-engine.js！**\n例如用户说\"公式居中对齐，公式编号右对齐\"，应生成：\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"公式居中对齐，公式编号右对齐。\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {}\n}\n```\n然后调用 format-engine.js。\n\n**⚠️ 关键规则（必须严格遵守）**：\n\n1. **specText 必须完整**：将用户规范原文**完整**放入，一字不漏，不能截断或改写\n2. **类型必须完整覆盖**：规范提到多少种类型，配置就必须有多少种，绝不能遗漏\n3. **属性必须完整提取**：规范提到的字体、字号、对齐、段前段后、行距、缩进等，全部都要提取，不能遗漏\n4. **不要添加未提及的类型**：规范没说四级标题，就不要添加 heading4\n5. **加缩规则**：规范说\"加粗\"才设置 `bold: true`，说\"不加粗\"才设置 `bold: false`，都没说则不要设置 bold 属性（保持原文档样式）\n6. 直接输出 JSON，不要写代码，不要解释\n\n**类型映射表**：\n\n| 规范中的叫法 | 配置中的类型名 |\n|-------------|---------------|\n| 章标题、一级标题、标题一 | zhangTitle |\n| 二级标题、标题二 | heading2 |\n| 三级标题、标题三 | heading3 |\n| 四级标题、标题四 | heading4 |\n| 正文、正文格式 | body |\n| 图名、图片名、图标题、图号 | figureCaption |\n| 表名、表格名、表标题、表号 | tableCaption |\n| 参考文献 | ref |\n\n**字号对照表**：\n\n| 中文字号 | 磅值(fontSize) |\n|---------|---------------|\n| 初号 | 42 |\n| 小初 | 36 |\n| 一号 | 26 |\n| 小一 | 24 |\n| 二号 | 22 |\n| 小二 | 18 |\n| 三号 | 16 |\n| 小三 | 15 |\n| 四号 | 14 |\n| 小四 | 12 |\n| 五号 | 10.5 |\n| 小五 | 9 |\n\n**配置格式**：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"用户提供的规范文档原文（必须完整，一字不漏）\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    ...\n  }\n}\n```\n\n**字段说明**：\n\n| 字段 | 类型 | 说明 |\n|------|------|------|\n| fontCN | string | 中文字体名称（如：宋体、黑体、楷体、仿宋） |\n| fontEN | string | 西文字体名称（如：Times New Roman） |\n| fontSize | number | 字号磅值（小四=12，四号=14，三号=16，五号=10.5，小五=9） |\n| bold | boolean | 是否加粗 |\n| alignment | number | 对齐方式：0=左对齐，1=居中，2=右对齐，3=两端对齐 |\n| spaceBefore | number | 段前间距（磅） |\n| spaceAfter | number | 段后间距（磅） |\n| firstLineIndent | number | 首行缩进（磅，正值=首行缩进，负值=悬挂缩进，2字符≈24磅，-2字符≈-24磅） |\n| lineSpacingRule | number | 行距：0=单倍，1=1.5倍，2=2倍，4=固定值 |\n\n---\n\n### Step 2 — 调用脚本应用排版\n\n**⚠️ 必须调用 executeFile，不要自己写代码。**\n\n```yaml\nexecuteFile:\n  filePath: \"skills/generalformat/scripts/format-engine.js\"\n  params:\n    config: <上一步生成的JSON>\n```\n\n返回值示例：\n\n```json\n{\n  \"success\": true,\n  \"applied\": 5656,\n  \"elapsedMs\": 2882,\n  \"typeCounts\": { \"zhangTitle\": 20, \"heading2\": 421, \"body\": 5207 },\n  \"total\": 9388\n}\n```\n\n---\n\n## 段落类型识别\n\n脚本自动识别以下段落类型：\n\n| 类型 | 匹配规则 |\n|------|---------|\n| zhangTitle | 第X章、数字+空格+汉字、一、二、三、 |\n| heading2 | 1.1、1.2 等二级编号 |\n| heading3 | 1.1.1、1.1.2 等三级编号 |\n| heading4 | 1.1.1.1 等四级编号 |\n| tableCaption | 表1、表2-1 等 |\n| figureCaption | 图1、图2-1 等 |\n| body | 其他正文段落 |\n\n---\n\n## 图片与表格处理\n\n脚本支持以下图片和表格设置（自动从 specText 识别）：\n\n| 规范文本关键词 | 功能 |\n|--------------|------|\n| 图片居中、图片居中对齐 | 设置所有图片段落居中 |\n| 表格等宽、与页面等宽 | 设置表格宽度等于页面可用宽度 |\n| 跨页重复、重复表头 | 设置表格首行跨页时重复 |\n\n| 跨页重复、重复表头 | 设置表格首行跨页时重复 |\n\n**公式处理**：\n\n| 规范文本关键词 | 功能 |\n|--------------|------|\n| 公式居中 | 公式段落居中对齐 |\n| 公式编号、编号右对齐 | 公式编号右对齐（通过制表位实现） |\n\n**公式编号格式**：支持 `(X-Y)`、`(X.Y-Z)`、`(A1)` 等常见格式，如 `(3-1)`、`(3.1-1)`、`(A1)`。\n\n**示例规范**：\n> 图名用宋体小四号居中段前6磅段后6磅，表名用宋体小四号居中段前6磅段后0磅，图片居中对齐，表格与页面等宽且跨页重复表头。\n\n---\n\n## 示例\n\n**示例1：完整规则（推荐参考此示例）**\n\n规范文档：\n> 章标题用黑体三号居中加粗段前24磅段后12磅，二级标题用楷体四号左对齐加粗段前12磅段后6磅，三级标题用宋体小四号左对齐不加粗段前6磅段后3磅，四级标题用仿宋五号左对齐不加粗段前3磅段后3磅，正文用楷体四号两端对齐首行缩进2字符1.5倍行距，图名用黑体小五号居中段前6磅段后6磅，表名用黑体小五号居中段前6磅段后6磅，所有标题无缩进。\n\n生成的配置：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"章标题用黑体三号居中加粗段前24磅段后12磅，二级标题用楷体四号左对齐加粗段前12磅段后6磅，三级标题用宋体小四号左对齐不加粗段前6磅段后3磅，四级标题用仿宋五号左对齐不加粗段前3磅段后3磅，正文用楷体四号两端对齐首行缩进2字符1.5倍行距，图名用黑体小五号居中段前6磅段后6磅，表名用黑体小五号居中段前6磅段后6磅，所有标题无缩进。\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontCN\": \"黑体\", \"fontSize\": 16, \"bold\": true, \"alignment\": 1, \"firstLineIndent\": 0, \"spaceBefore\": 24, \"spaceAfter\": 12 },\n    \"heading2\": { \"fontCN\": \"楷体\", \"fontSize\": 14, \"bold\": true, \"alignment\": 0, \"firstLineIndent\": 0, \"spaceBefore\": 12, \"spaceAfter\": 6 },\n    \"heading3\": { \"fontCN\": \"宋体\", \"fontSize\": 12, \"bold\": false, \"alignment\": 0, \"firstLineIndent\": 0, \"spaceBefore\": 6, \"spaceAfter\": 3 },\n    \"heading4\": { \"fontCN\": \"仿宋\", \"fontSize\": 10.5, \"bold\": false, \"alignment\": 0, \"firstLineIndent\": 0, \"spaceBefore\": 3, \"spaceAfter\": 3 },\n    \"body\": { \"fontCN\": \"楷体\", \"fontSize\": 14, \"alignment\": 3, \"firstLineIndent\": 24, \"lineSpacingRule\": 1 },\n    \"figureCaption\": { \"fontCN\": \"黑体\", \"fontSize\": 9, \"alignment\": 1, \"spaceBefore\": 6, \"spaceAfter\": 6 },\n    \"tableCaption\": { \"fontCN\": \"黑体\", \"fontSize\": 9, \"alignment\": 1, \"spaceBefore\": 6, \"spaceAfter\": 6 }\n  }\n}\n```\n\n**示例2：只有标题规则**\n\n规范文档：\n> 章标题用黑体三号居中加粗，二级标题用黑体四号左对齐加粗，三级标题用楷体小四号左对齐。\n\n生成的配置（只有标题，没有正文等其他类型）：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"章标题用黑体三号居中加粗，二级标题用黑体四号左对齐加粗，三级标题用楷体小四号左对齐。\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontCN\": \"黑体\", \"fontSize\": 16, \"bold\": true, \"alignment\": 1, \"firstLineIndent\": 0 },\n    \"heading2\": { \"fontCN\": \"黑体\", \"fontSize\": 14, \"bold\": true, \"alignment\": 0, \"firstLineIndent\": 0 },\n    \"heading3\": { \"fontCN\": \"楷体\", \"fontSize\": 12, \"bold\": false, \"alignment\": 0, \"firstLineIndent\": 0 }\n  }\n}\n```\n\n**示例3：包含正文规则**\n\n规范文档：\n> 章标题用黑体三号居中加粗，正文用宋体小四号两端对齐首行缩进2字符。\n\n生成的配置：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"章标题用黑体三号居中加粗，正文用宋体小四号两端对齐首行缩进2字符。\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontCN\": \"黑体\", \"fontSize\": 16, \"bold\": true, \"alignment\": 1, \"firstLineIndent\": 0 },\n    \"body\": { \"fontCN\": \"宋体\", \"fontSize\": 12, \"alignment\": 3, \"firstLineIndent\": 24 }\n  }\n}\n```\n\n**示例4：参考文献悬挂缩进**\n\n规范文档：\n> 章标题用黑体三号居中加粗，参考文献用宋体五号左对齐悬挂缩进2字符。\n\n生成的配置：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"章标题用黑体三号居中加粗，参考文献用宋体五号左对齐悬挂缩进2字符。\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontCN\": \"黑体\", \"fontSize\": 16, \"bold\": true, \"alignment\": 1, \"firstLineIndent\": 0 },\n    \"ref\": { \"fontCN\": \"宋体\", \"fontSize\": 10.5, \"alignment\": 0, \"firstLineIndent\": -24 }\n  }\n}\n```\n\n**注意**：悬挂缩进用负值（`firstLineIndent: -24`），表示首行不缩进，后续行缩进24磅。\n\n**示例5：图片与表格设置**\n\n规范文档：\n> 图名用宋体小四号居中段前6磅段后6磅，表名用宋体小四号居中段前6磅段后0磅，图片居中对齐，表格与页面等宽且跨页重复表头。\n\n生成的配置：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"图名用宋体小四号居中段前6磅段后6磅，表名用宋体小四号居中段前6磅段后0磅，图片居中对齐，表格与页面等宽且跨页重复表头。\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    \"figureCaption\": { \"fontCN\": \"宋体\", \"fontSize\": 12, \"alignment\": 1, \"spaceBefore\": 6, \"spaceAfter\": 6 },\n    \"tableCaption\": { \"fontCN\": \"宋体\", \"fontSize\": 12, \"alignment\": 1, \"spaceBefore\": 6, \"spaceAfter\": 0 }\n  }\n}\n```\n\n**注意**：图片居中、表格等宽、跨页重复表头、公式排版会从 specText 自动识别，无需额外配置。\n\n**示例5：公式排版**\n\n规范文档：\n> 公式居中对齐，公式编号右对齐。\n\n效果说明：\n- 无编号公式：整段居中\n- 有编号公式（如 `E = mc² (3-1)`）：公式居中，编号 `(3-1)` 右对齐\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/generalformat/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 5
+    }
+  },
+  {
+    "id": "1775207693358_xj37t83",
+    "role": "assistant",
+    "content": "根据您的需求，我将生成排版配置并调用脚本应用公式格式。\n\n用户规范：公式居中对齐，公式编号右对齐，公式用宋体四号。\n\n生成的配置：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"公式居中对齐，公式编号右对齐，公式用宋体四号。\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {}\n}\n```\n\n\n\n[警告] 工具「confirmEdits」的参数 JSON 解析失败，此次调用已跳过",
+    "timestamp": 1775207693358,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775207694753_0vzp",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775207694753,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/generalformat/scripts/format-engine.js",
+        "params": {
+          "config": {
+            "fontDefaults": {
+              "fontCN": "宋体",
+              "fontEN": "Times New Roman"
+            },
+            "paragraphRules": {},
+            "specText": "公式居中对齐，公式编号右对齐，公式用宋体四号。",
+            "version": "1.0"
+          }
+        }
+      },
+      "output": "{\"success\":true,\"applied\":73,\"errors\":0,\"elapsedMs\":2080,\"processedTypes\":{},\"total\":9388}",
+      "durationMs": 2100
+    }
+  }
+]

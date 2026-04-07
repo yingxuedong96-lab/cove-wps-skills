@@ -1,0 +1,15 @@
+[
+  {
+    "id": "1774628235799_c4s4a53",
+    "role": "user",
+    "content": "根据设计文档编制规范校对全文所有标题、图编号、表编号、公式编号。",
+    "timestamp": 1774628235799
+  },
+  {
+    "id": "1774628235799_tg121gr",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1774628235799,
+    "streaming": false
+  }
+]

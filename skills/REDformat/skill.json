@@ -1,0 +1,15 @@
+{
+  "description": "会议纪要红头文件排版。自动识别红头、发文字号、标题、各级标题、正文、参会人员、版记等元素并应用标准样式。触发词：会议纪要排版、红头文件排版、会议纪要红头、REDformat。",
+  "emoji": "📋",
+  "files": [
+    "skill.json",
+    "SKILL.md",
+    "scripts/setup-styles.js",
+    "scripts/apply-format.js"
+  ],
+  "name": "REDformat",
+  "resources": [],
+  "snapshot": "before_task",
+  "source": "server",
+  "version": "26.0327.1722"
+}

@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1774490033736_cv1opxh",
+    "role": "user",
+    "content": "/GWformat 根据集团公文排版格式要求对文档排版",
+    "timestamp": 1774490033736
+  },
+  {
+    "id": "1774490033736_65rtcxj",
+    "role": "assistant",
+    "content": "我需要先查看文档内容，然后根据集团公文排版格式要求进行排版。让我先读取文档内容。",
+    "timestamp": 1774490033736,
+    "streaming": false
+  },
+  {
+    "id": "tool_1774490037102_38wf",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1774490037102,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "// 读取文档内容并分析结构\nvar doc = Application.ActiveDocument;\nvar content = \"\";\nvar paragraphs = doc.Paragraphs;\nvar paraCount = paragraphs.Count;\n\n// 收集段落信息\nvar paraInfo = [];\nfor (var i = 1; i <= paraCount; i++) {\n    var para = paragraphs.Item(i);\n    var text = para.Range.Text;\n    var style = para"
+      },
+      "executing": true,
+      "codeStreaming": true
+    }
+  }
+]

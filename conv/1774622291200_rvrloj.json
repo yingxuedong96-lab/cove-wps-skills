@@ -1,0 +1,15 @@
+[
+  {
+    "id": "1774622291571_dkqhchh",
+    "role": "user",
+    "content": "请按校对模式处理：错别字 / 语法",
+    "timestamp": 1774622291571
+  },
+  {
+    "id": "1774622291571_wnuh9gc",
+    "role": "assistant",
+    "content": "我将使用文档校对功能来处理错别字",
+    "timestamp": 1774622291571,
+    "streaming": false
+  }
+]

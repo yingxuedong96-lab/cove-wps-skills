@@ -1,0 +1,88 @@
+[
+  {
+    "id": "1775096166956_13zz5ne",
+    "role": "user",
+    "content": "纠正文档中的错别字、语法错误、大小写错误、标点符号错误。",
+    "timestamp": 1775096166956
+  },
+  {
+    "id": "1775096166956_ml14xp3",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775096166956,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775096169662_ymvn",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775096169662,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "wps-proofreader"
+      },
+      "output": "<skill_content name=\"wps-proofreader\">\n# Skill: wps-proofreader\n\n---\nname: wps-proofreader\ndescription: 自动检测文档错别字、标点符号错误、大小写错误，以修订模式标记写回文档，全程静默仅报完成数量。触发词：校对、文档校对、错别字检查、标点检查、快速校对。\n---\n\n# 文档快速校对\n\n## Step 1 — 读取文档\n\nexecuteFile: skills/wps-proofreader/scripts/get-text.js\n\n返回：`{ success, text, charCount, isSelection, path }`\n\n- `success=false` 或 `text` 为空 → 输出\"文档未打开或内容为空，请检查后重试\"，停止\n- `path='direct'` → 执行 Step 2A\n- `path='schedule'` → 执行 Step 2B\n\n## Step 2A — 直接模式（path=direct，静默）\n\n对 `text` 调用 AI，使用以下提示词，**不输出任何内容**：\n\n```\n你是文档校对助手。分析以下文本，找出三类错误：\n1. 错别字：同音字误用、形近字误用、\"的地得\"误用\n2. 标点符号：中英文标点混用、全半角混用、顿号逗号误用、句末符号缺失\n3. 大小写：英文首字母该大写未大写、专有名词大小写\n\n只输出纯 JSON，不输出任何解释，格式：\n{\"corrections\": [{\"o\": \"原文片段\", \"c\": \"修正后内容\", \"t\": \"typo或punct或case\"}]}\n\n严格规则：\n- 宁可漏报，不误报——只改有明确依据的错误\n- o 字段必须是原文中能精确找到的最短片段\n- 不改：专业术语、人名地名、数字、日期、标准编号（如DL5180-2003）、英文缩写\n- 无错误时输出：{\"corrections\": []}\n\n文本：\n{text}\n```\n\n用 JSON 三级容错解析（提取代码块→直接解析→修复尾逗号），得到 `corrections` 数组，进入 Step 3。\n\n## Step 2B — 分块模式（path=schedule，静默）\n\n### Step 2B-1 — 初始化分块\n\nexecuteFile: skills/wps-proofreader/scripts/init-schedule.js\nparams: { text: {text} }\n\n返回：`{ success, chunks, totalChunks }`\n\n### Step 2B-2 — 调度子Agent逐块分析\n\nsubmitScheduler，对每个 chunk 使用 subAgentSystemPrompt，输入为 `chunk.text`，收集每个 chunk 返回的 `corrections` 数组，合并为 `allCorrections`。\n\n**全程不输出任何内容。**\n\n进入 Step 3，使用合并后的 `allCorrections`。\n\n## Step 3 — 写回修订（静默）\n\nexecuteFile: skills/wps-proofreader/scripts/apply-corrections.js\nparams:\n  corrections: {corrections 或 allCorrections}\n\n返回：`{ success, applied, failed }`\n\n## Step 4 — 唯一输出\n\n- `success=false` → `校对失败：{error}，如文档被保护请在「审阅」→「限制编辑」中关闭后重试`\n- `applied > 0` → `✓ 发现 {applied} 处问题，已在文档中标记修订，可在「审阅」面板逐条接受或一键全部接受`\n- `applied = 0` → `✓ 文档校对完成，未发现明显错误`\n\n## 异常处理\n\n- AI 返回 JSON 解析失败 → 跳过该块，继续其他块，不中断\n- Find&Replace 未找到原文（failed > 0）→ 不影响已成功项，仅报 applied 数\n- 文档受保护 → 提示关闭「限制编辑」后重试\n\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/wps-proofreader/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 6
+    }
+  },
+  {
+    "id": "tool_1775096171874_uawh",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775096171874,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/wps-proofreader/scripts/get-text.js"
+      },
+      "output": "$artifact:20260402-0ztz8c\n{\"success\":true,\"text\":\"新突破，DeepSeek助力知识库问答升级！\\n在数字化转型的浪朝中，财务公司正不断探索如何通过技术创…[562字]\",\"isSelection\":false,\"charCount\":562,\"path\":\"direct\"}",
+      "durationMs": 18
+    }
+  },
+  {
+    "id": "tool_1775096173084_lri8",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775096173084,
+    "toolCall": {
+      "toolName": "chat",
+      "input": {
+        "user": "你是文档校对助手。分析以下文本，找出三类错误：\n1. 错别字：同音字误用、形近字误用、\"的地得\"误用\n2. 标点符号：中英文标点混用、全半角混用、顿号逗号误用、句末符号缺失\n3. 大小写：英文首字母该大写未大写、专有名词大小写\n\n只输出纯 JSON，不输出任何解释，格式：\n{\"corrections\": [{\"o\": \"原文片段\", \"c\": \"修正后内容\", \"t\": \"typo 或 punct 或 case\"}]}\n\n严格规则：\n- 宁可漏报，不误报——只改有明确依据的错误\n- o 字段必须是原文中能精确找到的最短片段\n- 不改：专业术语、人名地名、数字、日期、标准编号（如 DL5180-2003）、英文缩写\n- 无错误时输出：{\"corrections\": []}\n\n文本：\n新突破，DeepSeek 助力知识库问答升级！\n在数字化转型的浪朝中，财务公司正不断探索如何通过技术创新提升运营效率。近日，我司成功引入 DeepSeek 大模型技术，实现了知识库问答系统的智能化升级。\n\n一、项目背景\n随着业务规模不断扩大，传统知识库检索方式已无法满足员工快速获取信息的需求。面对海量文档和复杂查询场景，我们需要一种更智能、更精准的解决方案。\n\n二、技术方案\n本次升级采用 DeepSeek 大模型作为核心引擎，结合 RAG（检索增强生成）技术架构，构建了新一代智能问答系统。该系统能够理解自然语言提问，从知识库中精准定位相关信息，并生成准确、完整的回答。\n\n三、实施效果\n1. 响应速度提升：平均响应时间从 3 秒缩短至 0.5 秒，效率提升 6 倍\n2. 准确率提高：问答准确率从 75%提升至 92%，大幅减少人工干预\n3. 用户体验优化：支持多轮对话和上下文理解，交互更加自然流畅\n\n四、未来展望\n下一步，我们将继续深化 AI 技术应用，拓展智能客服、智能报表等场景，为数字化转型注入更强动力。\n",
+        "response": "{\"corrections\": [{\"o\": \"浪朝\", \"c\": \"浪潮\", \"t\": \"typo\"}]}"
+      },
+      "output": "{\"corrections\": [{\"o\": \"浪朝\", \"c\": \"浪潮\", \"t\": \"typo\"}]}",
+      "durationMs": 769
+    }
+  },
+  {
+    "id": "tool_1775096183526_8m46",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775096183526,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/wps-proofreader/scripts/apply-corrections.js",
+        "params": {
+          "corrections": [
+            {
+              "c": "浪潮",
+              "o": "浪朝",
+              "t": "typo"
+            }
+          ]
+        }
+      },
+      "output": "{\"success\":true,\"applied\":1,\"failed\":0}",
+      "durationMs": 20
+    }
+  },
+  {
+    "id": "1775096185170_s7q2uxn",
+    "role": "assistant",
+    "content": "✓ 发现 1 处问题，已在文档中标记修订，可在「审阅」面板逐条接受或一键全部接受",
+    "timestamp": 1775096185170,
+    "streaming": false
+  }
+]

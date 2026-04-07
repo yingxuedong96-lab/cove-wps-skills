@@ -1,0 +1,88 @@
+[
+  {
+    "id": "1775551016119_lbmb2gs",
+    "role": "user",
+    "content": "使用 generalformat 技能校对标题编号。执行步骤：1) 调用 check-numbering.js，scope=\"heading\"；2) 根据返回的 plans，用 updateParagraphs 的 patch 操作应用修改（用 originalText 全文搜索定位段落）；3) 调用 confirmEdits 显示确认面板。编号规则：标题编号格式为X.Y.Z，同一章节下序号连续递增，附录编号为A.1格式。",
+    "timestamp": 1775551016119,
+    "commandMeta": {
+      "name": "校对标题编号"
+    }
+  },
+  {
+    "id": "1775551016119_7532jx6",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775551016119,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775551020819_tfjy",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775551020819,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "generalformat"
+      },
+      "output": "<skill_content name=\"generalformat\">\n# Skill: generalformat\n\n---\nname: generalformat\ndescription: >\n  文档排版和编号校对。支持段落格式排版、编号校对（图/表/公式编号）。\n  触发词：排版、校对编号、编号校对、格式化。\ncompatibility:\n  runtime: WPS JS 宏 / WPS 加载项（JSAPI）\n---\n\n# 通用文档排版与编号校对\n\n## 编号校对流程\n\n### Step 1：调用分析脚本\n\n```yaml\nexecuteFile:\n  filePath: \"skills/generalformat/scripts/check-numbering.js\"\n  params:\n    specText: \"编号规则\"\n    scope: \"heading\"  # heading | figure | table | numbering\n```\n\n### Step 2：处理返回结果\n\n脚本返回：\n```json\n{\n  \"success\": true,\n  \"action\": \"apply_changes\",\n  \"plans\": [\n    { \"paraIndex\": 5, \"oldText\": \"3 系统范围\", \"newText\": \"2 系统范围\", \"type\": \"heading\" },\n    { \"paraIndex\": 12, \"oldText\": \"图 5 架构图\", \"newText\": \"图 3 架构图\", \"type\": \"figure\" }\n  ],\n  \"summary\": \"发现 X 处编号问题待修正\",\n  \"nextSteps\": [\"调用 updateParagraphs...\", \"调用 confirmEdits...\"]\n}\n```\n\n### Step 3：应用修改\n\n调用 `updateParagraphs` 工具，使用 patch 操作：\n\n```json\n{\n  \"ops\": [\n    { \"id\": \"段落ID\", \"patch\": [\"旧文本\", \"新文本\"], \"originalText\": \"原文（兜底）\" }\n  ]\n}\n```\n\n**注意**：需要先调用 `getDocumentParagraphs` 获取段落 ID，或使用 `originalText` 全文搜索。\n\n### Step 4：显示确认面板\n\n```json\n{\n  \"mode\": \"revision\",\n  \"summary\": \"编号校对完成，共修正 X 处\"\n}\n```\n\n---\n\n## 引用检查流程\n\n### Step 1：调用脚本\n\n```yaml\nexecuteFile:\n  filePath: \"skills/generalformat/scripts/check-references.js\"\n  params:\n    specText: \"检查图表引用\"\n```\n\n### Step 2：应用批注\n\n脚本返回问题列表后，调用 `addComments` 工具添加批注。\n\n### Step 3：显示确认面板\n\n```json\n{ \"mode\": \"comment\", \"summary\": \"引用检查完成，发现 X 处问题\" }\n```\n\n---\n\n## 格式排版流程\n\n### Step 1：调用脚本\n\n```yaml\nexecuteFile:\n  filePath: \"skills/generalformat/scripts/format-engine.js\"\n  params:\n    config:\n      specText: \"格式规范\"\n      paragraphRules: { ... }\n```\n\n### Step 2：显示确认面板\n\n```json\n{ \"mode\": \"format\", \"summary\": \"排版完成\" }\n```\n\n---\n\n## scope 参数\n\n| scope | 检查内容 |\n|-------|---------|\n| `heading` | 只检查标题编号 |\n| `figure` | 只检查图编号 |\n| `table` | 只检查表编号 |\n| `numbering` | 全部编号 |\n\n---\n\n## 类型映射\n\n| 规范叫法 | 类型名 |\n|---------|--------|\n| 一级标题、章标题 | zhangTitle |\n| 二级标题 | heading2 |\n| 三级标题 | heading3 |\n| 四级标题 | heading4 |\n| 五级标题 | heading5 |\n| 正文 | body |\n| 图名 | figureCaption |\n| 表名 | tableCaption |\n\n---\n\n## 字号对照\n\n| 中文字号 | 磅值 |\n|---------|-----|\n| 二号 | 22 |\n| 三号 | 16 |\n| 小三 | 15 |\n| 四号 | 14 |\n| 小四 | 12 |\n| 五号 | 10.5 |\n| 小五 | 9 |\n\n---\n\n## 关键规则\n\n1. **脚本只分析不修改**：返回 plans 后由 AI 调用工具执行\n2. **必须调用 confirmEdits**：让用户确认或取消修改\n3. **patch 操作自动开启修订**：用户可逐条接受或拒绝\n4. **先获取段落ID**：调用 getDocumentParagraphs 或用 originalText 兜底\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/generalformat/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 17
+    }
+  },
+  {
+    "id": "tool_1775551022347_av7u",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775551022348,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/generalformat/scripts/check-numbering.js",
+        "params": {
+          "scope": "heading",
+          "specText": "标题编号格式为 X.Y.Z，同一章节下序号连续递增，附录编号为 A.1 格式"
+        }
+      },
+      "output": "$artifact:20260407-gh8avf\n{\"success\":true,\"action\":\"apply_changes\",\"plans\":[{\"paraIndex\":5,\"oldText\":\"3 系统范围\",\"newText\":\"2 系统范围\",\"type\":\"heading\"},{\"paraIndex\":9,\"oldText\":\"3.3 功能范围\",\"newText\":\"3.2 功能范围\",\"type\":\"heading\"},\"…共14条\"],\"counts\":{\"headings\":28,\"figures\":0,\"tables\":0},\"elapsedMs\":30,\"summary\":\"发现 14 处编号问题待修正\",\"nextSteps\":[\"调用 updateParagraphs 工具，使用 patch 操作应用修改\",\"调用 confirmEdits 工具，mode: \\\"revision\\\"，显示确认面板\"]}",
+      "durationMs": 45
+    }
+  },
+  {
+    "id": "tool_1775551025903_b9be",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775551025903,
+    "toolCall": {
+      "toolName": "artifactRead",
+      "input": {
+        "id": "20260407-gh8avf",
+        "mode": "data"
+      },
+      "output": "{\n  \"success\": true,\n  \"action\": \"apply_changes\",\n  \"plans\": [\n    {\n      \"paraIndex\": 5,\n      \"oldText\": \"3 系统范围\",\n      \"newText\": \"2 系统范围\",\n      \"type\": \"heading\"\n    },\n    {\n      \"paraIndex\": 9,\n      \"oldText\": \"3.3 功能范围\",\n      \"newText\": \"3.2 功能范围\",\n      \"type\": \"heading\"\n    },\n    {\n      \"paraIndex\": 13,\n      \"oldText\": \"3.1.3 性能范围\",\n      \"newText\": \"3.1.2 性能范围\",\n      \"type\": \"heading\"\n    },\n    {\n      \"paraIndex\": 17,\n      \"oldText\": \"3.1.1.3 设计范围\",\n      \"newText\": \"3.1.1.2 设计范围\",\n      \"type\": \"heading\"\n    },\n    {\n      \"paraIndex\": 21,\n      \"oldText\": \"3.1.1.1.3 实施要点\",\n      \"newText\": \"3.1.1.1.2 实施要点\",\n      \"type\": \"heading\"\n    },\n    {\n      \"paraIndex\": 23,\n      \"oldText\": \"5 系统设计\",\n      \"newText\": \"3 系统设计\",\n      \"type\": \"heading\"\n    },\n    {\n      \"paraIndex\": 63,\n      \"oldText\": \"1 Mbps\",\n      \"newText\": \"4 Mbps\",\n      \"type\": \"heading\"\n    },\n    {\n      \"paraIndex\": 73,\n      \"oldText\": \"115.2 kbps\",\n      \"newText\": \"115.1 kbps\",\n      \"type\": \"heading\"\n    },\n    {\n      \"paraIndex\": 112,\n      \"oldText\": \"7 测试验证\",\n      \"newText\": \"5 测试验证\",\n      \"type\": \"heading\"\n    },\n    {\n      \"paraIndex\": 174,\n      \"oldText\": \"9 结论与建议\",\n      \"newText\": \"6 结论与建议\",\n      \"type\": \"heading\"\n    },\n    {\n      \"paraIndex\": 179,\n      \"oldText\": \"A.3 环境参数\",\n      \"newText\": \"A.2 环境参数\",\n      \"type\": \"heading\"\n    },\n    {\n      \"paraIndex\": 183,\n      \"oldText\": \"A.1.3 输出参数\",\n      \"newText\": \"A.1.2 输出参数\",\n      \"type\": \"heading\"\n    },\n    {\n      \"paraIndex\": 189,\n      \"oldText\": \"附 录 C 测试数据附录\",\n      \"newText\": \"附 录 B 测试数据附录\",\n      \"type\": \"appendix\"\n    },\n    {\n      \"paraIndex\": 194,\n      \"oldText\": \"附 录 B 参考文献附录\",\n      \"newText\": \"附 录 C 参考文献附录\",\n      \"type\": \"appendix\"\n    }\n  ],\n  \"counts\": {\n    \"headings\": 28,\n    \"figures\": 0,\n    \"tables\": 0\n  },\n  \"elapsedMs\": 30,\n  \"summary\": \"发现 14 处编号问题待修正\",\n  \"nextSteps\": [\n    \"调用 updateParagraphs 工具，使用 patch 操作应用修改\",\n    \"调用 confirmEdits 工具，mode: \\\"revision\\\"，显示确认面板\"\n  ]\n}",
+      "durationMs": 14
+    }
+  },
+  {
+    "id": "tool_1775551027641_6jpk",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775551027641,
+    "toolCall": {
+      "toolName": "updateParagraphs",
+      "input": {},
+      "error": "Invalid arguments for tool updateParagraphs: Type validation failed: Value: {\"ops\":[{\"originalText\":\"3 系统范围\",\"patch\":[\"3 系统范围\",\"2 系统范围\"]},{\"originalText\":\"3.3 功能范围\",\"patch\":[\"3.3 功能范围\",\"3.2 功能范围\"]},{\"originalText\":\"3.1.3 性能范围\",\"patch\":[\"3.1.3 性能范围\",\"3.1.2 性能范围\"]},{\"originalText\":\"3.1.1.3 设计范围\",\"patch\":[\"3.1.1.3 设计范围\",\"3.1.1.2 设计范围\"]},{\"originalText\":\"3.1.1.1.3 实施要点\",\"patch\":[\"3.1.1.1.3 实施要点\",\"3.1.1.1.2 实施要点\"]},{\"originalText\":\"5 系统设计\",\"patch\":[\"5 系统设计\",\"3 系统设计\"]},{\"originalText\":\"1 Mbps\",\"patch\":[\"1 Mbps\",\"4 Mbps\"]},{\"originalText\":\"115.2 kbps\",\"patch\":[\"115.2 kbps\",\"115.1 kbps\"]},{\"originalText\":\"7 测试验证\",\"patch\":[\"7 测试验证\",\"5 测试验证\"]},{\"originalText\":\"9 结论与建议\",\"patch\":[\"9 结论与建议\",\"6 结论与建议\"]},{\"originalText\":\"A.3 环境参数\",\"patch\":[\"A.3 环境参数\",\"A.2 环境参数\"]},{\"originalText\":\"A.1.3 输出参数\",\"patch\":[\"A.1.3 输出参数\",\"A.1.2 输出参数\"]},{\"originalText\":\"附 录 C 测试数据附录\",\"patch\":[\"附 录 C 测试数据附录\",\"附 录 B 测试数据附录\"]},{\"originalText\":\"附 录 B 参考文献附录\",\"patch\":[\"附 录 B 参考文献附录\",\"附 录 C 参考文献附录\"]}]}.\nError message: [\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ops\",\n      0,\n      \"id\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ops\",\n      1,\n      \"id\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ops\",\n      2,\n      \"id\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ops\",\n      3,\n      \"id\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ops\",\n      4,\n      \"id\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ops\",\n      5,\n      \"id\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ops\",\n      6,\n      \"id\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ops\",\n      7,\n      \"id\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ops\",\n      8,\n      \"id\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ops\",\n      9,\n      \"id\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ops\",\n      10,\n      \"id\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ops\",\n      11,\n      \"id\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ops\",\n      12,\n      \"id\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"ops\",\n      13,\n      \"id\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+    }
+  },
+  {
+    "id": "tool_1775551039138_qv64",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775551039139,
+    "toolCall": {
+      "toolName": "updateParagraphs",
+      "input": {},
+      "executing": true,
+      "codeStreaming": true
+    }
+  }
+]

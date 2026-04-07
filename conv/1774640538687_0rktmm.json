@@ -1,0 +1,15 @@
+[
+  {
+    "id": "1774640538707_yglnk8u",
+    "role": "user",
+    "content": "根据设计文档编制规范将全文公式本身居中书写，其编号则需右对齐。",
+    "timestamp": 1774640538707
+  },
+  {
+    "id": "1774640538707_nhog7z6",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1774640538707,
+    "streaming": false
+  }
+]

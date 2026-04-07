@@ -1,0 +1,83 @@
+[
+  {
+    "id": "1774635175733_ig59r4n",
+    "role": "user",
+    "content": "根据设计文档编制规范校对全文所有标题、图编号、表编号、公式编号。",
+    "timestamp": 1774635175733
+  },
+  {
+    "id": "1774635175733_wkfq4e4",
+    "role": "assistant",
+    "content": "<think>用户要求根据设计文档编制规范校对全文的标题、图编号、表编号、公式编号。这正好匹配 zslong skill 的功能，该技能专门用于技术报告文档校对，支持编号校对（章节/图表/公式）。我应该直接调用这个 skill 来执行任务。</think>",
+    "timestamp": 1774635175733,
+    "streaming": false
+  },
+  {
+    "id": "tool_1774635188327_q5ju",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1774635188327,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "zslong"
+      },
+      "output": "<skill_content name=\"zslong\">\n# Skill: zslong\n\n---\nname: zslong\ndescription: >\n  技术报告文档校对。按照设计文档编制规范，\n  对中文技术报告(.docx)进行自动校对与格式修正。\n\n  支持全文校对排版、编号校对、内容规范校对、格式规范排版等场景。\n  快速触发词与 scope 的唯一对照以正文\"快速模式（单一元素）\"总表为准。\n---\n\n# 技术报告校对\n\n## ⚠️ 第一优先级：判断执行模式\n\n**按以下顺序判断：**\n\n### 1. 全文校对排版模式\n\n用户输入包含\"全文校对排版\"、\"对全文进行校对排版\"、\"校对并排版全文\"、\"全文校对并排版\"时：\n\n```\nexecuteFile:\n  filePath: \"skills/zslong/scripts/run-all-checks.js\"\n  params: { \"fixMode\": \"aggressive\", \"isSelection\": false, \"scope\": \"full_proofread\" }\n```\n\n**⚠️ 此模式按顺序执行：编号校对 → 内容校对 → 格式排版，确保编号正确后再处理后续内容。**\n\n### 2. 快速模式（单一元素）\n\n检查用户输入是否包含以下特定元素关键词：\n\n**⚠️ 关键：编号类scope走两阶段处理，内容/格式类scope走run-all-checks.js！**\n\n#### 编号类触发词 → 直接执行 scan-structure.js（一步完成扫描+修复）\n\n| 触发词示例 | scope | 执行路径 |\n|-----------|-------|---------|\n| 校对编号、校对所有编号、标题编号表编号图编号公式编号 | `numbering` | scan-structure.js |\n| 校对标题编号、标题编号 | `heading` | scan-structure.js |\n| 校对表编号、表编号 | `table` | scan-structure.js |\n| 校对图编号、图编号 | `figure` | scan-structure.js |\n| 校对公式编号、公式编号 | `formula` | scan-structure.js |\n\n**编号类执行（一步完成，不调用其他脚本）：**\n\n```\nexecuteFile:\n  filePath: \"skills/zslong/scripts/scan-structure.js\"\n  params: { \"scope\": \"<匹配的scope>\" }\n```\n\n**⚠️ scan-structure.js 已完成扫描+修复，返回空 fixPlan，禁止再调用 apply-numbering-fixes.js！**\n\n**⚠️ 编号类scope禁止使用调度器（submitScheduler）！编号校对需要全局上下文，不能分片处理！**\n\n#### 内容/格式类触发词 → 走run-all-checks.js\n\n| 关键词类型 | 触发词示例 | scope |\n|-----------|-----------|-------|\n| 数值类 | 校对数值、数值格式、校对所有数值 | `value` |\n| 标点类 | 校对标点、校对所有标点 | `punctuation` |\n| 内容校对 | 校对内容、校对所有内容 | `content` |\n| 排版类 | 规范排版、全文排版、格式排版 | `format` |\n| 标题正文类 | 各级标题及正文排版、标题正文排版、标题正文 | `font` |\n| 页眉页脚排版 | 页眉、页脚、页眉页脚、页眉排版、页脚排版 | `header_footer` |\n| 页面设置 | 页面设置、页面排版、对页面进行设置、页边距、页面边距 | `page_setup` |\n| 图表排版 | 图表排版 | `figure_table_layout` |\n| 图片排版 | 图片排版 | `figure_layout` |\n| 表格排版 | 表格排版 | `table_layout` |\n| 公式排版 | 公式排版、对公式排版 | `formula_layout` |\n| 图名排版 | 图名排版、图名格式 | `figure_caption` |\n| 图片居中 | 图片居中 | `figure_center` |\n| 表名排版 | 表名排版、表名格式 | `table_caption` |\n| 表格内容 | 校对表格内容、表格内容同上同左 | `table_content` |\n\n**内容/格式类执行：**\n\n```\nexecuteFile:\n  filePath: \"skills/zslong/scripts/run-all-checks.js\"\n  params: { \"fixMode\": \"aggressive\", \"isSelection\": false, \"scope\": \"<匹配的scope>\" }\n```\n\n**⚠️ 禁止执行 detect-mode.js！禁止询问修复策略！直接执行！**\n\n---\n\n## Stage 划分\n\n```\nStage 1: 编号校对（文本修改）← scan-structure.js（使用段落扫描避免 Find.Execute 漏检）\n    ↓\nStage 2: 内容规范（文本修改）← run-all-checks.js\n    ↓\nStage 4: 格式规范排版（字体字号行距页面设置）← run-all-checks.js\n```\n\n**重要**：\n- 编号校对走 `scan-structure.js`，使用段落扫描构建章节上下文后统一修复\n- 内容/格式校对走 `run-all-checks.js`\n- 格式规范排版放在最后执行，确保所有文本内容修改完成后再统一排版\n\n---\n\n## ⚡ 快速模式（按阶段归类）\n\n### Stage 1: 编号校对（scan-structure.js）\n\n| scope | 说明 | 执行脚本 |\n|-------|------|---------|\n| `numbering` | 标题+表+图+公式编号 | scan-structure.js |\n| `heading` | 仅标题编号（N-002~008） | scan-structure.js |\n| `table` | 仅表编号（T-001） | scan-structure.js |\n| `figure` | 仅图编号（G-001） | scan-structure.js |\n| `formula` | 仅公式编号（E-001） | scan-structure.js |\n\n### Stage 2: 内容规范（run-all-checks.js）\n\n| scope | 说明 |\n|-------|------|\n| `content` | 数值格式+图表标点+表格内容（全部） |\n| `value` | V-006~013 数值格式 |\n| `punctuation` | M-001~005 图表标点 |\n| `table_content` | T-005~006 同上同左替换 |\n\n### Stage 4: 格式规范排版（run-all-checks.js）\n\n| scope | 说明 |\n|-------|------|\n| `format` | 字体字号行距页面设置 |\n| `font` | 标题与正文规范（F-001~F-005） |\n| `figure_caption` | 图名格式规范（G-002） |\n| `figure_center` | 图片居中对齐（G-004） |\n| `figure_layout` | 图片排版（G-002 + G-004） |\n| `table_caption` | 表名格式规范（T-002） |\n| `table_layout` | 表格排版（T-002 + T-004 + T-007） |\n| `figure_table_layout` | 图表排版（G-002 + G-004 + T-002 + T-004 + T-007） |\n| `formula_layout` | 公式排版（E-002, E-003） |\n| `header_footer` | 页眉页脚排版（HF-001~003） |\n| `page_setup` | 页面设置（PG-001~002） |\n\n---\n\n## 编号校对详细流程\n\n编号校对通过 `scan-structure.js` 执行，使用段落扫描：\n\n```text\nfilePath: \"skills/zslong/scripts/scan-structure.js\"\nparams: { \"scope\": \"<numbering/heading/table/figure/formula>\" }\n```\n\n**技术实现**：\n- 单次遍历段落，记录当前章号/节号\n- 图/表编号：识别旧格式 `图1` / `表1`，转换为 `图X.Y-Z` / `表X.Y-Z`\n- 公式编号：识别旧格式 `(1-2)`，转换为 `(X.Y-Z)`\n\n**输出**：\n```json\n{\n  \"success\": true,\n  \"fixed\": 50,\n  \"commented\": 0,\n  \"revisionLog\": [...],\n  \"summary\": { \"totalIssues\": 50 }\n}\n```\n\n---\n\n## 内容/格式校对流程（run-all-checks.js）\n\n调用 `executeFile`：\n\n```text\nfilePath: \"skills/zslong/scripts/run-all-checks.js\"\nparams: {\n  \"fixMode\": \"aggressive\",\n  \"isSelection\": false,\n  \"scope\": \"<content/value/punctuation/format/font/...>\"\n}\n```\n\n**返回值**：\n```json\n{\n  \"fixed\": number,\n  \"commented\": number,\n  \"revisionLog\": [...],\n  \"summary\": {\n    \"totalIssues\": number,\n    \"byRule\": { \"V-006\": 5, \"M-001\": 3 },\n    \"scope\": \"content\"\n  }\n}\n```\n\n---\n\n## 规则详情\n\n### Stage 1 编号规则\n\n| 规则ID | 检查项 | 示例 |\n|--------|--------|------|\n| N-002 | 一级标题编号连续性 | 第一章→第三章，应为第二章 |\n| N-003 | 二级标题章节号正确 | 3.1 在第二章下，应为 2.1 |\n| N-004 | 二级标题节序号连续 | 2.1 → 2.3，应为 2.2 |\n| N-005 | 三级标题编号 |\n| N-006 | 四级标题编号 |\n| N-007 | 附录标题编号格式 | 附录内应为 A1、A2 格式 |\n| G-001 | 图编号连续性 | 图2-1 → 图2-3，应为 图2-2 |\n| T-001 | 表编号连续性 | 表1-1 → 表1-3，应为 表1-2 |\n| E-001 | 公式编号连续性 | (2-1) → (2-3)，应为 (2-2) |\n\n### Stage 2 规则列表\n\n#### 数值格式（V系列）\n\n| 规则ID | 检查项 | 示例 | 修复方式 |\n|--------|--------|------|----------|\n| V-006 | 温度偏差格式 | 20℃±2℃ → 20±2℃ | 自动修复 |\n| V-007 | 小数补零 | .5 → 0.5 | 自动修复 |\n| V-008 | 数值范围格式 | 10-15 → 10～15 | 自动修复 |\n| V-009 | 单位范围格式 | 10mm-20mm → 10～20mm | 自动修复 |\n| V-010 | 百分比范围 | 10～20% → 10%～20% | 自动修复 |\n| V-011 | 幂次范围 | 1～5×10³ → 每个数值后应写出幂次 | 批注提醒 |\n| V-012 | 体积尺寸 | 240×240×60mm → 240mm×240mm×60mm | 自动修复 |\n| V-013 | 中文数值书写 | 四分之三→3/4 | 批注提醒 |\n\n#### 图表标点（M系列）\n\n| 规则ID | 检查项 | 示例 |\n|--------|--------|------|\n| M-001 | 图名标点 | 图1 大坝剖面图。 → 图1 大坝剖面图 |\n| M-002 | 表名标点 | 表2-1 材料参数表。 → 表2-1 材料参数表 |\n| M-005 | 中文括号 | (混凝土面板) → （混凝土面板） |\n\n#### 表格内容规范（T系列）\n\n| 规则ID | 检查项 | 示例 |\n|--------|--------|------|\n| T-005 | 同上替换 | 表格中\"同上\"替换为上方单元格的数值 |\n| T-006 | 同左替换 | 表格中\"同左\"替换为左侧单元格的数值 |\n\n### Stage 4 规则列表\n\n| 规则ID | 检查项 | 要求 |\n|--------|--------|------|\n| F-001 | 一级标题 | 宋体加粗，小四号（12磅），20磅行间距 |\n| F-002 | 二级标题 | 宋体加粗，小四号（12磅），20磅行间距 |\n| F-003 | 三级标题 | 宋体，小四号（12磅），20磅行间距 |\n| F-004 | 四级标题 | 宋体，小四号（12磅），20磅行间距 |\n| F-005 | 正文 | 宋体，小四号，首行缩进2字，20磅行间距 |\n| G-002 | 图名字体字号 | 小四号宋体，居中 |\n| G-004 | 图片居中 | 图片居中对齐 |\n| T-002 | 表名字体字号 | 小四号宋体，居中 |\n| T-004 | 表格宽度 | 表格与页面等宽 |\n| T-007 | 跨页重复表头 | 表格首行跨页时重复 |\n| E-002 | 公式居中 | 公式应居中书写 |\n| E-003 | 公式编号位置 | 编号右对齐 |\n| HF-001 | 页眉页脚字体字号 | 宋体+Arial，小五号(9磅) |\n| HF-002 | 页眉线 | 通长细线，0.5磅 |\n| HF-003 | 页脚线 | 通长双细线，0.5磅 |\n| PG-001 | 页边距 | 上下2.54cm，左右3.17cm |\n| PG-002 | 页眉页脚距边界 | 1.5cm |\n\n---\n\n## 完整模式（走标准流程）\n\n**触发条件**：用户说\"校对这个文档\"、\"帮我检查一下\"，未指定具体范围。\n\n### Step 0 — 检测文档与模式选择\n\n调用 `executeFile`：\n\n```text\nfilePath: \"skills/zslong/scripts/detect-mode.js\"\nparams: {}\n```\n\n返回值：`{ charCount: number, isSelection: boolean, mode: 'direct' | 'schedule' }`\n\n### Step 1 — 询问修复策略\n\n询问唯一问题：**自动修复策略**\n- 激进模式：格式+内容全部自动修复\n- 标准模式：格式自动修复，内容类批注（推荐）\n- 保守模式：全部只批注不修改\n\n### Step 2 — 执行校对\n\n直接执行 run-all-checks.js：\n```\nexecuteFile: skills/zslong/scripts/run-all-checks.js\nparams: { \"fixMode\": \"<用户选择>\", \"isSelection\": false, \"scope\": \"numbering\" }\n```\n\n然后执行内容/格式校对：\n```\nexecuteFile: skills/zslong/scripts/run-all-checks.js\nparams: { \"fixMode\": \"<用户选择>\", \"isSelection\": false, \"scope\": \"content\" }\n```\n\n### Step 3 — 输出报告\n\n生成 Markdown 格式汇总报告。\n\n---\n\n## 异常处理\n\n**调度提交失败时**：\n\n> 任务提交失败：{error 原因}。请检查后重试。\n\n**脚本报错时**：\n\n> 操作失败：{错误信息}。请确认文档已打开后重试。\n\n**文档为空时**：\n\n> 文档内容为空，无法执行校对。\n\n---\n\n## 规则分类速查\n\n| 类别 | 规则ID | 执行脚本 | 处理方式 |\n|------|--------|---------|---------|\n| 编号 | N-002~010, G-001, T-001, E-001 | run-all-checks.js | 自动修复 |\n| 内容 | V-006~013, M-001~005, T-005~006 | run-all-checks.js | 批注/修复 |\n| 格式 | F-001~005, G-002~004, T-002~007, E-002~003, HF-001~003, PG-001~002 | run-all-checks.js | 直接修复 |\n\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/zslong/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 10
+    }
+  },
+  {
+    "id": "1774635190985_cr5ds27",
+    "role": "assistant",
+    "content": "<think>用户要求校对全文所有标题、图编号、表编号、公式编号，这对应 zslong skill 的 `numbering` scope。根据文档，编号类触发词应直接执行 scan-structure.js，一步完成扫描和修复。\n</think>",
+    "timestamp": 1774635190986,
+    "streaming": false
+  },
+  {
+    "id": "tool_1774635191943_kusr",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1774635191943,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/zslong/scripts/scan-structure.js",
+        "params": {
+          "scope": "numbering"
+        }
+      },
+      "output": "{\"success\":true,\"totalFixed\":1,\"fixed\":1,\"details\":[{\"rule\":\"T-001\",\"original\":\"表1 材料统计表\",\"suggested\":\"表1.1-1 材料统计表\"}],\"structure\":{\"headings\":141,\"figures\":38,\"tables\":61,\"formulas\":73},\"summary\":{\"totalIssues\":1},\"fixPlan\":{\"headingFixes\":[],\"figureFixes\":[],\"tableFixes\":[],\"formulaFixes\":[]}}",
+      "durationMs": 384
+    }
+  },
+  {
+    "id": "1774635193844_cceoaes",
+    "role": "assistant",
+    "content": "已完成全文编号校对，共修复 1 处表编号错误（`表 1` → `表 1.1-1`），文档包含 141 个标题、38 个图、61 个表、73 个公式，其余编号均符合规范。",
+    "timestamp": 1774635193844,
+    "streaming": false
+  },
+  {
+    "id": "revision_1774635194804",
+    "role": "revision",
+    "content": "",
+    "revisions": [
+      {
+        "index": 1,
+        "type": "2",
+        "author": "董莹雪✨",
+        "date": "2026-03-28T02:13:12.000Z",
+        "text": "表1 材料统计表"
+      },
+      {
+        "index": 2,
+        "type": "1",
+        "author": "董莹雪✨",
+        "date": "2026-03-28T02:13:12.000Z",
+        "text": "表1.1-1 材料统计表"
+      }
+    ],
+    "revisionsTotalCount": 2,
+    "timestamp": 1774635194804
+  }
+]

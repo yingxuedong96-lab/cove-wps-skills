@@ -1,0 +1,15 @@
+[
+  {
+    "id": "1774636303343_k1yyhir",
+    "role": "user",
+    "content": "根据设计文档编制规范将单元格内的“同上”和“同左”文字分别替换为上方或左侧相邻单元格的实际数值。",
+    "timestamp": 1774636303343
+  },
+  {
+    "id": "1774636303343_u6x23a6",
+    "role": "assistant",
+    "content": "[错误] Expected 'function.name' to be a string.",
+    "timestamp": 1774636303343,
+    "streaming": false
+  }
+]

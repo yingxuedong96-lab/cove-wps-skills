@@ -1,0 +1,18 @@
+{
+  "name": "doc-summarizer",
+  "description": "文档内容总结提炼。对文档内容进行分析，生成结构化总结并插入到文档中。触发词：内容提炼、总结文档、文档摘要、生成摘要、会议纪要、会议记录、周报、工作周报、写周报。",
+  "version": "2.1.0",
+  "snapshot": "before_task",
+  "emoji": "📝",
+  "files": [
+    "skill.json",
+    "SKILL.md",
+    "scripts/detect-size.js",
+    "scripts/read-content.js",
+    "scripts/init-schedule.js",
+    "scripts/insert-summary.js",
+    "scripts/aggregate-results.js"
+  ],
+  "resources": [],
+  "source": "server"
+}

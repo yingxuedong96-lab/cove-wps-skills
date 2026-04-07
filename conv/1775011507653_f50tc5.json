@@ -1,0 +1,40 @@
+[
+  {
+    "id": "1775011508396_9n8znjy",
+    "role": "user",
+    "content": "章标题（一级标题）采用黑体、三号字（16磅）、居中对齐、加粗，段前12磅、段后6磅，无缩进。",
+    "timestamp": 1775011508396
+  },
+  {
+    "id": "1775011508396_lboj3qd",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775011508396,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775011511801_io0e",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775011511802,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "generalformat"
+      },
+      "output": "<skill_content name=\"generalformat\">\n# Skill: generalformat\n\n---\nname: generalformat\ndescription: >\n  通用文档排版技能。接收宿主 Agent 解析生成的 JSON 配置，自动识别段落类型\n  并批量应用格式。继承长文档优化策略（预扫描排除、区段合并批量处理）。\n  支持章标题、正文、图表名、公式、页眉页脚等元素排版。\n  触发词：排版、格式化、统一格式、按规范排版、中水格式、国标格式。\ncompatibility:\n  runtime: WPS JS 宏 / WPS 加载项（JSAPI）\n---\n\n# 通用文档排版\n\n## 前置条件\n\n宿主 Agent 必须已解析用户意图生成 `$formatConfig` 变量（JSON 配置字符串或对象），包含完整的排版规则。\n\n**配置 Schema 参考**：调用 `skill_resource` 读取 `references/default-configs.md`。\n\n## 执行步骤\n\n### Step 1 — 执行格式排版\n\n调用 `executeFile`：\n\n```yaml\nfilePath: \"skills/generalformat/scripts/format-engine.js\"\nparams:\n  config: \"$formatConfig\"\n```\n\n**参数说明**：\n- `config`：排版配置 JSON，支持字符串或对象格式\n  - `isSelection`：是否只处理选区（默认 false）\n  - `paragraphRules`：各段落类型的排版规则\n  - `recognitionPatterns`：段落类型识别正则（可选，使用默认）\n  - `processingOptions`：处理选项\n\n**返回值**：\n```json\n{\n  \"success\": true,\n  \"applied\": 180,\n  \"skipped\": 20,\n  \"failed\": 0,\n  \"details\": {\n    \"fontChanges\": 150,\n    \"paragraphChanges\": 180,\n    \"alignmentChanges\": 30,\n    \"formulaProcessed\": 5,\n    \"headerFooterProcessed\": 2\n  },\n  \"typeCounts\": {\n    \"zhangTitle\": 5,\n    \"heading12\": 20,\n    \"body\": 120,\n    \"tableCaption\": 8,\n    \"figureCaption\": 6\n  },\n  \"elapsedMs\": 2350\n}\n```\n\n### Step 2 — 应用页面设置（可选）\n\n若配置中包含 `documentInfo.pageMargins` 或 `documentInfo.headerFooterDistance`，调用：\n\n```yaml\nfilePath: \"skills/generalformat/scripts/apply-page-setup.js\"\nparams:\n  config: \"$formatConfig\"\n```\n\n**返回值**：\n```json\n{\n  \"success\": true,\n  \"applied\": true,\n  \"details\": {\n    \"pageMarginsApplied\": true,\n    \"headerFooterDistanceApplied\": true\n  }\n}\n```\n\n## 配置示例\n\n### 最简配置（仅正文排版）\n\n```json\n{\n  \"paragraphRules\": {\n    \"body\": {\n      \"fontCN\": \"宋体\",\n      \"fontSize\": 12,\n      \"firstLineIndent\": 24\n    }\n  }\n}\n```\n\n### 中水院报告配置\n\n```json\n{\n  \"isSelection\": false,\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontSize\": 14, \"bold\": true, \"alignment\": 3 },\n    \"heading12\": { \"fontSize\": 12, \"bold\": true },\n    \"body\": { \"fontSize\": 12, \"lineSpacing\": 20, \"lineSpacingRule\": 4, \"firstLineIndent\": 24 },\n    \"tableCaption\": { \"fontSize\": 12, \"alignment\": 1, \"spaceAfter\": 0 },\n    \"figureCaption\": { \"fontSize\": 12, \"alignment\": 1, \"spaceBefore\": 6, \"spaceAfter\": 6 },\n    \"formulaParagraph\": { \"alignment\": 1, \"formulaTabStops\": true },\n    \"headerFooter\": { \"fontCN\": \"宋体\", \"fontEN\": \"Arial\", \"fontSize\": 9 },\n    \"headerFooterLine\": { \"headerStyle\": 1, \"footerStyle\": 7, \"lineWidth\": 4 }\n  },\n  \"documentInfo\": {\n    \"pageMargins\": { \"top\": 72, \"bottom\": 72, \"left\": 90, \"right\": 90 },\n    \"headerFooterDistance\": { \"header\": 42.5, \"footer\": 42.5 }\n  }\n}\n```\n\n## 段落类型说明\n\n| 类型 | 识别规则 | 说明 |\n|------|---------|------|\n| `zhangTitle` | `^\\d{1,2}\\s+[\\u4e00-\\u9fff]` | 章标题（如 \"1 概述\"） |\n| `heading12` | `^\\d+\\.\\d+` | 二级标题（如 \"1.1 设计依据\"） |\n| `heading3Plus` | `^\\d+\\.\\d+\\.\\d+` | 三级及以下标题 |\n| `body` | 非特殊类型且长度>3 | 正文段落 |\n| `tableCaption` | `^表\\s*[\\d\\.]` | 表名 |\n| `figureCaption` | `^图\\s*[\\d\\.]` | 图名 |\n| `formulaParagraph` | 含数学特征+编号 | 公式段落 |\n| `headerFooter` | 页眉页脚区域 | 页眉页脚 |\n\n## 处理选项\n\n| 选项 | 默认值 | 说明 |\n|------|--------|------|\n| `skipTableParagraphs` | true | 跳过表格内段落 |\n| `skipImageParagraphs` | true | 跳过图片段落 |\n| `batchThreshold` | 80 | 启用宽范围批处理的区段阈值 |\n\n## 异常处理\n\n**无活动文档**：\n```json\n{ \"success\": false, \"error\": \"无活动文档\" }\n```\n\n**配置解析失败**：\n```json\n{ \"success\": false, \"error\": \"配置解析失败: ...\" }\n```\n\n**执行超时**：\n- 长文档（500+段落）预计耗时 30-60 秒\n- 超过 2 分钟会返回已处理进度\n\n## 参考资源\n\n- `references/default-configs.md`：预置配置模板（中水院、国标公文等）\n- `prompts/parse-intent.md`：宿主端解析用户意图的 prompt 模板\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/generalformat/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 25
+    }
+  },
+  {
+    "id": "tool_1775011514119_7a6l",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775011514120,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {},
+      "error": "请求异常中断，工具调用未完成"
+    }
+  }
+]

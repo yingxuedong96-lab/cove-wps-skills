@@ -1,0 +1,80 @@
+[
+  {
+    "id": "1775571014683_9mlti7s",
+    "role": "user",
+    "content": "generalcheck：校对文档中的标题编号。检查一级标题（第X章）、二级标题（X.X）、三级标题（X.X.X）、四级标题（X.X.X.X）的编号连续性，确保章节号与当前章节一致，自动开启修订模式进行修正。",
+    "timestamp": 1775571014684,
+    "commandMeta": {
+      "name": "校对标题编号"
+    },
+    "taskId": "task_1775571014688_fwbmau"
+  },
+  {
+    "id": "1775571014684_omvga6l",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775571014684,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775571020726_rqjy",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775571020726,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "generalcheck"
+      },
+      "output": "<skill_content name=\"generalcheck\">\n# Skill: generalcheck\n\n---\nname: generalcheck\ndescription: >\n  通用编号校对。对文档中的标题编号、图编号、表编号、公式编号进行自动校对与修正。\n  触发词：校对编号、校对标题编号、校对图编号、校对表编号、校对公式编号、校对引用。\ncompatibility:\n  runtime: WPS JS 宏 / WPS 加载项（JSAPI）\n---\n\n# 通用编号校对\n\n## ⚠️ 执行流程\n\n根据用户输入的触发词，直接执行对应 scope 的脚本：\n\n### 触发词 → scope 映射表\n\n| 触发词 | scope | 执行脚本 |\n|-------|-------|---------|\n| 校对编号、校对所有编号、编号校对 | `numbering` | scan-structure.js |\n| 校对标题编号、标题编号校对 | `heading` | scan-structure.js |\n| 校对图编号、图编号校对 | `figure` | scan-structure.js |\n| 校对表编号、表编号校对 | `table` | scan-structure.js |\n| 校对公式编号、公式编号校对 | `formula` | scan-structure.js |\n| 校对引用、引用校对 | `reference` | scan-structure.js |\n\n---\n\n## 执行方式\n\n**⚠️ 直接调用脚本，不要做任何额外处理。**\n\n```\nexecuteFile:\n  filePath: \"skills/generalcheck/scripts/scan-structure.js\"\n  params: { \"scope\": \"<匹配的scope>\" }\n```\n\n---\n\n## 规则说明\n\n脚本自动识别并修复以下编号问题：\n\n| 规则ID | 检查项 | 说明 |\n|--------|--------|------|\n| N-002 | 一级标题编号连续性 | 第一章→第三章，应为第二章 |\n| N-003 | 二级标题章节号正确 | 3.1 在第二章下，应为 2.1 |\n| N-004 | 二级标题节序号连续 | 2.1 → 2.3，应为 2.2 |\n| N-005 | 三级标题编号 | 同一节内编号连续 |\n| N-006 | 四级标题编号 | 同一条内编号连续 |\n| N-008 | 五级标题编号 | 同一四级标题内编号连续 |\n| N-007 | 附录标题编号格式 | 附录内应为 A1、A2 格式 |\n| G-001 | 图编号连续性 | 图2-1 → 图2-3，应为 图2-2 |\n| T-001 | 表编号连续性 | 表1-1 → 表1-3，应为 表1-2 |\n| E-001 | 公式编号连续性 | (2-1) → (2-3)，应为 (2-2) |\n\n---\n\n## 技术实现\n\n脚本使用单次遍历段落方式：\n- 记录当前章号/节号上下文\n- 识别旧格式编号并转换为规范格式\n- 自动开启修订模式，所有修改可追溯\n\n**输出格式**：\n```json\n{\n  \"success\": true,\n  \"fixed\": 50,\n  \"structure\": { \"headings\": 20, \"figures\": 10, \"tables\": 15, \"formulas\": 5 },\n  \"details\": [...]\n}\n```\n\n---\n\n## 注意事项\n\n1. **编号校对需要全局上下文**，不能分片处理\n2. **所有修复自动开启修订模式**，用户可接受或拒绝\n3. **脚本已包含扫描+修复**，返回空 fixPlan，禁止再调用 apply-numbering-fixes.js\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/generalcheck/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 11
+    }
+  },
+  {
+    "id": "tool_1775571022288_h7ps",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775571022288,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/generalcheck/scripts/scan-structure.js",
+        "params": {
+          "scope": "heading"
+        }
+      },
+      "output": "$artifact:20260407-x3as56\n{\"success\":true,\"totalFixed\":0,\"fixed\":0,\"details\":[],\"structure\":{\"headings\":30,\"figures\":0,\"tables\":0,\"formulas\":0},\"summary\":{\"totalIssues\":0},\"fixPlan\":{\"headingFixes\":[],\"figureFixes\":[],\"tableFixes\":[],\"formulaFixes\":[]}}",
+      "durationMs": 36
+    }
+  },
+  {
+    "id": "tool_1775571024503_qbb7",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775571024503,
+    "toolCall": {
+      "toolName": "artifactRead",
+      "input": {
+        "id": "20260407-x3as56",
+        "mode": "data"
+      },
+      "output": "{\n  \"success\": true,\n  \"totalFixed\": 0,\n  \"fixed\": 0,\n  \"details\": [],\n  \"structure\": {\n    \"headings\": 30,\n    \"figures\": 0,\n    \"tables\": 0,\n    \"formulas\": 0\n  },\n  \"summary\": {\n    \"totalIssues\": 0\n  },\n  \"fixPlan\": {\n    \"headingFixes\": [],\n    \"figureFixes\": [],\n    \"tableFixes\": [],\n    \"formulaFixes\": []\n  }\n}",
+      "durationMs": 13
+    }
+  },
+  {
+    "id": "tool_1775571027109_dxt9",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775571027109,
+    "toolCall": {
+      "toolName": "confirmEdits",
+      "input": {
+        "mode": "revision",
+        "summary": "## 编号校对报告\n\n1. **标题编号检查（0 处修正）**\n   - 文档中共识别到 30 个标题\n   - 所有标题编号连续且正确，无需修正\n\n**检查结果：文档标题编号规范，未发现编号错误。**"
+      },
+      "output": "## 编号校对报告\n\n1. **标题编号检查（0 处修正）**\n   - 文档中共识别到 30 个标题\n   - 所有标题编号连续且正确，无需修正\n\n**检查结果：文档标题编号规范，未发现编号错误。**",
+      "durationMs": 23
+    }
+  }
+]

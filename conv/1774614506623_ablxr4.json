@@ -1,0 +1,15 @@
+[
+  {
+    "id": "1774614506653_1ivbx3l",
+    "role": "user",
+    "content": "技术报告校对排版：根据设计文档编制规范校对全文所有标题、图编号、表编号、公式编号。",
+    "timestamp": 1774614506653
+  },
+  {
+    "id": "1774614506653_0cmvx66",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1774614506653,
+    "streaming": false
+  }
+]

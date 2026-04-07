@@ -1,0 +1,15 @@
+[
+  {
+    "id": "1774628175115_j9vw3f4",
+    "role": "user",
+    "content": "/REDformat 根据会议纪要规范对文档进行排版 /no_think",
+    "timestamp": 1774628175115
+  },
+  {
+    "id": "1774628175115_63yy8ms",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1774628175115,
+    "streaming": false
+  }
+]

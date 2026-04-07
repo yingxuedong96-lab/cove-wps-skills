@@ -1,0 +1,18 @@
+[
+  {
+    "id": "1775204797709_hhfn8zq",
+    "role": "user",
+    "content": "排版",
+    "timestamp": 1775204797709,
+    "commandMeta": {
+      "name": "排版"
+    }
+  },
+  {
+    "id": "1775204797709_fh6j1c4",
+    "role": "assistant",
+    "content": "<function=skill>\n<parameter=name>\nGBT9704\n</parameter>\n</function>\n</tool_call>",
+    "timestamp": 1775204797709,
+    "streaming": false
+  }
+]

@@ -1,0 +1,43 @@
+[
+  {
+    "id": "1774490147137_1vonwbk",
+    "role": "user",
+    "content": "/GWformat 根据集团公文排版格式要求对文档排版",
+    "timestamp": 1774490147137
+  },
+  {
+    "id": "1774490147137_5syxz7y",
+    "role": "assistant",
+    "content": "[错误] network error",
+    "timestamp": 1774490147137,
+    "streaming": false
+  },
+  {
+    "id": "tool_1774490150323_pyc3",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1774490150323,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "// 读取当前文档内容并分析结构\nvar doc = Application.ActiveDocument;\nvar content = \"\";\nvar paragraphs = doc.Paragraphs;\nvar paraCount = paragraphs.Count;\n\n// 收集段落信息\nvar paraInfo = [];\nfor (var i = 1; i <= paraCount; i++) {\n    var para = paragraphs.Item(i);\n    var text = para.Range.Text;\n    var style = para.Style.NameLocal;\n    var fontSize = para.Range.Font.Size;\n    var isBold = para.Range.Font.Bold;\n    var alignment = para.Alignment;\n    \n    paraInfo.push({\n        index: i,\n        text: text.replace(/\\r/g, \"\"),\n        style: style,\n        fontSize: fontSize,\n        isBold: isBold,\n        alignment: alignment\n    });\n    \n    content += text;\n}\n\nreturn {\n    totalParagraphs: paraCount,\n    contentLength: content.length,\n    paragraphs: paraInfo.slice(0, 10), // 只返回前10段作为预览\n    fullContent: content\n};"
+      },
+      "output": "{\"totalParagraphs\":20,\"contentLength\":1672,\"paragraphs\":[{\"index\":1,\"text\":\"XX集团党委关于2024年度党建工作开展情况的报告\",\"style\":\"正文\",\"fontSize\":10.5,\"isBold\":0,\"alignment\":3},{\"index\":2,\"text\":\"集团公司党委：\",\"style\":\"正文\",\"fontSize\":10.5,\"isBold\":0,\"alignment\":3},{\"index\":3,\"text\":\"2024年是实施“十四五”规划的关键一年，也是集团深化改革、推动高质量发展的攻坚之年。集团党委坚持以新时代中国特色社会主义思想为指导，深入贯彻落实党的二十大精神，紧紧围绕集团中心工作，全面加强党的建设，为集团改革发展提供了坚强的政治保证和组织保障。面对复杂多变的外部环境和艰巨繁重的改革发展任务，集团上下凝心聚力、迎难而上，以高质量党建引领高质量发展，在稳增长、促改革、调结构、惠民生、防风险等各项工作中取得了显著成效，圆满完成了年度各项目标任务，企业综合实力迈上新台阶，核心竞争力持续增强，为实现“十四五”规划目标奠定了坚实基础。现将有关情况报告如下：\",\"style\":\"正文\",\"fontSize\":10.5,\"isBold\":0,\"alignment\":3},{\"index\":4,\"text\":\"一、强化政治引领，筑牢思想根基\",\"style\":\"正文\",\"fontSize\":10.5,\"isBold\":0,\"alignment\":3},{\"index\":5,\"text\":\"集团党委始终把政治建设摆在首位，严格执行“第一议题”制度，全年组织中心组学习12次，专题研讨6次。通过举办读书班、专题讲座等形式，引导广大党员干部深刻领悟“两个确立”的决定性意义，增强“四个意识”、坚定“四个自信”、做到“两个维护”。在此基础上，集团党委注重学用结合、知行合一，建立“学习—调研—决策—落实”闭环机制，将理论学习成果转化为推动企业改革发展的具体思路和务实举措。班子成员带头深入基层联系点开展调查研究，形成高质量调研报告8篇，解决基层急难愁盼问题20余项。同时，严明政治纪律和政治规矩，定期开展政治体检，确保党中央决策部署及上级党委工作要求在集团不折不扣落地生根，始终在思想上政治上行动上同党中央保持高度一致。\",\"style\":\"正文\",\"fontSize\":10.5,\"isBold\":0,\"alignment\":3},{\"index\":6,\"text\":\"二、夯实组织基础，建强战斗堡垒\",\"style\":\"正文\",\"fontSize\":10.5,\"isBold\":0,\"alignment\":3},{\"index\":7,\"text\":\"（一）规范基层组织设置。\",\"style\":\"正文\",\"fontSize\":10.5,\"isBold\":0,\"alignment\":3},{\"index\":8,\"text\":\"按照“四同步”要求，新成立党支部3个，调整优化支部班子5个，确保党的组织和工作全覆盖。特别是针对新并购企业及混合所有制改革试点单位，同步理顺党组织隶属关系，选优配强党支部书记，实现“应建尽建、应配尽配”。同时，深入开展党支部标准化规范化建设提升行动，对照“五好”党支部创建标准，逐项查漏补缺，打造了一批叫得响、立得住的示范党支部。通过实施“头雁工程”，举办党务干部专题培训班4期，覆盖200余人次，有效提升了基层党务工作者的履职能力和专业素养，使基层党组织真正成为宣传党的主张、贯彻党的决定、领导基层治理、团结动员群众、推动改革发展的坚强战斗堡垒。\",\"style\":\"正文\",\"fontSize\":10.5,\"isBold\":0,\"alignment\":3},{\"index\":9,\"text\":\"（二）提升党员队伍质量。\",\"style\":\"正文\",\"fontSize\":10.5,\"isBold\":0,\"alignment\":3},{\"index\":10,\"text\":\"严把党员入口关，全年发展党员28名，其中一线职工占比超过80%。组织开展党员示范岗、责任区创建活动，激发党员先锋模范作用。坚持“把骨干培养成党员、把党员培养成骨干”的“双培养”机制，注重在技术攻关、市场开拓、项目建设等急难险重任务中考察和识别入党积极分子。全年设立党员示范岗45个、党员责任区32个，组建党员突击队12支，带领职工攻克技术难题18项，节约生产成本逾百万元。特别是在年度重点工程推进过程中，广大党员冲锋在前、吃苦在后，亮身份、践承诺、作表率，形成了“关键时刻有党员、困难面前看党员”的生动局面，真正让党旗在基层一线高高飘扬，使党员队伍成为推动集团高质量发展的“红色引擎”。\",\"style\":\"正文\",\"fontSize\":10.5,\"isBold\":0,\"alignment\":3}],\"fullContent\":\"XX集团党委关于2024年度党建工作开展情况的报告\\r集团公司党委：\\r2024年是实施“十四五”规划的关键一年，也是集团深化改革、推动高质量发展的攻坚之年。集团党委坚持以新时代中国特色社会主义思想为指导，深入贯彻落实党的二十大精神，紧紧围绕集团中心工作，全面加强党的建设，为集团改革发展提供了坚强的政治保证和组织保障。面对复杂多变的外部环境和艰巨繁重的改革发展任务，集团上下凝心聚力、迎难而上，以高质量党建引领高质量发展，在稳增长、促改革、调结构、惠民生、防风险等各项工作中取得了显著成效，圆满完成了年度各项目标任务，企业综合实力迈上新台阶，核心竞争力持续增强，为实现“十四五”规划目标奠定了坚实基础。现将有关情况报告如下：\\r一、强化政治引领，筑牢思想根基\\r集团党委始终把政治建设摆在首位，严格执行“第一议题”制度，全年组织中心组学习12次，专题研讨6次。通过举办读书班、专题讲座等形式，引导广大党员干部深刻领悟“两个确立”的决定性意义，增强“四个意识”、坚定“四个自信”、做到“两个维护”。在此基础上，集团党委注重学用结合、知行合一，建立“学习—调研—决策—落实”闭环机制，将理论学习成果转化为推动企业改革发展的具体思路和务实举措。班子成员带头深入基层联系点开展调查研究，形成高质量调研报告8篇，解决基层急难愁盼问题20余项。同时，严明政治纪律和政治规矩，定期开展政治体检，确保党中央决策部署及上级党委工作要求在集团不折不扣落地生根，始终在思想上政治上行动上同党中央保持高度一致。\\r二、夯实组织基础，建强战斗堡垒\\r（一）规范基层组织设置。\\r按照“四同步”要求，新成立党支部3个，调整优化支部班子5个，确保党的组织和工作全覆盖。特别是针对新并购企业及混合所有制改革试点单位，同步理顺党组织隶属关系，选优配强党支部书记，实现“应建尽建、应配尽配”。同时，深入开展党支部标准化规范化建设提升行动，对照“五好”党支部创建标准，逐项查漏补缺，打造了一批叫得响、立得住的示范党支部。通过实施“头雁工程”，举办党务干部专题培训班4期，覆盖200余人次，有效提升了基层党务工作者的履职能力和专业素养，使基层党组织真正成为宣传党的主张、贯彻党的决定、领导基层治理、团结动员群众、推动改革发展的坚强战斗堡垒。\\r（二）提升党员队伍质量。\\r严把党员入口关，全年发展党员28名，其中一线职工占比超过80%。组织开展党员示范岗、责任区创建活动，激发党员先锋模范作用。坚持“把骨干培养成党员、把党员培养成骨干”的“双培养”机制，注重在技术攻关、市场开拓、项目建设等急难险重任务中考察和识别入党积极分子。全年设立党员示范岗45个、党员责任区32个，组建党员突击队12支，带领职工攻克技术难题18项，节约生产成本逾百万元。特别是在年度重点工程推进过程中，广大党员冲锋在前、吃苦在后，亮身份、践承诺、作表率，形成了“关键时刻有党员、困难面前看党员”的生动局面，真正让党旗在基层一线高高飘扬，使党员队伍成为推动集团高质量发展的“红色引擎”。\\r三、深化作风建设，营造清廉生态\\r坚持严的主基调不动摇，深入开展党风廉政建设宣传教育月活动。紧盯关键少数、关键岗位，强化日常监督执纪，全年开展谈心谈话150余人次，查处违规违纪问题3起，持续净化政治生态。\\r四、存在不足及下一步打算\\r在肯定成绩的同时，我们也清醒地看到工作中还存在一些薄弱环节：一是党建与业务融合不够紧密；二是基层党务干部业务能力有待提升；三是创新载体不够丰富。\\r2025年，集团党委将聚焦主责主业，重点抓好三项核心工作：一是持续深化理论武装，坚持在学懂弄通做实上下功夫，不断筑牢思想根基；二是全面推进品牌创建，立足集团实际打造具有鲜明特色的党建标杆，以高质量党建引领高质量发展；三是从严抓好纪律作风，坚定不移推动全面从严治党向纵深发展，营造风清气正的政治生态，为集团改革发展提供坚强保障。\\r特此报告。\\r附件：1. 2024年度集团党建工作考核结果\\r      2025年集团党建工作要点\\rXX集团党委\\r2024年12月20日\\r\"}",
+      "durationMs": 29
+    }
+  },
+  {
+    "id": "tool_1774490159205_y8u5",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1774490159205,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "// 根据集团公文排版格式要求对文档进行排版\nvar doc = Application.ActiveDocument;\nvar paragraphs = doc.Paragraphs;\n\n// 1. 设置页面布局\ndoc.PageSetup.PaperSize = 9; // A4纸\ndoc.PageSetup.TopMargin = 37; // 上边距37mm\ndoc.PageSetup.BottomMargin = 35; // 下边距35mm\ndoc.PageSetup.LeftMargin = 28; // 左边距28mm\ndoc.PageSetup.RightMargin = 26; // 右边距26mm\n\n// 2. 设置全文基本格式\ndoc.Content.Font.Name = \"仿宋_GB2312\"; // 仿宋字体\ndoc.Content.Font.Size = 16; // 三号字（16磅）\n\n// 3. 设置标题格式\nvar titlePara = paragraphs.Item(1);\ntitlePara.Alignment = 1; // 居中\ntitlePara.Range.Font.Name = \"方正小标宋简体\"; // 小标宋简体\ntitlePara.Range.Font.Size = 22; // 二号字（22磅）\ntitlePara.Range.Font.Bold = -1; // 加粗\n\n// 4. 设置主送机关格式\nvar recipientPara = paragraphs.Item(2);\nrecipientPara.Alignment = 0; // 左对齐\nrecipientPara.Range.Font.Name = \"仿宋_GB2312\";\nrecipientPara.Range.Font.Size = 16;\n\n// 5. 设置正文格式\nfor (var i = 3; i <= paragraphs.Count; i++) {\n    var para = paragraphs.Item(i);\n    var text = para.Range.Text.trim();\n    \n    // 跳过空段落\n    if (!text) continue;\n    \n    // 设置段落格式\n    para.Alignment = 0; // 左对齐\n    para.Range.Font.Name = \"仿宋_GB2312\";\n    para.Range.Font.Size = 16;\n    para.Range.Font.Bold = 0; // 取消加粗\n    \n    // 设置首行缩进2字符\n    para.FirstLineIndent = 32; // 2字符缩进（16磅×2）\n    \n    // 设置行距：固定值30磅\n    para.LineSpacingRule = 2; // 固定值\n    para.LineSpacing = 30;\n    \n    // 设置段前段后间距\n    para.SpaceBefore = 0;\n    para.SpaceAfter = 0;\n}\n\n// 6. 设置一级标题格式（如\"一、强化政治引领，筑牢思想根基\"）\nfor (var i = 1; i <= paragraphs.Count; i++) {\n    var para = paragraphs.Item(i);\n    var text = para.Range.Text.trim();\n    \n    // 匹配一级标题：以\"一、\"、\"二、\"等开头\n    if (/^[一二三四五六七八九十]+、/.test(text)) {\n        para.Range.Font.Name = \"黑体\";\n        para.Range.Font.Size = 16;\n        para.Range.Font.Bold = -1; // 加粗\n        para.FirstLineIndent = 0; // 取消首行缩进\n    }\n    \n    // 匹配二级标题：以\"（一）\"、\"（二）\"等开头\n    if (/^（[一二三四五六七八九十]+）/.test(text)) {\n        para.Range.Font.Name = \"楷体_GB2312\";\n        para.Range.Font.Size = 16;\n        para.Range.Font.Bold = -1; // 加粗\n        para.FirstLineIndent = 32; // 首行缩进2字符\n    }\n}\n\n// 7. 设置附件格式\nfor (var i = 1; i <= paragraphs.Count; i++) {\n    var para = paragraphs.Item(i"
+      },
+      "executing": true,
+      "codeStreaming": true
+    }
+  }
+]

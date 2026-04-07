@@ -1,0 +1,15 @@
+[
+  {
+    "id": "1774634493015_bn2y65z",
+    "role": "user",
+    "content": "根据设计文档编制规范校对全文所有标题、图编号、表编号、公式编号。",
+    "timestamp": 1774634493015
+  },
+  {
+    "id": "1774634493015_oevni5n",
+    "role": "assistant",
+    "content": "<think>用户希望对当前打开的 Word 文档进行全面的编号校对，包括标题、图号、表号和公式号的检查。这正好匹配 zslong skill 的功能描述。\n\n让我调用 zslong skill 来执行这个任务。</think>",
+    "timestamp": 1774634493015,
+    "streaming": false
+  }
+]

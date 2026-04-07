@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1774489870627_zvhtjir",
+    "role": "user",
+    "content": "/GWformat 根据集团公文排版格式要求对文档排版",
+    "timestamp": 1774489870627
+  },
+  {
+    "id": "1774489870627_9mlvud7",
+    "role": "assistant",
+    "content": "[错误] network error",
+    "timestamp": 1774489870627,
+    "streaming": false
+  },
+  {
+    "id": "tool_1774489873562_6vgv",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1774489873563,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "// 读取当前文档内容并分析结构\nvar doc = Application.ActiveDocument;\nvar paragraphs = doc.Paragraphs;\nvar paraCount = paragraphs.Count;\nvar contentInfo = [];\n\nfor (var i = 1; i <= Math.min(paraCount, 20); i++) {\n    var para = paragraphs.Item(i);\n    var text = para.Range.Text;\n    var style = para.Style.NameLocal;\n    var fontSize = para.Range.Font.Size;\n    var alignment = para.Alignment;\n    \n    contentInfo.push({\n        index: i,\n        text: text.replace(/\\r/g, '\\\\r').substring(0, 50),\n        style: style,\n        fontSize: fontSize,\n        alignment: alignment\n    });\n}\n\nreturn {\n    totalParagraphs: paraCount"
+      },
+      "executing": true,
+      "codeStreaming": true
+    }
+  }
+]

@@ -1,0 +1,180 @@
+[
+  {
+    "id": "1775031028904_1t4z4fb",
+    "role": "user",
+    "content": "请按照以下规则对文档进行排版：\n\n## 页面设置\n\n页边距：上2.5厘米、下2.5厘米、左3厘米、右3厘米。页眉距边界1.5厘米，页脚距边界1.5厘米。\n\n## 默认字体设置\n\n中文字体统一使用仿宋，英文字体统一使用 Arial。\n\n## 章标题（一级标题）\n\n采用楷体、三号字（16磅）、居中对齐、加粗，段前12磅、段后6磅，无缩进，固定行距20磅。\n\n## 二级标题\n\n采用黑体、四号字（14磅）、左对齐、加粗，段前6磅、段后6磅，无缩进，固定行距20磅。\n\n## 三级标题\n\n采用楷体、小四号字（12磅）、左对齐、不加粗，段前6磅、段后3磅，无缩进，固定行距20磅。\n\n## 四级及以下标题\n\n采用仿宋、小四号字（12磅）、左对齐、不加粗，段前3磅、段后3磅，无缩进，固定行距20磅。\n\n## 正文\n\n采用仿宋、小四号字（12磅）、两端对齐、不加粗，固定行距22磅，首行缩进2字符，段前0磅、段后0磅。\n\n## 表名\n\n采用楷体、五号字（10.5磅）、居中对齐、不加粗，固定行距16磅，段前6磅、段后0磅，无缩进。\n\n## 图名\n\n采用楷体、五号字（10.5磅）、居中对齐、不加粗，固定行距16磅，段前0磅、段后6磅，无缩进。\n\n## 图片段落\n\n包含图片的段落采用居中对齐，段前6磅、段后6磅。\n\n## 公式段落\n\n公式本身居中对齐，公式编号右对齐，段前6磅、段后6磅。\n\n## 页眉页脚\n\n采用仿宋、小五号字（9磅），页眉下设有0.5磅细线，页脚上设有0.5磅细线。\n\n## 参考文献\n\n采用仿宋、五号字（10.5磅）、左对齐、不加粗，固定行距16磅，无缩进，段前0磅、段后0磅。",
+    "timestamp": 1775031028904
+  },
+  {
+    "id": "1775031028904_awf69f6",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775031028904,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775031032418_byzd",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775031032418,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "generalformat"
+      },
+      "output": "<skill_content name=\"generalformat\">\n# Skill: generalformat\n\n---\nname: generalformat\ndescription: >\n  通用文档排版技能。接收宿主 Agent 解析生成的 JSON 配置，自动识别段落类型\n  并批量应用格式。支持章标题、正文、图表名、公式、页眉页脚等元素排版。\n  触发词：排版、格式化、统一格式、按规范排版、中水格式、国标格式。\ncompatibility:\n  runtime: WPS JS 宏 / WPS 加载项（JSAPI）\n---\n\n# 通用文档排版\n\n## 前置条件\n\n宿主 Agent 必须已解析用户意图生成 `$formatConfig` 变量（JSON 配置字符串或对象）。\n\n## 执行步骤\n\n调用 `executeFile`：\n\n```yaml\nfilePath: \"skills/generalformat/scripts/format-engine.js\"\nparams:\n  config: \"$formatConfig\"\n```\n\n## 参数说明\n\n- `config`：排版配置 JSON\n  - `isSelection`：是否只处理选区（默认 false）\n  - `paragraphRules`：各段落类型的排版规则\n  - `fontDefaults`：默认字体 { fontCN, fontEN }\n\n## 返回值\n\n```json\n{\n  \"success\": true,\n  \"applied\": 180,\n  \"skipped\": 20,\n  \"failed\": 0,\n  \"elapsedMs\": 2350\n}\n```\n\n## 段落类型\n\n| 类型 | 识别规则 |\n|------|---------|\n| `zhangTitle` | 章标题（如 \"1 概述\"） |\n| `heading2` | 二级标题（如 \"1.1 设计依据\"） |\n| `heading3` | 三级标题 |\n| `heading3Plus` | 四级及以下标题 |\n| `body` | 正文段落 |\n| `tableCaption` | 表名 |\n| `figureCaption` | 图名 |\n\n## 配置示例\n\n```json\n{\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontCN\": \"黑体\", \"fontSize\": 16, \"bold\": true, \"alignment\": 1 },\n    \"heading2\": { \"fontCN\": \"黑体\", \"fontSize\": 14, \"bold\": true, \"alignment\": 0 },\n    \"body\": { \"fontCN\": \"宋体\", \"fontSize\": 12, \"firstLineIndent\": 24 }\n  }\n}\n```\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/generalformat/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 11
+    }
+  },
+  {
+    "id": "tool_1775031034136_3lil",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775031034136,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/generalformat/scripts/format-engine.js",
+        "params": {
+          "config": {
+            "fontDefaults": {
+              "fontCN": "仿宋",
+              "fontEN": "Arial"
+            },
+            "pageSetup": {
+              "marginTop": 2.5,
+              "marginBottom": 2.5,
+              "marginLeft": 3,
+              "marginRight": 3,
+              "headerMargin": 1.5,
+              "footerMargin": 1.5
+            },
+            "paragraphRules": {
+              "body": {
+                "alignment": 0,
+                "bold": false,
+                "fontCN": "仿宋",
+                "fontEN": "Arial",
+                "fontSize": 12,
+                "lineSpacing": 22,
+                "lineSpacingType": "fixed",
+                "spaceAfter": 0,
+                "spaceBefore": 0,
+                "firstLineIndent": 2
+              },
+              "figureCaption": {
+                "alignment": 1,
+                "bold": false,
+                "fontCN": "楷体",
+                "fontEN": "Arial",
+                "fontSize": 10.5,
+                "lineSpacing": 16,
+                "lineSpacingType": "fixed",
+                "spaceAfter": 6,
+                "spaceBefore": 0
+              },
+              "figureParagraph": {
+                "alignment": 1,
+                "spaceAfter": 6,
+                "spaceBefore": 6
+              },
+              "formulaParagraph": {
+                "alignment": 1,
+                "spaceAfter": 6,
+                "spaceBefore": 6
+              },
+              "heading2": {
+                "alignment": 0,
+                "bold": true,
+                "fontCN": "黑体",
+                "fontEN": "Arial",
+                "fontSize": 14,
+                "lineSpacing": 20,
+                "lineSpacingType": "fixed",
+                "spaceAfter": 6,
+                "spaceBefore": 6
+              },
+              "heading3": {
+                "alignment": 0,
+                "bold": false,
+                "fontCN": "楷体",
+                "fontEN": "Arial",
+                "fontSize": 12,
+                "lineSpacing": 20,
+                "lineSpacingType": "fixed",
+                "spaceAfter": 3,
+                "spaceBefore": 6
+              },
+              "heading3Plus": {
+                "alignment": 0,
+                "bold": false,
+                "fontCN": "仿宋",
+                "fontEN": "Arial",
+                "fontSize": 12,
+                "lineSpacing": 20,
+                "lineSpacingType": "fixed",
+                "spaceAfter": 3,
+                "spaceBefore": 3
+              },
+              "references": {
+                "alignment": 0,
+                "bold": false,
+                "fontCN": "仿宋",
+                "fontEN": "Arial",
+                "fontSize": 10.5,
+                "lineSpacing": 16,
+                "lineSpacingType": "fixed",
+                "spaceAfter": 0,
+                "spaceBefore": 0
+              },
+              "tableCaption": {
+                "alignment": 1,
+                "bold": false,
+                "fontCN": "楷体",
+                "fontEN": "Arial",
+                "fontSize": 10.5,
+                "lineSpacing": 16,
+                "lineSpacingType": "fixed",
+                "spaceAfter": 0,
+                "spaceBefore": 6
+              },
+              "zhangTitle": {
+                "alignment": 1,
+                "bold": true,
+                "fontCN": "楷体",
+                "fontEN": "Arial",
+                "fontSize": 16,
+                "lineSpacing": 20,
+                "lineSpacingType": "fixed",
+                "spaceAfter": 6,
+                "spaceBefore": 12
+              }
+            },
+            "headerFooter": {
+              "fontCN": "仿宋",
+              "fontEN": "Arial",
+              "fontSize": 9,
+              "borderTop": {
+                "width": 0.5,
+                "style": "single"
+              },
+              "borderBottom": {
+                "width": 0.5,
+                "style": "single"
+              }
+            }
+          }
+        }
+      },
+      "output": "{\"success\":true,\"applied\":241,\"skipped\":0,\"failed\":0,\"elapsedMs\":16050,\"stats\":{\"headings\":141,\"bodySegments\":193,\"captions\":99}}",
+      "durationMs": 16063
+    }
+  },
+  {
+    "id": "1775031065718_6ij19b4",
+    "role": "assistant",
+    "content": "排版已完成，共处理 241 个段落（含 141 个标题、193 段正文、99 个图表名），耗时约 16 秒。",
+    "timestamp": 1775031065718,
+    "streaming": false
+  }
+]

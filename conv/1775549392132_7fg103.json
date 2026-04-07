@@ -1,0 +1,225 @@
+[
+  {
+    "id": "1775549392204_rxv9pnr",
+    "role": "user",
+    "content": "generalformat：校对编号。标题编号格式为X.Y.Z，如3.1.1表示第3章第1节第1小节，同一章节下的序号应连续递增（如3.1、3.2、3.3...），附录编号为A.1、A.1.1格式，附录序号也应连续。",
+    "timestamp": 1775549392204,
+    "commandMeta": {
+      "name": "校对标题编号"
+    }
+  },
+  {
+    "id": "1775549392204_qbv0688",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775549392204,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775549397088_abxy",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775549397089,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "generalformat"
+      },
+      "output": "<skill_content name=\"generalformat\">\n# Skill: generalformat\n\n---\nname: generalformat\ndescription: >\n  文档排版和编号校对。支持段落格式排版、编号校对（图/表/公式编号）。\n  触发词：排版、校对编号、编号校对、格式化。\ncompatibility:\n  runtime: WPS JS 宏 / WPS 加载项（JSAPI）\n---\n\n# 通用文档排版与编号校对\n\n## 🚨 第一步：判断任务类型\n\n| 用户说 | 执行方式 | 输出模式 |\n|-------|---------|---------|\n| 校对编号、编号校对、校对图编号、校对表编号、编号格式 | 编号校对流程 | **修订模式** |\n| 校对引用、引用检查、检查引用 | 引用检查流程 | **批注模式** |\n| 排版、字体、字号、居中、加粗、行距、缩进 | 格式排版流程 | 直接修改 |\n| 完整校对 | 编号校对 → 引用检查 → 格式排版 | |\n\n## ⚠️ 执行顺序（重要）\n\n当同时需要编号校对和引用检查时，**必须先编号校对，再引用检查**。\n\n---\n\n## 编号校对流程\n\n**触发词**：校对编号、编号校对、校对图编号、校对表编号、编号格式\n\n### Step 1：获取文档段落\n\n调用 `getDocumentParagraphs` 工具，获取文档所有段落及其 ID。\n\n### Step 2：分析编号错误\n\n遍历段落，检测以下编号问题：\n\n**一级标题**：`/^\\d{1,2}\\s+/` 格式（如 \"1 概述\"、\"3 系统范围\"）\n- 检查序号是否连续递增（1, 2, 3...）\n- 错误示例：1 → 3（跳过2）→ 5（跳过4）\n\n**二级标题**：`/^\\d+\\.\\d+\\s+/` 格式（如 \"3.1 总体范围\"）\n- 同一章节下序号应连续（3.1, 3.2, 3.3...）\n\n**三级标题**：`/^\\d+\\.\\d+\\.\\d+\\s+/` 格式（如 \"3.1.1 具体范围\"）\n- 同一节下序号应连续\n\n**四级标题**：`/^\\d+\\.\\d+\\.\\d+\\.\\d+\\s+/` 格式\n\n**图编号**：`/^图\\s*\\d+/` 格式（如 \"图 1 系统架构图\"）\n- 检查是否连续（图1, 图2, 图3...）或按章节（图1-1, 图1-2, 图2-1...）\n\n**表编号**：`/^表\\s*\\d+/` 格式（如 \"表 1 参数表\"）\n- 检查是否连续\n\n**附录编号**：`/^附\\s*录\\s*[A-Z]/i` 格式（如 \"附录 A\"）\n- 附录标题字母应连续（A, B, C...）\n- 附录内标题：A.1, A.2, A.3...\n\n### Step 3：应用修正（修订模式）\n\n调用 `updateParagraphs` 工具，使用 `patch` 操作：\n\n```json\n{\n  \"ops\": [\n    { \"id\": \"段落ID\", \"patch\": [\"3 系统范围\", \"2 系统范围\"] },\n    { \"id\": \"段落ID\", \"patch\": [\"3.3 功能范围\", \"3.2 功能范围\"] }\n  ]\n}\n```\n\n**重要**：`patch` 模式会自动开启修订追踪，用户可接受或拒绝修改。\n\n### Step 4：确认修改\n\n调用 `confirmEdits` 工具，参数：\n```json\n{ \"mode\": \"revision\", \"summary\": \"编号校对完成，共修正 X 处\" }\n```\n\n---\n\n## 引用检查流程\n\n**触发词**：校对引用、引用检查、检查引用\n\n### Step 1：获取文档段落\n\n调用 `getDocumentParagraphs` 工具。\n\n### Step 2：收集实际图表编号\n\n扫描文档，收集：\n- 所有图编号：匹配 `/^图\\s*(\\d+)/`\n- 所有表编号：匹配 `/^表\\s*(\\d+)/`\n\n### Step 3：检查正文引用\n\n在正文中查找引用模式：\n- 图引用：`/[见如]图\\s*(\\d+)/`（如 \"见图3\"、\"如图5所示\"）\n- 表引用：`/[见如]表\\s*(\\d+)/`、`/表\\s*\\d+\\s*所示/`\n\n检查引用的编号是否存在于实际图表编号中。\n\n### Step 4：添加批注\n\n对于不存在的引用，调用 `addComments` 工具：\n\n```json\n{\n  \"comments\": [\n    {\n      \"paraId\": \"段落ID\",\n      \"text\": \"见表 5\",\n      \"message\": \"引用的表 5 不存在。文档中共有表：1、2、3、4\"\n    }\n  ]\n}\n```\n\n### Step 5：确认批注\n\n调用 `confirmEdits` 工具，参数：\n```json\n{ \"mode\": \"comment\", \"summary\": \"引用检查完成，发现 X 处问题\" }\n```\n\n---\n\n## 格式排版流程\n\n**触发词**：排版、字体、字号、居中、加粗、行距、缩进\n\n### 方式一：使用 formatDocument 工具（推荐）\n\n调用 `formatDocument` 工具，传入格式配置：\n\n```json\n{\n  \"rules\": [\n    {\n      \"type\": \"heading1\",\n      \"font\": \"黑体\",\n      \"size\": 16,\n      \"bold\": true,\n      \"align\": \"center\"\n    },\n    {\n      \"type\": \"body\",\n      \"font\": \"宋体\",\n      \"size\": 12,\n      \"align\": \"justify\",\n      \"firstLineIndent\": 480\n    }\n  ]\n}\n```\n\n### 方式二：使用 executeFile\n\n调用 `executeFile` 工具：\n\n```yaml\nexecuteFile:\n  filePath: \"skills/generalformat/scripts/format-engine.js\"\n  params:\n    config:\n      version: \"1.0\"\n      specText: \"用户规范原文\"\n      fontDefaults: { fontCN: \"宋体\", fontEN: \"Times New Roman\" }\n      paragraphRules: { ... }\n```\n\n---\n\n## 编号规则识别\n\n从用户输入中识别编号格式：\n\n| 用户描述 | 解析结果 |\n|---------|---------|\n| 图连续编号 | `format: \"continuous\"` |\n| 图编号按章节，如图3-2 | `format: \"chapter-seq\", separator: \"-\"` |\n| 标题编号格式为X.Y.Z | 十进制编号，检查连续性 |\n| 附录编号为A.1格式 | 附录用字母+数字编号 |\n\n---\n\n## 类型映射\n\n| 规范中的叫法 | 类型名 |\n|-------------|--------|\n| 章标题、一级标题 | heading1 |\n| 二级标题、标题二 | heading2 |\n| 三级标题、标题三 | heading3 |\n| 四级标题、标题四 | heading4 |\n| 五级标题、标题五 | heading5 |\n| 正文 | body |\n| 图名、图标题 | figureCaption |\n| 表名、表标题 | tableCaption |\n\n---\n\n## 关键规则\n\n1. **编号校对用修订模式**：用户可接受或拒绝\n2. **引用检查用批注模式**：提示问题但不直接修改\n3. **格式排版直接修改**：无需确认\n4. **执行顺序**：编号校对 → 引用检查 → 格式排版\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/generalformat/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 12
+    }
+  },
+  {
+    "id": "1775549398807_rhg8tlq",
+    "role": "assistant",
+    "content": "我将对文档进行编号校对。首先获取文档段落以分析编号情况。\n\n",
+    "timestamp": 1775549398807,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775549399388_m2vk",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775549399388,
+    "toolCall": {
+      "toolName": "getDocumentParagraphs",
+      "input": {
+        "scope": "document",
+        "page": 1,
+        "pageSize": 25
+      },
+      "output": "共 196 个段落,其中 0 个空行已忽略，显示第 1 页（每页 25 条）：\n\n[pid_723640343] 机载控制系统飞行安全体系报告\n[pid_1082960476] 1 引言\n[pid_65256439] 本技术报告详细描述了机载控制系统的设计方案、实现方法、测试验证过程以及技术指标。机载控制系统是现代航空电子设备的核心组成部分，承担着飞行参数采集、数据处理、状态监控、故障诊断等关键功能。\n[pid_988135797] The system design follows the principles of modularity, standardization, and reliability, ensuring stable operation in various complex environments.\n[pid_2011312253] 3 系统范围\n[pid_2137005855] 本技术报告涵盖了机载控制系统的全部设计开发工作，包括系统需求分析、总体架构设计、详细设计方案、软硬件实现、系统集成测试、性能验证等各个阶段。\n[pid_1529334916] 3.1 总体范围\n[pid_1604424782] 系统设计覆盖机载环境下的全部应用场景，包括正常飞行模式、起飞着陆模式、应急处置模式等。系统需要适应的温度范围为-55℃至+70℃。\n[pid_1396080419] 3.3 功能范围\n[pid_327154992] 系统功能范围包括：模拟量采集（32路）、数字量采集（64路）、频率量采集（8路）、模拟量输出（16路）、数字量输出（32路）等。\n[pid_209659607] 3.1.1 具体范围\n[pid_1130329354] 在总体范围内，系统需要实现的具体功能包括：实时数据采集与处理、故障检测与诊断、数据记录与存储、通信协议转换等。\n[pid_705674841] 3.1.3 性能范围\n[pid_1306573674] 系统性能范围包括实时性指标、可靠性指标、安全性指标等多个方面。实时性指标要求系统响应时间不超过10ms。\n[pid_1676794351] 3.1.1.1 详细范围\n[pid_736160775] 系统详细范围包括硬件设计、软件设计、结构设计、环境适应性设计、可靠性设计、维修性设计、测试性设计等多个方面。\n[pid_714403575] 3.1.1.3 设计范围\n[pid_285938501] 软件设计包括嵌入式软件开发、驱动程序开发、应用程序开发、测试软件开发等。软件需要满足DO-178C标准的各项要求。\n[pid_2039079208] 3.1.1.1.1 补充说明\n[pid_831870857] 补充说明内容包括系统设计的特殊要求、限制条件、假设前提等。这些内容为系统的后续优化和升级提供参考依据。\n[pid_371031550] 3.1.1.1.3 实施要点\n[pid_1566723389] 系统实施过程中需要注意以下要点：严格按照设计文档进行开发实现、每个模块完成后进行单元测试、系统集成时进行集成测试。\n[pid_525034597] 5 系统设计\n[pid_549160028] 机载控制系统采用模块化设计思想，将系统划分为数据采集模块、数据处理模块、通信接口模块、电源管理模块四个主要功能模块。系统总体架构如图 1所示。\n[pid_623437288] 5.1 系统架构\n\n... 还有 171 个段落，请使用 page:2 继续翻页",
+      "durationMs": 15
+    }
+  },
+  {
+    "id": "1775549401937_a1ekvxx",
+    "role": "assistant",
+    "content": "文档共 8 页（196 段），我将使用 `batchSubAgent` 对每一页进行编号校对。\n\n从第 1 页已发现以下编号问题：\n- \"3 系统范围\" 前缺少\"2\"章，应修正为\"2 系统范围\"\n- \"3.3 功能范围\" 在\"3.1\"之后，缺少\"3.2\"，应修正为\"3.2 功能范围\"\n- \"3.1.3 性能范围\" 在\"3.1.1\"之后，缺少\"3.1.2\"，应修正为\"3.1.2 性能范围\"\n- \"3.1.1.3 设计范围\" 在\"3.1.1.1\"之后，缺少\"3.1.1.2\"，应修正为\"3.1.1.2 设计范围\"\n- \"5 系统设计\" 前缺少\"4\"章，应修正为\"4 系统设计\"\n\n",
+    "timestamp": 1775549401937,
+    "streaming": false
+  },
+  {
+    "id": "subtask_1775549408869_ublt_i1",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775549408869,
+    "toolCall": {
+      "toolName": "subTask",
+      "input": {
+        "task": "读取第 1 页段落（getDocumentParagraphs page=1, pageSize=25），分析标题编号错误并修正：\n1. 一级标题（如\"X 标题\"）：检查序号是否连续递增\n2. 二级标题（如\"X.Y 标题\"）：同一章节下序号应连续\n3. 三级标题（如\"X.Y.Z 标题\"）：同一节下序号应连续\n4. 四级标题（如\"X.Y.Z.W 标题\"）：同一小节下序号应连续\n5. 附录标题（如\"附录 A\"、\"A.1\"）：字母和序号应连续\n\n发现编号不连续时，使用 updateParagraphs 的 patch 操作修正编号。完成后返回修正结果摘要。",
+        "index": 1,
+        "total": 8
+      },
+      "error": "The user aborted a request.",
+      "durationMs": 4842,
+      "codeStreaming": false
+    },
+    "parentId": "tool_1775549408970_p1l2"
+  },
+  {
+    "id": "subtask_1775549408869_k93f_i2",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775549408869,
+    "toolCall": {
+      "toolName": "subTask",
+      "input": {
+        "task": "读取第 2 页段落（getDocumentParagraphs page=2, pageSize=25），分析标题编号错误并修正：\n1. 一级标题（如\"X 标题\"）：检查序号是否连续递增\n2. 二级标题（如\"X.Y 标题\"）：同一章节下序号应连续\n3. 三级标题（如\"X.Y.Z 标题\"）：同一节下序号应连续\n4. 四级标题（如\"X.Y.Z.W 标题\"）：同一小节下序号应连续\n5. 附录标题（如\"附录 A\"、\"A.1\"）：字母和序号应连续\n\n发现编号不连续时，使用 updateParagraphs 的 patch 操作修正编号。完成后返回修正结果摘要。",
+        "index": 2,
+        "total": 8
+      },
+      "error": "The user aborted a request.",
+      "durationMs": 4826,
+      "codeStreaming": false
+    },
+    "parentId": "tool_1775549408970_p1l2"
+  },
+  {
+    "id": "subtask_1775549408869_8c2x_i3",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775549408869,
+    "toolCall": {
+      "toolName": "subTask",
+      "input": {
+        "task": "读取第 3 页段落（getDocumentParagraphs page=3, pageSize=25），分析标题编号错误并修正：\n1. 一级标题（如\"X 标题\"）：检查序号是否连续递增\n2. 二级标题（如\"X.Y 标题\"）：同一章节下序号应连续\n3. 三级标题（如\"X.Y.Z 标题\"）：同一节下序号应连续\n4. 四级标题（如\"X.Y.Z.W 标题\"）：同一小节下序号应连续\n5. 附录标题（如\"附录 A\"、\"A.1\"）：字母和序号应连续\n\n发现编号不连续时，使用 updateParagraphs 的 patch 操作修正编号。完成后返回修正结果摘要。",
+        "index": 3,
+        "total": 8
+      },
+      "error": "The user aborted a request.",
+      "durationMs": 4806,
+      "codeStreaming": false
+    },
+    "parentId": "tool_1775549408970_p1l2"
+  },
+  {
+    "id": "subtask_1775549408869_fhkk_i4",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775549408869,
+    "toolCall": {
+      "toolName": "subTask",
+      "input": {
+        "task": "读取第 4 页段落（getDocumentParagraphs page=4, pageSize=25），分析标题编号错误并修正：\n1. 一级标题（如\"X 标题\"）：检查序号是否连续递增\n2. 二级标题（如\"X.Y 标题\"）：同一章节下序号应连续\n3. 三级标题（如\"X.Y.Z 标题\"）：同一节下序号应连续\n4. 四级标题（如\"X.Y.Z.W 标题\"）：同一小节下序号应连续\n5. 附录标题（如\"附录 A\"、\"A.1\"）：字母和序号应连续\n\n发现编号不连续时，使用 updateParagraphs 的 patch 操作修正编号。完成后返回修正结果摘要。",
+        "index": 4,
+        "total": 8
+      },
+      "error": "已取消",
+      "durationMs": 0,
+      "codeStreaming": false
+    },
+    "parentId": "tool_1775549408970_p1l2"
+  },
+  {
+    "id": "subtask_1775549408869_rexi_i5",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775549408869,
+    "toolCall": {
+      "toolName": "subTask",
+      "input": {
+        "task": "读取第 5 页段落（getDocumentParagraphs page=5, pageSize=25），分析标题编号错误并修正：\n1. 一级标题（如\"X 标题\"）：检查序号是否连续递增\n2. 二级标题（如\"X.Y 标题\"）：同一章节下序号应连续\n3. 三级标题（如\"X.Y.Z 标题\"）：同一节下序号应连续\n4. 四级标题（如\"X.Y.Z.W 标题\"）：同一小节下序号应连续\n5. 附录标题（如\"附录 A\"、\"A.1\"）：字母和序号应连续\n\n发现编号不连续时，使用 updateParagraphs 的 patch 操作修正编号。完成后返回修正结果摘要。",
+        "index": 5,
+        "total": 8
+      },
+      "error": "已取消",
+      "durationMs": 0,
+      "codeStreaming": false
+    },
+    "parentId": "tool_1775549408970_p1l2"
+  },
+  {
+    "id": "subtask_1775549408869_72kk_i6",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775549408869,
+    "toolCall": {
+      "toolName": "subTask",
+      "input": {
+        "task": "读取第 6 页段落（getDocumentParagraphs page=6, pageSize=25），分析标题编号错误并修正：\n1. 一级标题（如\"X 标题\"）：检查序号是否连续递增\n2. 二级标题（如\"X.Y 标题\"）：同一章节下序号应连续\n3. 三级标题（如\"X.Y.Z 标题\"）：同一节下序号应连续\n4. 四级标题（如\"X.Y.Z.W 标题\"）：同一小节下序号应连续\n5. 附录标题（如\"附录 A\"、\"A.1\"）：字母和序号应连续\n\n发现编号不连续时，使用 updateParagraphs 的 patch 操作修正编号。完成后返回修正结果摘要。",
+        "index": 6,
+        "total": 8
+      },
+      "error": "已取消",
+      "durationMs": 0,
+      "codeStreaming": false
+    },
+    "parentId": "tool_1775549408970_p1l2"
+  },
+  {
+    "id": "subtask_1775549408869_t710_i7",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775549408869,
+    "toolCall": {
+      "toolName": "subTask",
+      "input": {
+        "task": "读取第 7 页段落（getDocumentParagraphs page=7, pageSize=25），分析标题编号错误并修正：\n1. 一级标题（如\"X 标题\"）：检查序号是否连续递增\n2. 二级标题（如\"X.Y 标题\"）：同一章节下序号应连续\n3. 三级标题（如\"X.Y.Z 标题\"）：同一节下序号应连续\n4. 四级标题（如\"X.Y.Z.W 标题\"）：同一小节下序号应连续\n5. 附录标题（如\"附录 A\"、\"A.1\"）：字母和序号应连续\n\n发现编号不连续时，使用 updateParagraphs 的 patch 操作修正编号。完成后返回修正结果摘要。",
+        "index": 7,
+        "total": 8
+      },
+      "executing": true,
+      "codeStreaming": true
+    },
+    "parentId": "tool_1775549408970_p1l2"
+  },
+  {
+    "id": "subtask_1775549408869_a4p0_i8",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775549408869,
+    "toolCall": {
+      "toolName": "subTask",
+      "input": {
+        "task": "读取第 8 页段落（getDocumentParagraphs page=8, pageSize=25），分析标题编号错误并修正：\n1. 一级标题（如\"X 标题\"）：检查序号是否连续递增\n2. 二级标题（如\"X.Y 标题\"）：同一章节下序号应连续\n3. 三级标题（如\"X.Y.Z 标题\"）：同一节下序号应连续\n4. 四级标题（如\"X.Y.Z.W 标题\"）：同一小节下序号应连续\n5. 附录标题（如\"附录 A\"、\"A.1\"）：字母和序号应连续\n\n发现编号不连续时，使用 updateParagraphs 的 patch 操作修正编号。完成后返回修正结果摘要。",
+        "index": 8,
+        "total": 8
+      },
+      "executing": true,
+      "codeStreaming": true
+    },
+    "parentId": "tool_1775549408970_p1l2"
+  },
+  {
+    "id": "tool_1775549408970_p1l2",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775549408970,
+    "toolCall": {
+      "toolName": "batchSubAgent",
+      "input": {
+        "task": "读取第 {i} 页段落（getDocumentParagraphs page={i}, pageSize=25），分析标题编号错误并修正：\n1. 一级标题（如\"X 标题\"）：检查序号是否连续递增\n2. 二级标题（如\"X.Y 标题\"）：同一章节下序号应连续\n3. 三级标题（如\"X.Y.Z 标题\"）：同一节下序号应连续\n4. 四级标题（如\"X.Y.Z.W 标题\"）：同一小节下序号应连续\n5. 附录标题（如\"附录 A\"、\"A.1\"）：字母和序号应连续\n\n发现编号不连续时，使用 updateParagraphs 的 patch 操作修正编号。完成后返回修正结果摘要。",
+        "count": 8,
+        "concurrency": 3,
+        "allowedTools": [
+          "getDocumentParagraphs",
+          "updateParagraphs"
+        ],
+        "context": "输出模式：修订模式。必须使用 updateParagraphs 的 patch 操作。编号格式为 X.Y.Z，同一层级序号应连续递增。"
+      },
+      "output": "{\"summary\":\"批量处理完成，共 8 个任务全部成功\",\"tasks\":[\"[1] 失败：The user aborted a request.\",\"[2] 失败：The user aborted a request.\",\"[3] 失败：The user aborted a request.\",\"[4] 已取消\",\"[5] 已取消\",\"[6] 已取消\",null,null]}",
+      "durationMs": 4757
+    }
+  }
+]

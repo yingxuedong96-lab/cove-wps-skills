@@ -1,0 +1,80 @@
+[
+  {
+    "id": "1775207120269_9eyn2ju",
+    "role": "user",
+    "content": "公式居中对齐，公式编号右对齐，使用general",
+    "timestamp": 1775207120269
+  },
+  {
+    "id": "1775207120269_pkyr5yl",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775207120269,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775207122494_htaj",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775207122494,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "generalformat"
+      },
+      "output": "<skill_content name=\"generalformat\">\n# Skill: generalformat\n\n---\nname: generalformat\ndescription: >\n  从规范文档提取排版规则，自动识别段落类型并应用格式。\n  支持任意编号体系。\n  触发词：排版、按规范排版、格式化。\ncompatibility:\n  runtime: WPS JS 宏 / WPS 加载项（JSAPI）\n---\n\n# 通用文档排版\n\n## 使用方式\n\n用户提供规范文档，Skill 自动提取规则并应用到当前文档。\n\n---\n\n## 执行步骤\n\n### Step 1 — 生成排版配置\n\n根据用户提供的规范文档内容，生成排版配置 JSON。\n\n**⚠️ 禁止自己写代码读取文档！必须通过以下方式获取规范内容：**\n1. 如果用户直接提供了规范文字 → 直接使用\n2. 如果用户指定了规范文档文件 → **调用 parse-spec.js 脚本读取**\n3. 如果用户说\"当前文档就是规范文档\" → **调用 parse-spec.js 不传参数**\n\n**⚠️ 关键规则（必须严格遵守）**：\n\n1. **specText 必须完整**：将用户规范原文**完整**放入，一字不漏，不能截断或改写\n2. **类型必须完整覆盖**：规范提到多少种类型，配置就必须有多少种，绝不能遗漏\n3. **属性必须完整提取**：规范提到的字体、字号、对齐、段前段后、行距、缩进等，全部都要提取，不能遗漏\n4. **不要添加未提及的类型**：规范没说四级标题，就不要添加 heading4\n5. 直接输出 JSON，不要写代码，不要解释\n\n**类型映射表**：\n\n| 规范中的叫法 | 配置中的类型名 |\n|-------------|---------------|\n| 章标题、一级标题、标题一 | zhangTitle |\n| 二级标题、标题二 | heading2 |\n| 三级标题、标题三 | heading3 |\n| 四级标题、标题四 | heading4 |\n| 正文、正文格式 | body |\n| 图名、图片名、图标题、图号 | figureCaption |\n| 表名、表格名、表标题、表号 | tableCaption |\n| 参考文献 | ref |\n\n**字号对照表**：\n\n| 中文字号 | 磅值(fontSize) |\n|---------|---------------|\n| 初号 | 42 |\n| 小初 | 36 |\n| 一号 | 26 |\n| 小一 | 24 |\n| 二号 | 22 |\n| 小二 | 18 |\n| 三号 | 16 |\n| 小三 | 15 |\n| 四号 | 14 |\n| 小四 | 12 |\n| 五号 | 10.5 |\n| 小五 | 9 |\n\n**配置格式**：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"用户提供的规范文档原文（必须完整，一字不漏）\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    ...\n  }\n}\n```\n\n**字段说明**：\n\n| 字段 | 类型 | 说明 |\n|------|------|------|\n| fontCN | string | 中文字体名称（如：宋体、黑体、楷体、仿宋） |\n| fontEN | string | 西文字体名称（如：Times New Roman） |\n| fontSize | number | 字号磅值（小四=12，四号=14，三号=16，五号=10.5，小五=9） |\n| bold | boolean | 是否加粗 |\n| alignment | number | 对齐方式：0=左对齐，1=居中，2=右对齐，3=两端对齐 |\n| spaceBefore | number | 段前间距（磅） |\n| spaceAfter | number | 段后间距（磅） |\n| firstLineIndent | number | 首行缩进（磅，正值=首行缩进，负值=悬挂缩进，2字符≈24磅，-2字符≈-24磅） |\n| lineSpacingRule | number | 行距：0=单倍，1=1.5倍，2=2倍，4=固定值 |\n\n---\n\n### Step 2 — 调用脚本应用排版\n\n**⚠️ 必须调用 executeFile，不要自己写代码。**\n\n```yaml\nexecuteFile:\n  filePath: \"skills/generalformat/scripts/format-engine.js\"\n  params:\n    config: <上一步生成的JSON>\n```\n\n返回值示例：\n\n```json\n{\n  \"success\": true,\n  \"applied\": 5656,\n  \"elapsedMs\": 2882,\n  \"typeCounts\": { \"zhangTitle\": 20, \"heading2\": 421, \"body\": 5207 },\n  \"total\": 9388\n}\n```\n\n---\n\n## 段落类型识别\n\n脚本自动识别以下段落类型：\n\n| 类型 | 匹配规则 |\n|------|---------|\n| zhangTitle | 第X章、数字+空格+汉字、一、二、三、 |\n| heading2 | 1.1、1.2 等二级编号 |\n| heading3 | 1.1.1、1.1.2 等三级编号 |\n| heading4 | 1.1.1.1 等四级编号 |\n| tableCaption | 表1、表2-1 等 |\n| figureCaption | 图1、图2-1 等 |\n| body | 其他正文段落 |\n\n---\n\n## 示例\n\n**示例1：完整规则（推荐参考此示例）**\n\n规范文档：\n> 章标题用黑体三号居中加粗段前24磅段后12磅，二级标题用楷体四号左对齐加粗段前12磅段后6磅，三级标题用宋体小四号左对齐不加粗段前6磅段后3磅，四级标题用仿宋五号左对齐不加粗段前3磅段后3磅，正文用楷体四号两端对齐首行缩进2字符1.5倍行距，图名用黑体小五号居中段前6磅段后6磅，表名用黑体小五号居中段前6磅段后6磅，所有标题无缩进。\n\n生成的配置：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"章标题用黑体三号居中加粗段前24磅段后12磅，二级标题用楷体四号左对齐加粗段前12磅段后6磅，三级标题用宋体小四号左对齐不加粗段前6磅段后3磅，四级标题用仿宋五号左对齐不加粗段前3磅段后3磅，正文用楷体四号两端对齐首行缩进2字符1.5倍行距，图名用黑体小五号居中段前6磅段后6磅，表名用黑体小五号居中段前6磅段后6磅，所有标题无缩进。\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontCN\": \"黑体\", \"fontSize\": 16, \"bold\": true, \"alignment\": 1, \"firstLineIndent\": 0, \"spaceBefore\": 24, \"spaceAfter\": 12 },\n    \"heading2\": { \"fontCN\": \"楷体\", \"fontSize\": 14, \"bold\": true, \"alignment\": 0, \"firstLineIndent\": 0, \"spaceBefore\": 12, \"spaceAfter\": 6 },\n    \"heading3\": { \"fontCN\": \"宋体\", \"fontSize\": 12, \"bold\": false, \"alignment\": 0, \"firstLineIndent\": 0, \"spaceBefore\": 6, \"spaceAfter\": 3 },\n    \"heading4\": { \"fontCN\": \"仿宋\", \"fontSize\": 10.5, \"bold\": false, \"alignment\": 0, \"firstLineIndent\": 0, \"spaceBefore\": 3, \"spaceAfter\": 3 },\n    \"body\": { \"fontCN\": \"楷体\", \"fontSize\": 14, \"alignment\": 3, \"firstLineIndent\": 24, \"lineSpacingRule\": 1 },\n    \"figureCaption\": { \"fontCN\": \"黑体\", \"fontSize\": 9, \"alignment\": 1, \"spaceBefore\": 6, \"spaceAfter\": 6 },\n    \"tableCaption\": { \"fontCN\": \"黑体\", \"fontSize\": 9, \"alignment\": 1, \"spaceBefore\": 6, \"spaceAfter\": 6 }\n  }\n}\n```\n\n**示例2：只有标题规则**\n\n规范文档：\n> 章标题用黑体三号居中加粗，二级标题用黑体四号左对齐加粗，三级标题用楷体小四号左对齐。\n\n生成的配置（只有标题，没有正文等其他类型）：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"章标题用黑体三号居中加粗，二级标题用黑体四号左对齐加粗，三级标题用楷体小四号左对齐。\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontCN\": \"黑体\", \"fontSize\": 16, \"bold\": true, \"alignment\": 1, \"firstLineIndent\": 0 },\n    \"heading2\": { \"fontCN\": \"黑体\", \"fontSize\": 14, \"bold\": true, \"alignment\": 0, \"firstLineIndent\": 0 },\n    \"heading3\": { \"fontCN\": \"楷体\", \"fontSize\": 12, \"bold\": false, \"alignment\": 0, \"firstLineIndent\": 0 }\n  }\n}\n```\n\n**示例3：包含正文规则**\n\n规范文档：\n> 章标题用黑体三号居中加粗，正文用宋体小四号两端对齐首行缩进2字符。\n\n生成的配置：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"章标题用黑体三号居中加粗，正文用宋体小四号两端对齐首行缩进2字符。\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontCN\": \"黑体\", \"fontSize\": 16, \"bold\": true, \"alignment\": 1, \"firstLineIndent\": 0 },\n    \"body\": { \"fontCN\": \"宋体\", \"fontSize\": 12, \"alignment\": 3, \"firstLineIndent\": 24 }\n  }\n}\n```\n\n**示例4：参考文献悬挂缩进**\n\n规范文档：\n> 章标题用黑体三号居中加粗，参考文献用宋体五号左对齐悬挂缩进2字符。\n\n生成的配置：\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"章标题用黑体三号居中加粗，参考文献用宋体五号左对齐悬挂缩进2字符。\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontCN\": \"黑体\", \"fontSize\": 16, \"bold\": true, \"alignment\": 1, \"firstLineIndent\": 0 },\n    \"ref\": { \"fontCN\": \"宋体\", \"fontSize\": 10.5, \"alignment\": 0, \"firstLineIndent\": -24 }\n  }\n}\n```\n\n**注意**：悬挂缩进用负值（`firstLineIndent: -24`），表示首行不缩进，后续行缩进24磅。\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/generalformat/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 6
+    }
+  },
+  {
+    "id": "1775207124691_cagp9ia",
+    "role": "assistant",
+    "content": "您要求对公式进行排版（公式居中、编号右对齐），但 `generalformat` 技能主要用于**段落文字格式**（标题、正文、图名、表名等），**不直接支持公式对象的对齐设置**。\n\n公式的居中和编号右对齐需要通过 `executeCode` 操作文档中的公式域或对象来实现。\n\n我将使用 `executeCode` 来执行此操作：\n\n",
+    "timestamp": 1775207124691,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775207126376_b6zc",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775207126377,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "// 公式居中对齐，公式编号右对齐\nvar doc = Application.ActiveDocument;\nvar range = doc.Content;\nvar formulas = range.Fields; // 获取所有域（公式通常以域形式存在）\n\nvar count = 0;\nfor (var i = 1; i <= formulas.Count; i++) {\n    var field = formulas.Item(i);\n    try {\n        // 判断是否为公式域（EQ 域）\n        if (field.Type === 3) { // wdFieldEQ = 3\n            var para = field.ParentRange.Paragraphs(1);\n            \n            // 公式本身居中\n            para.Alignment = 1; // wdAlignParagraphCenter = 1\n            \n            // 如果段落中包含编号（通常在公式后），需要特殊处理\n            // 这里简单处理：将公式所在段落设为居中\n            // 如需更复杂的公式 + 编号布局，可能需要表格或制表位\n            \n            count++;\n        }\n    } catch (e) {\n        // 跳过错误\n    }\n}\n\nreturn { success: true, message: \"已处理 \" + count + \" 个公式域\", formulaCount: count };"
+      },
+      "output": "{\"success\":true,\"message\":\"已处理 0 个公式域\",\"formulaCount\":0}",
+      "durationMs": 129
+    }
+  },
+  {
+    "id": "tool_1775207132039_jwo3",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775207132039,
+    "toolCall": {
+      "toolName": "getDocumentParagraphs",
+      "input": {
+        "scope": "document",
+        "page": 1,
+        "pageSize": 25
+      },
+      "output": "共 9388 个段落,其中 4 个空行已忽略，显示第 1 页（每页 25 条）：\n\n[pid_680643044] 某水电站工程设计报告\n[pid_136029173] （长文档排版校对测试用例）\n[pid_1238000577] 本文件包含200+页内容，涵盖各类排版问题测试\n[pid_409869113] 设计单位：XX水利水电设计院\n[pid_147399507] 二〇二五年三月\n[pid_243861867] 第一章 工程概况\n[pid_2098563851] 1.1 设计依据\n[pid_536249014] 大坝为混凝土双曲拱坝，坝顶高程2900.00m，最大坝高230m，坝顶弧长550m。坝体混凝土总量约350万m³，主要建筑材料包括水泥约40万吨、钢筋约5万吨。引水系统采用一洞四机布置方式，由进水口、引水隧洞、调压室和压力管道组成，引水隧洞直径9.5m，总长约8.5km。 该区域岩体完整率为3～5Lu，透水率为3～5Lu。测区位于扬子准地台西缘，区域构造稳定性较好。近场区范围内无全新世活动断裂分布，历史地震记录显示最大震级为4.5级，属弱震区，区域稳定条件满足工程建设要求。\n[pid_79008174] 地下厂房位于右岸山体内，采用中部开发方式。主厂房尺寸为220m×28m×65m(长×宽×高)，安装4台立轴混流式水轮发电机组。施工导流采用全断面围堰、隧洞导流方式，导流洞布置在左岸，断面尺寸为14m×16m(宽×高)，长约1.2km。工程总投资约72亿元，静态投资约65亿元，建设工期48个月。\n[pid_1794161431] 工程区地震基本烈度为Ⅶ度，地震动峰值加速度为0.10g，地震动反应谱特征周期为0.40s。建筑物抗震设防类别为乙类，抗震设防烈度为Ⅶ度。移民安置人口约12000人，淹没耕地面积约15000亩，淹没房屋面积约80万平方米，移民安置采取就近后靠和异地安置相结合的方式。\n[pid_1482083625] 枢纽工程由挡水建筑物、泄水建筑物、引水建筑物和发电厂房等组成。挡水建筑物采用混凝土双曲拱坝，泄水建筑物包括表孔溢洪道和深孔泄洪洞，引水建筑物采用一洞四机布置方式。电站厂房为地下式厂房，安装4台单机容量212.5MW的混流式水轮发电机组。 施工期间环境温度控制在28℃±3℃范围内。\n[pid_121094936] 本工程为Ⅰ等工程，工程规模为大(1)型。主要建筑物级别为1级，次要建筑物级别为3级，临时建筑物级别为4级。设计使用年限为100年，结构安全等级为一级。工程主要任务为发电，兼顾防洪、灌溉、供水等综合利用要求。\n[pid_766505993] 根据水文气象资料，本流域多年平均降水量为1200mm，多年平均流量为350m³/s，多年平均径流量为110亿m³。设计洪水标准按百年一遇设计，千年一遇校核，相应洪峰流量分别为8500m³/s和10200m³/s。施工导流标准采用十年一遇，相应流量为4200m³/s。\n[pid_165444553] 表1 材料统计表\n[pid_1214063968] 材料名称\u0007\n[pid_1453937580] 规格\u0007\n[pid_2072944041] 数量\u0007\n[pid_265787099] 备注\u0007\n[pid_505926330] \u0007\n[pid_107186541] 材料统计项目1\u0007\n[pid_850117333] 设计值\u0007\n\n... 还有 9363 个段落，请使用 page:2 继续翻页",
+      "durationMs": 14
+    }
+  },
+  {
+    "id": "tool_1775207134753_01lb",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775207134753,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "// 查找文档中的公式段落（通常包含\"=\"或特殊公式标记）\nvar doc = Application.ActiveDocument;\nvar content = doc.Content;\n\n// 获取所有段落\nvar paras = content.Paragraphs;\nvar formulaParas = [];\n\nfor (var i = 1; i <= paras.Count; i++) {\n    var para = paras.Item(i);\n    var text = para.Range.Text;\n    \n    // 检测是否可能是公式段落（包含等号、积分符号、求和符号等）\n    if (text.indexOf(\"=\") !== -1 || \n        text.indexOf(\"∫\") !== -1 || \n        text.indexOf(\"∑\") !== -1 ||\n        text.indexOf(\"√\") !== -1 ||\n        text.indexOf(\"π\") !== -1 ||\n        text.indexOf(\"α\") !== -1 ||\n        text.indexOf(\"β\") !== -1 ||\n        text.indexOf(\"γ\") !== -1 ||\n        text.indexOf(\"δ\") !== -1 ||\n        text.indexOf(\"ε\") !== -1 ||\n        text.indexOf(\"λ\") !== -1 ||\n        text.indexOf(\"μ\") !== -1 ||\n        text.indexOf(\"σ\") !== -1 ||\n        text.indexOf(\"ω\") !== -1 ||\n        text.indexOf(\"→\") !== -1 ||\n        text.indexOf(\"←\") !== -1 ||\n        text.indexOf(\"↑\") !== -1 ||\n        text.indexOf(\"↓\") !== -1 ||\n        text.indexOf(\"∞\") !== -1 ||\n        text.indexOf(\"≈\") !== -1 ||\n        text.indexOf(\"≠\") !== -1 ||\n        text.indexOf(\"≤\") !== -1 ||\n        text.indexOf(\"≥\") !== -1 ||\n        text.indexOf(\"×\") !== -1 ||\n        text.indexOf(\"÷\") !== -1 ||\n        text.indexOf(\"²\") !== -1 ||\n        text.indexOf(\"³\") !== -1 ||\n        text.match(/\\(.*\\d+\\)/)) { // 匹配类似 (1)、(2-1) 的编号\n        \n        formulaParas.push({\n            index: i,\n            text: text.substring(0, Math.min(50, text.length)) + \"...\"\n        });\n    }\n}\n\nreturn { \n    success: true, \n    totalParagraphs: paras.Count,\n    formulaCount: formulaParas.length,\n    sampleFormulas: formulaParas.slice(0, 10) // 返回前 10 个示例\n};"
+      },
+      "output": "[ExecutionError] [LoopGuard] 循环执行超限：超过 20000ms 或 100000 次迭代，已强制终止",
+      "durationMs": 20119
+    }
+  }
+]

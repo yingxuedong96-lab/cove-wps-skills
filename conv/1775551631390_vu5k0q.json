@@ -1,0 +1,18 @@
+[
+  {
+    "id": "1775551631454_ikoj1zc",
+    "role": "user",
+    "content": "使用 generalformat 技能校对标题编号。",
+    "timestamp": 1775551631454,
+    "commandMeta": {
+      "name": "校对标题编号"
+    }
+  },
+  {
+    "id": "1775551631454_gzwp9n3",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775551631454,
+    "streaming": false
+  }
+]

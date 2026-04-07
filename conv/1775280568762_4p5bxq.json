@@ -1,0 +1,76 @@
+[
+  {
+    "id": "1775280568844_5r34j68",
+    "role": "user",
+    "content": "内容翻译成英语",
+    "timestamp": 1775280568844,
+    "commandMeta": {
+      "name": "文档内容翻译为英语",
+      "detail": "你是一名专业的翻译，请根据翻译要求对选中文字或原文内容进行翻译，并返回译文。\n**注意**：\n- 仅返回翻译后的译文，不要有任何额外的解释或者说明，如：以下是xxx、以上是xxx\n- 如果翻译不了或者目标语言不存在，直接返回空字符串即可，不要有任何额外的解释或者说明\n- 译文段落数需与原文严格保存一致，不可以增加、删除、合并、拆分段落，否则会导致严重问题\n\n## 本次任务输出模式：段落对照\n\n必须使用 `updateParagraphs` 的 `after` 操作，在每个原段落后插入修改后的新段落，形成前后对照。\n完成后调用 `confirmEdits(mode=\"contrast\", summary=\"...\")`。"
+    }
+  },
+  {
+    "id": "1775280568845_7pvwudw",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775280568845,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775280573016_of28",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775280573016,
+    "toolCall": {
+      "toolName": "getDocumentParagraphs",
+      "input": {
+        "scope": "selection",
+        "page": 1,
+        "pageSize": 25
+      },
+      "output": "共 1 个段落,其中 0 个空行已忽略，显示第 1 页（每页 25 条）：\n\n[pid_1254964912] 国务院关于深入实施“人工智能+”行动的意见\n\n[END] 已读取全部段落，无需翻页。",
+      "durationMs": 5
+    }
+  },
+  {
+    "id": "tool_1775280574428_hnty",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775280574428,
+    "toolCall": {
+      "toolName": "updateParagraphs",
+      "input": {
+        "ops": [
+          {
+            "id": "pid_1254964912",
+            "after": "Opinion of the State Council on Deeply Implementing the \"Artificial Intelligence+\" Action"
+          }
+        ]
+      },
+      "output": "编辑完成：成功 1 个，失败 0 个",
+      "durationMs": 3
+    }
+  },
+  {
+    "id": "tool_1775280579001_x16i",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775280579001,
+    "toolCall": {
+      "toolName": "confirmEdits",
+      "input": {
+        "mode": "contrast",
+        "summary": "段落对照：将选中的 1 个段落翻译成英语，并在每个原段落后插入译文，形成前后对照。"
+      },
+      "output": "已删除 1 个对照段落",
+      "durationMs": 7836
+    }
+  },
+  {
+    "id": "1775280588559_tjg06vi",
+    "role": "assistant",
+    "content": "翻译已完成，已在原段落后插入英文译文形成对照。用户已选择删除对照段落，译文未保留。",
+    "timestamp": 1775280588559,
+    "streaming": false
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "name": "GBT9704",
+  "description": "GB/T 9704-2012 国标公文格式排版。支持四种公文格式（通用公文、信函、命令、纪要），自动识别版头、主体、版记各要素并应用国家标准样式，包括精确页边距、分隔线、一字线页码等。触发词：国标公文排版、公文格式、党政机关公文、GBT9704、信函格式、命令格式、纪要格式。",
+  "version": "2.0.0",
+  "snapshot": "before_task",
+  "emoji": "📋",
+  "files": [
+    "skill.json",
+    "SKILL.md",
+    "scripts/config.js",
+    "scripts/setup-page.js",
+    "scripts/setup-styles.js",
+    "scripts/detect-elements.js",
+    "scripts/apply-format.js",
+    "scripts/add-separators.js",
+    "scripts/setup-pagenumber.js",
+    "scripts/setup-special-elements.js"
+  ],
+  "resources": [],
+  "source": "local"
+}

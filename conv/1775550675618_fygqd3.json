@@ -1,0 +1,93 @@
+[
+  {
+    "id": "1775550675696_pukgiwa",
+    "role": "user",
+    "content": "使用 generalformat 技能校对标题编号。调用 check-numbering.js，参数 scope=\"heading\"，specText=\"标题编号格式为X.Y.Z，同一章节下序号连续递增，附录编号为A.1格式\"。",
+    "timestamp": 1775550675696,
+    "commandMeta": {
+      "name": "校对标题编号"
+    }
+  },
+  {
+    "id": "1775550675696_fa9bnu2",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775550675696,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775550680479_814w",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775550680479,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "generalformat"
+      },
+      "output": "<skill_content name=\"generalformat\">\n# Skill: generalformat\n\n---\nname: generalformat\ndescription: >\n  文档排版和编号校对。支持段落格式排版、编号校对（图/表/公式编号）。\n  触发词：排版、校对编号、编号校对、格式化。\ncompatibility:\n  runtime: WPS JS 宏 / WPS 加载项（JSAPI）\n---\n\n# 通用文档排版与编号校对\n\n## 调用脚本\n\n根据用户需求，**直接调用对应脚本**：\n\n| 用户需求 | 脚本 | 参数 |\n|---------|------|------|\n| 校对标题编号 | `scripts/check-numbering.js` | `specText`, `scope: \"heading\"` |\n| 校对图编号 | `scripts/check-numbering.js` | `specText`, `scope: \"figure\"` |\n| 校对表编号 | `scripts/check-numbering.js` | `specText`, `scope: \"table\"` |\n| 校对全部编号 | `scripts/check-numbering.js` | `specText`, `scope: \"numbering\"` |\n| 校对引用 | `scripts/check-references.js` | `specText` |\n| 格式排版 | `scripts/format-engine.js` | `config` |\n\n## scope 参数说明\n\n| scope 值 | 检查内容 |\n|---------|---------|\n| `heading` | 只检查标题编号（一至五级标题） |\n| `figure` | 只检查图编号 |\n| `table` | 只检查表编号 |\n| `numbering` | 全部编号（标题+图+表+附录） |\n| `appendix` | 只检查附录编号 |\n\n## 编号校对\n\n```yaml\nexecuteFile:\n  filePath: \"skills/generalformat/scripts/check-numbering.js\"\n  params:\n    specText: \"编号规则描述\"\n    scope: \"heading\"  # 或 figure/table/numbering\n```\n\n**specText 示例**：\n- 标题编号：`标题编号格式为X.Y.Z，同一章节下序号连续递增`\n- 图编号：`图编号全文统一连续编号，格式为图1、图2...`\n- 表编号：`表编号全文统一连续编号，格式为表1、表2...`\n- 图按章节：`图编号按章节，格式为图3-2`\n\n**返回值**：\n```json\n{\n  \"success\": true,\n  \"fixed\": 10,\n  \"byType\": { \"headings\": 5, \"figures\": 3, \"tables\": 2 },\n  \"summary\": \"编号校对完成，共修正10处\"\n}\n```\n\n**重要**：脚本直接修改文档（修订模式），不需要再调用其他工具。\n\n## 引用检查\n\n```yaml\nexecuteFile:\n  filePath: \"skills/generalformat/scripts/check-references.js\"\n  params:\n    specText: \"检查正文中对图表的引用\"\n```\n\n**返回值**：\n```json\n{\n  \"success\": true,\n  \"commentCount\": 3,\n  \"issues\": [...]\n}\n```\n\n## 格式排版\n\n```yaml\nexecuteFile:\n  filePath: \"skills/generalformat/scripts/format-engine.js\"\n  params:\n    config:\n      specText: \"格式规范描述\"\n      paragraphRules: { ... }\n```\n\n**config 格式**：见 `references/config-schema.md`\n\n## 类型映射\n\n| 规范中的叫法 | 类型名 |\n|-------------|--------|\n| 一级标题、章标题 | zhangTitle |\n| 二级标题 | heading2 |\n| 三级标题 | heading3 |\n| 四级标题 | heading4 |\n| 五级标题 | heading5 |\n| 正文 | body |\n| 图名、图标题 | figureCaption |\n| 表名、表标题 | tableCaption |\n| 附录标题 | appendixTitle |\n| 附录二级标题 | appendixHeading2 |\n| 附录三级标题 | appendixHeading3 |\n| 表头 | tableHeader |\n| 表格内容 | tableContent |\n| 列表一级 | listItem1 |\n| 列表二级 | listItem2 |\n\n## 字号对照\n\n| 中文字号 | 磅值 |\n|---------|-----|\n| 二号 | 22 |\n| 三号 | 16 |\n| 小三 | 15 |\n| 四号 | 14 |\n| 小四 | 12 |\n| 五号 | 10.5 |\n| 小五 | 9 |\n\n## 关键规则\n\n1. **必须调用脚本**：不要自己实现流程\n2. **传 scope 参数**：控制检查范围\n3. **脚本直接修改文档**：不需要再调用 updateParagraphs\n4. **specText 要完整**：把用户规范描述完整传入\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/generalformat/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 10
+    }
+  },
+  {
+    "id": "tool_1775550686473_6l96",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775550686473,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/generalformat/scripts/check-numbering.js",
+        "params": {
+          "scope": "heading",
+          "specText": "标题编号格式为 X.Y.Z，同一章节下序号连续递增，附录编号为 A.1 格式"
+        }
+      },
+      "output": "{\"success\":false,\"error\":\"ReferenceError: appendixMatch is not defined\"}",
+      "durationMs": 40
+    }
+  },
+  {
+    "id": "1775550688576_k75hqpz",
+    "role": "assistant",
+    "content": "脚本执行失败，存在变量未定义错误。我将尝试重新调用并检查脚本逻辑。\n\n",
+    "timestamp": 1775550688576,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775550690045_ddl8",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775550690045,
+    "toolCall": {
+      "toolName": "skill_resource",
+      "input": {
+        "skillName": "generalformat",
+        "resourcePath": "scripts/check-numbering.js"
+      },
+      "output": "<skill_resource skill=\"generalformat\" path=\"scripts/check-numbering.js\">\n/**\n * check-numbering.js - 编号校对分析\n *\n * 只分析，不修改文档。返回修改计划，由 AI 调用工具执行。\n *\n * 入参:\n *   specText: 规范文本\n *   scope: 检查范围 - 'heading' | 'figure' | 'table' | 'numbering'\n *\n * 出参:\n *   { success, plans, counts, summary }\n */\n\ntry {\n  var doc = Application.ActiveDocument;\n  if (!doc) return { success: false, error: '没有打开的文档' };\n\n  var startTime = Date.now();\n  console.log('[check-numbering] 开始分析');\n\n  var specTextRaw = typeof specText !== 'undefined' ? String(specText) : '';\n  var checkScope = typeof scope !== 'undefined' ? String(scope) : 'numbering';\n\n  // 解析编号规则\n  var figFormat = specTextRaw.indexOf('图编号按章节') !== -1 || /图\\d+-\\d+/.test(specTextRaw) ? 'chapter-seq' : 'continuous';\n  var tableFormat = specTextRaw.indexOf('表编号按章节') !== -1 || /表\\d+-\\d+/.test(specTextRaw) ? 'chapter-seq' : 'continuous';\n\n  // 检查范围\n  var checkHeadings = checkScope === 'numbering' || checkScope === 'heading';\n  var checkFigures = checkScope === 'numbering' || checkScope === 'figure';\n  var checkTables = checkScope === 'numbering' || checkScope === 'table';\n\n  function cleanText(t) {\n    return String(t || '').replace(/\\u0007/g, '').replace(/[\\r\\n]/g, '').trim();\n  }\n\n  var plans = [];\n  var counts = { headings: 0, figures: 0, tables: 0 };\n\n  // 状态跟踪\n  var currentChapter = 0, expectedChapter = 0;\n  var expectedSection = 0, expectedSubsection = 0, expectedItem = 0, expectedLevel5 = 0;\n  var figureCounter = 0, tableCounter = 0;\n  var figureChapterCounters = {}, tableChapterCounters = {};\n  var inAppendix = false, appendixCounter = 0, appendixLetter = '';\n  var appendixSection = 0, appendixSubsection = 0;\n  var appendixFigCounter = 0, appendixTableCounter = 0;\n\n  var totalParas = doc.Paragraphs.Count;\n  console.log('[check-numbering] 段落数: ' + totalParas);\n\n  for (var i = 1; i <= totalParas; i++) {\n    var para = doc.Paragraphs.Item(i);\n    if (!para || !para.Range) continue;\n\n    var text = cleanText(para.Range.Text);\n    if (!text) continue;\n\n    // 附录检测\n    var appMatch = text.match(/^附\\s*录\\s*([A-Z一二三四五六七八九十])?(?:\\s+(.*))?$/i);\n    if (appMatch) {\n      inAppendix = true;\n      appendixCounter++;\n      appendixLetter = appendixCounter <= 26 ? String.fromCharCode(64 + appendixCounter) : '';\n      appendixSection = 0;\n      appendixSubsection = 0;\n      appendixFigCounter = 0;\n      appendixTableCounter = 0;\n\n      var expectedTitle = appendixMatch[2] ? '附 录 ' + appendixLetter + ' ' + appendixMatch[2] : '附 录 ' + appendixLetter;\n      if (text !== expectedTitle && checkHeadings) {\n        plans.push({ paraIndex: i, oldText: text, newText: expectedTitle, type: 'appendix' });\n        counts.headings++;\n      }\n      continue;\n    }\n\n    // 附录内标题\n    if (inAppendix && checkHeadings) {\n      var appH2 = text.match(/^([A-Z])\\.(\\d+)\\s+(.+)$/);\n      if (appH2) {\n        appendixSection++;\n        appendixSubsection = 0;\n        counts.headings++;\n        var exp = appendixLetter + '.' + appendixSection + ' ' + appH2[3];\n        if (text !== exp) plans.push({ paraIndex: i, oldText: text, newText: exp, type: 'heading' });\n        continue;\n      }\n      var appH3 = text.match(/^([A-Z])\\.(\\d+)\\.(\\d+)\\s+(.+)$/);\n      if (appH3) {\n        appendixSubsection++;\n        counts.headings++;\n        var exp3 = appendixLetter + '.' + appendixSection + '.' + appendixSubsection + ' ' + appH3[4];\n        if (text !== exp3) plans.push({ paraIndex: i, oldText: text, newText: exp3, type: 'heading' });\n        continue;\n      }\n    }\n\n    // 正文标题\n    if (!inAppendix && checkHeadings) {\n      // 一级标题\n      var h1 = text.match(/^(\\d{1,2})\\s+([^\\d].*)$/);\n      if (h1 && !text.match(/^\\d+\\.\\d/)) {\n        expectedChapter++;\n        currentChapter = expectedChapter;\n        expectedSection = 0; expectedSubsection = 0; expectedItem = 0; expectedLevel5 = 0;\n        counts.headings++;\n        if (parseInt(h1[1]) !== expectedChapter) {\n          plans.push({ paraIndex: i, oldText: text, newText: expectedChapter + ' ' + h1[2], type: 'heading' });\n        }\n        continue;\n      }\n      // 二级标题\n      var h2 = text.match(/^(\\d+)\\.(\\d+)\\s+(.+)$/);\n      if (h2 && !text.match(/^\\d+\\.\\d+\\.\\d/) && text.indexOf('表') !== 0 && text.indexOf('图') !== 0) {\n        if (expectedChapter <= 0) { expectedChapter = 1; currentChapter = 1; }\n        expectedSection++;\n        expectedSubsection = 0; expectedItem = 0; expectedLevel5 = 0;\n        counts.headings++;\n        if (parseInt(h2[2]) !== expectedSection) {\n          plans.push({ paraIndex: i, oldText: text, newText: currentChapter + '.' + expectedSection + ' ' + h2[3], type: 'heading' });\n        }\n        continue;\n      }\n      // 三级标题\n      var h3 = text.match(/^(\\d+)\\.(\\d+)\\.(\\d+)\\s+(.+)$/);\n      if (h3 && !text.match(/^\\d+\\.\\d+\\.\\d+\\.\\d/) && text.indexOf('表') !== 0 && text.indexOf('图') !== 0) {\n        if (expectedChapter <= 0) { expectedChapter = 1; currentChapter = 1; }\n        if (expectedSection <= 0) expectedSection = 1;\n        expectedSubsection++;\n        expectedItem = 0; expectedLevel5 = 0;\n        counts.headings++;\n        if (parseInt(h3[3]) !== expectedSubsection) {\n          plans.push({ paraIndex: i, oldText: text, newText: currentChapter + '.' + expectedSection + '.' + expectedSubsection + ' ' + h3[4], type: 'heading' });\n        }\n        continue;\n      }\n      // 四级标题\n      var h4 = text.match(/^(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)\\s+(.+)$/);\n      if (h4 && !text.match(/^\\d+\\.\\d+\\.\\d+\\.\\d+\\.\\d/)) {\n        if (expectedChapter <= 0) { expectedChapter = 1; currentChapter = 1; }\n        if (expectedSection <= 0) expectedSection = 1;\n        if (expectedSubsection <= 0) expectedSubsection = 1;\n        expectedItem++;\n        expectedLevel5 = 0;\n        counts.headings++;\n        if (parseInt(h4[4]) !== expectedItem) {\n          plans.push({ paraIndex: i, oldText: text, newText: currentChapter + '.' + expectedSection + '.' + expectedSubsection + '.' + expectedItem + ' ' + h4[5], type: 'heading' });\n        }\n        continue;\n      }\n      // 五级标题\n      var h5 = text.match(/^(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)\\s+(.+)$/);\n      if (h5) {\n        if (expectedChapter <= 0) { expectedChapter = 1; currentChapter = 1; }\n        if (expectedSection <= 0) expectedSection = 1;\n        if (expectedSubsection <= 0) expectedSubsection = 1;\n        if (expectedItem <= 0) expectedItem = 1;\n        expectedLevel5++;\n        counts.headings++;\n        if (parseInt(h5[5]) !== expectedLevel5) {\n          plans.push({ paraIndex: i, oldText: text, newText: currentChapter + '.' + expectedSection + '.' + expectedSubsection + '.' + expectedItem + '.' + expectedLevel5 + ' ' + h5[6], type: 'heading' });\n        }\n        continue;\n      }\n    }\n\n    // 图编号\n    if (checkFigures) {\n      var fig = text.match(/^图\\s*(\\d+)(?:[-\\.](\\d+))?\\s+(.+)$/);\n      if (fig) {\n        counts.figures++;\n        var caption = fig[3];\n        var expFig;\n        if (inAppendix) {\n          appendixFigCounter++;\n          expFig = '图' + appendixLetter + '-' + appendixFigCounter + ' ' + caption;\n        } else if (figFormat === 'continuous') {\n          figureCounter++;\n          expFig = '图' + figureCounter + ' ' + caption;\n        } else {\n          var fk = String(currentChapter || 1);\n          figureChapterCounters[fk] = (figureChapterCounters[fk] || 0) + 1;\n          expFig = '图' + (currentChapter || 1) + '-' + figureChapterCounters[fk] + ' ' + caption;\n        }\n        if (text !== expFig) {\n          plans.push({ paraIndex: i, oldText: text, newText: expFig, type: 'figure' });\n        }\n        continue;\n      }\n    }\n\n    // 表编号\n    if (checkTables) {\n      var tbl = text.match(/^表\\s*(\\d+)(?:[-\\.](\\d+))?\\s+(.+)$/);\n      if (tbl) {\n        counts.tables++;\n        var tcaption = tbl[3];\n        var expTbl;\n        if (inAppendix) {\n          appendixTableCounter++;\n          expTbl = '表' + appendixLetter + '-' + appendixTableCounter + ' ' + tcaption;\n        } else if (tableFormat === 'continuous') {\n          tableCounter++;\n          expTbl = '表' + tableCounter + ' ' + tcaption;\n        } else {\n          var tk = String(currentChapter || 1);\n          tableChapterCounters[tk] = (tableChapterCounters[tk] || 0) + 1;\n          expTbl = '表' + (currentChapter || 1) + '-' + tableChapterCounters[tk] + ' ' + tcaption;\n        }\n        if (text !== expTbl) {\n          plans.push({ paraIndex: i, oldText: text, newText: expTbl, type: 'table' });\n        }\n        continue;\n      }\n    }\n  }\n\n  var elapsed = Date.now() - startTime;\n  console.log('[check-numbering] 分析完成: 需修改 ' + plans.length + ' 处');\n\n  return {\n    success: true,\n    action: 'apply_changes',\n    plans: plans,\n    counts: counts,\n    elapsedMs: elapsed,\n    summary: '发现 ' + plans.length + ' 处编号问题待修正',\n    nextSteps: [\n      '调用 updateParagraphs 工具，使用 patch 操作应用修改',\n      '调用 confirmEdits 工具，mode: \"revision\"，显示确认面板'\n    ]\n  };\n\n} catch (e) {\n  console.error('[check-numbering] 错误: ' + e);\n  return { success: false, error: String(e) };\n}\n</skill_resource>",
+      "durationMs": 10
+    }
+  },
+  {
+    "id": "1775550692484_qqfnaj9",
+    "role": "assistant",
+    "content": "脚本存在 bug（`appendixMatch` 未定义），我将修复后重新执行。\n\n",
+    "timestamp": 1775550692484,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775550693455_w89g",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775550693455,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "/**\n * 修复版 check-numbering.js - 编号校对分析\n */\ntry {\n  var doc = Application.ActiveDocument;\n  if (!doc) return { success: false, error: '没有打开的文档' };\n\n  var startTime = Date.now();\n  console.log('[check-numbering] 开始分析');\n\n  var specTextRaw = typeof specText !== 'undefined' ? String(specText) : '';\n  var checkScope = typeof scope !== 'undefined' ? String(scope) : 'numbering';\n\n  var figFormat = specTextRaw.indexOf('图编号按章节') !== -1 || /图\\\\d+-\\\\d+/.test(specTextRaw) ? 'chapter-seq' : 'continuous';\n  var tableFormat = specTextRaw.indexOf('表编号按章节') !== -1 || /表\\\\d+-\\\\d+/.test(specTextRaw) ? 'chapter-seq' : 'continuous';\n\n  var checkHeadings = checkScope === 'numbering' || checkScope === 'heading';\n  var checkFigures = checkScope === 'numbering' || checkScope === 'figure';\n  var checkTables = checkScope === 'numbering' || checkScope === 'table';\n\n  function cleanText(t) {\n    return String(t || '').replace(/\\u0007/g, '').replace(/[\\\\r\\\\n]/g, '').trim();\n  }\n\n  var plans = [];\n  var counts = { headings: 0, figures: 0, tables: 0 };\n\n  var currentChapter = 0, expectedChapter = 0;\n  var expectedSection = 0, expectedSubsection = 0, expectedItem = 0, expectedLevel5 = 0;\n  var figureCounter = 0, tableCounter = 0;\n  var figureChapterCounters = {}, tableChapterCounters = {};\n  var inAppendix = false, appendixCounter = 0, appendixLetter = '';\n  var appendixSection = 0, appendixSubsection = 0;\n  var appendixFigCounter = 0, appendixTableCounter = 0;\n\n  var totalParas ="
+      },
+      "executing": true,
+      "codeStreaming": true
+    }
+  }
+]

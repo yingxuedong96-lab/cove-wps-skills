@@ -1,0 +1,15 @@
+{
+  "name": "GWformat",
+  "description": "按XX集团公文排版格式规范排版。识别标题、各级标题、正文、落款等元素并应用方正小标宋、黑体、楷体、仿宋等标准字体。触发词：公文排版格式、XX集团公文排版、集团公文格式、GWformat。",
+  "version": "1.0.0",
+  "snapshot": "before_task",
+  "emoji": "📄",
+  "files": [
+    "skill.json",
+    "SKILL.md",
+    "scripts/setup-styles.js",
+    "scripts/apply-format.js"
+  ],
+  "resources": [],
+  "source": "server"
+}

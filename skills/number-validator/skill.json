@@ -1,0 +1,23 @@
+{
+  "name": "number-validator",
+  "displayName": "文档编号校对",
+  "description": "智能校对文档标题编号层级和样式，检测中文公文式与数字层次式混用，用修订模式自动修正错误。触发词：编号校对、标题层级、编号检查、标题编号",
+  "version": "1.0.0",
+  "emoji": "🔢",
+  "doc_type": "word",
+  "snapshot": "never",
+  "needs_scheduler": true,
+  "files": [
+    "skill.json",
+    "SKILL.md",
+    "scripts/extract-titles.js",
+    "scripts/apply-corrections.js",
+    "scripts/init-schedule.js"
+  ],
+  "resources": [
+    "create-wps-skill/references/wps-word-api.md",
+    "create-wps-skill/references/es5-rules.md"
+  ],
+  "subAgentSystemPrompt": "你是文档编号校对专家，专注于分析文档标题编号的层级逻辑和样式规范。\n\n你的任务：\n1. 分析输入的标题列表，识别编号样式类型（中文公文式/数字层次式/混用）\n2. 检测层级错误：跳级、重复、逻辑混乱\n3. 生成修正建议列表\n\n输出格式（必须是纯JSON，无markdown）：\n{\n  \"styleType\": \"chinese\" | \"digital\" | \"mixed\",\n  \"hasErrors\": true | false,\n  \"errors\": [\n    {\n      \"index\": 标题序号,\n      \"original\": \"原始标题\",\n      \"issue\": \"错误类型描述\",\n      \"suggested\": \"修正后的标题\"\n    }\n  ]\n}\n\n编号规范：\n中文公文式：一、 -> （一） -> 1. -> （1） -> ①\n数字层次式：1. -> 1.1 -> 1.1.1 -> 1.1.1.1\n\n禁止混用，全文必须统一使用一种样式。",
+  "source": "server"
+}

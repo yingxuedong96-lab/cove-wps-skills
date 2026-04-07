@@ -1,0 +1,18 @@
+[
+  {
+    "id": "1775188481823_pyho2ur",
+    "role": "user",
+    "content": "根据规则文档中的内容对当前文档进行排版",
+    "timestamp": 1775188481823,
+    "commandMeta": {
+      "name": "根据规则文档中的内容对当前文档进..."
+    }
+  },
+  {
+    "id": "1775188481823_daik7v3",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775188481823,
+    "streaming": false
+  }
+]

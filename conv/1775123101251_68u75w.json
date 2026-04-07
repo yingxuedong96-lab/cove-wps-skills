@@ -1,0 +1,366 @@
+[
+  {
+    "id": "1775123101578_6u8oany",
+    "role": "user",
+    "content": "你是一名专业的翻译，请根据翻译要求对提供的原文内容进行翻译中文转英文，并返回译文。\n**注意**：\n- 仅返回翻译后的译文，不要有任何额外的解释或者说明，如：以下是xxx、以上是xxx\n- 如果翻译不了或者目标语言不存在，直接返回空字符串即可，不要有任何额外的解释或者说明\n- 译文段落数需与原文严格保存一致，不可以增加、删除、合并、拆分段落，否则会导致严重问题",
+    "timestamp": 1775123101578
+  },
+  {
+    "id": "1775123101578_794udhq",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775123101578,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775123106446_rmap",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775123106447,
+    "toolCall": {
+      "toolName": "getDocumentParagraphs",
+      "input": {
+        "scope": "document",
+        "page": 1,
+        "pageSize": 25
+      },
+      "output": "共 59 个段落，显示第 1 页（每页 25 条）：\n\n[pid_1054008237] 文档排版规则说明\n[pid_387827295] 一、整体要求\n[pid_250853273] 本文档采用以下排版规范。页边距设置为上下2厘米、左右2.5厘米。全文默认使用宋体，西文字体使用Times New Roman。\n[pid_910965063] 二、标题格式\n[pid_2112316419] 章标题（一级标题）采用黑体、三号字（16磅）、居中对齐、加粗，段前12磅、段后6磅，无缩进。\n[pid_861530791] 二级标题采用黑体、四号字（14磅）、左对齐、加粗，段前6磅、段后6磅，无缩进。\n[pid_1527035723] 三级标题采用楷体、小四号字（12磅）、左对齐、不加粗，段前6磅、段后6磅，无缩进。\n[pid_1129911274] 三、正文格式\n[pid_633861976] 正文采用宋体、小四号字（12磅），两端对齐，1.5倍行距，首行缩进2字符。段前段后间距为0。\n[pid_1855157762] 四、图表格式\n[pid_258897200] 图名采用楷体、五号字（10.5磅）、居中对齐，段前6磅、段后6磅。\n[pid_871986772] 表名采用楷体、五号字（10.5磅）、居中对齐，段前6磅、段后6磅。\n[pid_1322266886] 图片段落居中对齐。\n[pid_737296302] 五、公式格式\n[pid_1904833066] 公式段落居中对齐，带编号的公式采用制表位实现公式居中、编号右对齐。\n[pid_325478545] 六、排版规则汇总表\n[pid_327443090] 元素\u0007\n[pid_1526386068] 字体\u0007\n[pid_276962304] 字号\u0007\n[pid_239845536] 对齐\u0007\n[pid_1596929600] 其他\u0007\n[pid_1868166660] \u0007\n[pid_764570931] 章标题\u0007\n[pid_2007808801] 黑体\u0007\n[pid_1346282695] 三号(16磅)\u0007\n\n... 还有 34 个段落，请使用 page:2 继续翻页",
+      "durationMs": 12
+    }
+  },
+  {
+    "id": "tool_1775123109043_eo1f",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775123109043,
+    "toolCall": {
+      "toolName": "getDocumentParagraphs",
+      "input": {
+        "scope": "document",
+        "page": 2,
+        "pageSize": 25
+      },
+      "output": "共 59 个段落，显示第 2 页（每页 25 条）：\n\n[pid_2109697483] 居中\u0007\n[pid_350821241] 加粗、无缩进\u0007\n[pid_1110510535] \u0007\n[pid_2109909552] 二级标题\u0007\n[pid_2122109390] 黑体\u0007\n[pid_208489768] 四号(14磅)\u0007\n[pid_565086987] 左对齐\u0007\n[pid_1474445525] 加粗、无缩进\u0007\n[pid_575029820] \u0007\n[pid_850836819] 三级标题\u0007\n[pid_864471809] 楷体\u0007\n[pid_1314699611] 小四(12磅)\u0007\n[pid_933293523] 左对齐\u0007\n[pid_1773110471] 不加粗、无缩进\u0007\n[pid_308101035] \u0007\n[pid_1829239849] 正文\u0007\n[pid_810850580] 宋体\u0007\n[pid_1019104340] 小四(12磅)\u0007\n[pid_1639047558] 两端对齐\u0007\n[pid_1720738823] 1.5倍行距、首行缩进2字\u0007\n[pid_2136798420] \u0007\n[pid_24450478] 图名\u0007\n[pid_946517478] 楷体\u0007\n[pid_333604748] 五号(10.5磅)\u0007\n[pid_1223076265] 居中\u0007\n\n... 还有 9 个段落，请使用 page:3 继续翻页",
+      "durationMs": 9
+    }
+  },
+  {
+    "id": "tool_1775123111541_ltkv",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775123111541,
+    "toolCall": {
+      "toolName": "getDocumentParagraphs",
+      "input": {
+        "scope": "document",
+        "page": 3,
+        "pageSize": 25
+      },
+      "output": "共 59 个段落，显示第 3 页（每页 25 条）：\n\n[pid_585628762] 段前6磅、段后6磅\u0007\n[pid_1720045286] \u0007\n[pid_150885688] 表名\u0007\n[pid_182564020] 楷体\u0007\n[pid_735778893] 五号(10.5磅)\u0007\n[pid_1155200071] 居中\u0007\n[pid_231974545] 段前6磅、段后6磅\u0007\n[pid_600109380] \u0007\n[pid_1357402161] [空行]",
+      "durationMs": 12
+    }
+  },
+  {
+    "id": "tool_1775123113459_re5f",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775123113459,
+    "toolCall": {
+      "toolName": "updateParagraphs",
+      "input": {
+        "ops": [
+          {
+            "id": "pid_1054008237",
+            "after": "Document Formatting Rules"
+          },
+          {
+            "id": "pid_387827295",
+            "after": "I. General Requirements"
+          },
+          {
+            "id": "pid_250853273",
+            "after": "This document adopts the following formatting specifications. Margins are set to 2 cm top and bottom, 2.5 cm left and right. The default font for the entire text is SimSun, and Times New Roman is used for Western characters."
+          },
+          {
+            "id": "pid_910965063",
+            "after": "II. Heading Formats"
+          },
+          {
+            "id": "pid_2112316419",
+            "after": "Chapter headings (Level 1 headings) use HeiTi, size 3 (16 pt), centered, bold, with 12 pt spacing before and 6 pt after, no indentation."
+          },
+          {
+            "id": "pid_861530791",
+            "after": "Level 2 headings use HeiTi, size 4 (14 pt), left-aligned, bold, with 6 pt spacing before and after, no indentation."
+          },
+          {
+            "id": "pid_1527035723",
+            "after": "Level 3 headings use Kaiti, small size 4 (12 pt), left-aligned, not bold, with 6 pt spacing before and after, no indentation."
+          },
+          {
+            "id": "pid_1129911274",
+            "after": "III. Body Text Format"
+          },
+          {
+            "id": "pid_633861976",
+            "after": "Body text uses SimSun, small size 4 (12 pt), justified alignment, 1.5 line spacing, with first-line indent of 2 characters. Spacing before and after paragraphs is 0."
+          },
+          {
+            "id": "pid_1855157762",
+            "after": "IV. Figure and Table Formats"
+          },
+          {
+            "id": "pid_258897200",
+            "after": "Figure captions use Kaiti, size 5 (10.5 pt), centered, with 6 pt spacing before and after."
+          },
+          {
+            "id": "pid_871986772",
+            "after": "Table captions use Kaiti, size 5 (10.5 pt), centered, with 6 pt spacing before and after."
+          },
+          {
+            "id": "pid_1322266886",
+            "after": "Image paragraphs are centered."
+          },
+          {
+            "id": "pid_737296302",
+            "after": "V. Formula Format"
+          },
+          {
+            "id": "pid_1904833066",
+            "after": "Formula paragraphs are centered. Formulas with numbers use tabs to achieve centering of the formula and right-alignment of the number."
+          },
+          {
+            "id": "pid_325478545",
+            "after": "VI. Summary Table of Formatting Rules"
+          },
+          {
+            "id": "pid_327443090",
+            "after": "Element\t"
+          },
+          {
+            "id": "pid_1526386068",
+            "after": "Font\t"
+          },
+          {
+            "id": "pid_276962304",
+            "after": "Font Size\t"
+          },
+          {
+            "id": "pid_239845536",
+            "after": "Alignment\t"
+          },
+          {
+            "id": "pid_1596929600",
+            "after": "Other\t"
+          },
+          {
+            "id": "pid_1868166660",
+            "after": "\t"
+          },
+          {
+            "id": "pid_764570931",
+            "after": "Chapter Heading\t"
+          },
+          {
+            "id": "pid_2007808801",
+            "after": "HeiTi\t"
+          },
+          {
+            "id": "pid_1346282695",
+            "after": "Size 3 (16 pt)\t"
+          }
+        ]
+      },
+      "output": "编辑完成：成功 25 个，失败 0 个",
+      "durationMs": 106
+    }
+  },
+  {
+    "id": "tool_1775123128084_9d7j",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775123128084,
+    "toolCall": {
+      "toolName": "updateParagraphs",
+      "input": {
+        "ops": [
+          {
+            "id": "pid_2109697483",
+            "after": "Centered\t"
+          },
+          {
+            "id": "pid_350821241",
+            "after": "Bold, no indentation\t"
+          },
+          {
+            "id": "pid_1110510535",
+            "after": "\t"
+          },
+          {
+            "id": "pid_2109909552",
+            "after": "Level 2 Heading\t"
+          },
+          {
+            "id": "pid_2122109390",
+            "after": "HeiTi\t"
+          },
+          {
+            "id": "pid_208489768",
+            "after": "Size 4 (14 pt)\t"
+          },
+          {
+            "id": "pid_565086987",
+            "after": "Left-aligned\t"
+          },
+          {
+            "id": "pid_1474445525",
+            "after": "Bold, no indentation\t"
+          },
+          {
+            "id": "pid_575029820",
+            "after": "\t"
+          },
+          {
+            "id": "pid_850836819",
+            "after": "Level 3 Heading\t"
+          },
+          {
+            "id": "pid_864471809",
+            "after": "Kaiti\t"
+          },
+          {
+            "id": "pid_1314699611",
+            "after": "Small Size 4 (12 pt)\t"
+          },
+          {
+            "id": "pid_933293523",
+            "after": "Left-aligned\t"
+          },
+          {
+            "id": "pid_1773110471",
+            "after": "Not bold, no indentation\t"
+          },
+          {
+            "id": "pid_308101035",
+            "after": "\t"
+          },
+          {
+            "id": "pid_1829239849",
+            "after": "Body Text\t"
+          },
+          {
+            "id": "pid_810850580",
+            "after": "SimSun\t"
+          },
+          {
+            "id": "pid_1019104340",
+            "after": "Small Size 4 (12 pt)\t"
+          },
+          {
+            "id": "pid_1639047558",
+            "after": "Justified\t"
+          },
+          {
+            "id": "pid_1720738823",
+            "after": "1.5 line spacing, first-line indent of 2 characters\t"
+          },
+          {
+            "id": "pid_2136798420",
+            "after": "\t"
+          },
+          {
+            "id": "pid_24450478",
+            "after": "Figure Caption\t"
+          },
+          {
+            "id": "pid_946517478",
+            "after": "Kaiti\t"
+          },
+          {
+            "id": "pid_333604748",
+            "after": "Size 5 (10.5 pt)\t"
+          },
+          {
+            "id": "pid_1223076265",
+            "after": "Centered\t"
+          }
+        ]
+      },
+      "output": "编辑完成：成功 25 个，失败 0 个",
+      "durationMs": 86
+    }
+  },
+  {
+    "id": "tool_1775123139025_piqi",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775123139025,
+    "toolCall": {
+      "toolName": "updateParagraphs",
+      "input": {
+        "ops": [
+          {
+            "id": "pid_585628762",
+            "after": "6 pt spacing before and after\t"
+          },
+          {
+            "id": "pid_1720045286",
+            "after": "\t"
+          },
+          {
+            "id": "pid_150885688",
+            "after": "Table Caption\t"
+          },
+          {
+            "id": "pid_182564020",
+            "after": "Kaiti\t"
+          },
+          {
+            "id": "pid_735778893",
+            "after": "Size 5 (10.5 pt)\t"
+          },
+          {
+            "id": "pid_1155200071",
+            "after": "Centered\t"
+          },
+          {
+            "id": "pid_231974545",
+            "after": "6 pt spacing before and after\t"
+          },
+          {
+            "id": "pid_600109380",
+            "after": "\t"
+          },
+          {
+            "id": "pid_1357402161",
+            "after": "[Empty Line]"
+          }
+        ]
+      },
+      "output": "编辑完成：成功 9 个，失败 0 个",
+      "durationMs": 58
+    }
+  },
+  {
+    "id": "tool_1775123145275_0qvl",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775123145275,
+    "toolCall": {
+      "toolName": "confirmEdits",
+      "input": {
+        "mode": "contrast",
+        "summary": "已将文档全部 59 个段落从中文翻译为英文，采用段落对照模式，每个原段落后插入对应译文。"
+      },
+      "output": "已删除 59 个对照段落",
+      "durationMs": 179629
+    }
+  },
+  {
+    "id": "1775123327080_bdw51lw",
+    "role": "assistant",
+    "content": "已完成全文翻译并生成段落对照。所有 59 个中文段落均已逐一对应插入英文译文，保持原文结构不变。您可以选择接受或取消此次编辑。",
+    "timestamp": 1775123327080,
+    "streaming": false
+  }
+]

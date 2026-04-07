@@ -1,0 +1,186 @@
+[
+  {
+    "id": "1775121785888_3wd2ga7",
+    "role": "user",
+    "content": "AI智能校对（错别字、标点、大小写） \n自动检测文档错别字、标点符号错误、大小写错误，以修订模式标记写回文档，全程静默仅报完成数量。触发词：校对、文档校对、错别字检查、标点检查、快速校对。",
+    "timestamp": 1775121785888
+  },
+  {
+    "id": "1775121785888_kap0af4",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775121785888,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775121787502_mqgc",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775121787502,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "wps-proofreader"
+      },
+      "output": "<skill_content name=\"wps-proofreader\">\n# Skill: wps-proofreader\n\n---\nname: wps-proofreader\ndescription: 自动检测文档错别字、标点符号错误、大小写错误，以修订模式标记写回文档，全程静默仅报完成数量。触发词：校对、文档校对、错别字检查、标点检查、快速校对。\n---\n\n# 文档快速校对\n\n## Step 1 — 读取文档\n\nexecuteFile: skills/wps-proofreader/scripts/get-text.js\n\n返回：`{ success, text, charCount, isSelection, path }`\n\n- `success=false` 或 `text` 为空 → 输出\"文档未打开或内容为空，请检查后重试\"，停止\n- `path='direct'` → 执行 Step 2A\n- `path='schedule'` → 执行 Step 2B\n\n## Step 2A — 直接模式（path=direct，静默）\n\n对 `text` 调用 AI，使用以下提示词，**不输出任何内容**：\n\n```\n你是文档校对助手。分析以下文本，找出三类错误：\n1. 错别字：同音字误用、形近字误用、\"的地得\"误用\n2. 标点符号：中英文标点混用、全半角混用、顿号逗号误用、句末符号缺失\n3. 大小写：英文首字母该大写未大写、专有名词大小写\n\n只输出纯 JSON，不输出任何解释，格式：\n{\"corrections\": [{\"o\": \"原文片段\", \"c\": \"修正后内容\", \"t\": \"typo或punct或case\"}]}\n\n严格规则：\n- 宁可漏报，不误报——只改有明确依据的错误\n- o 字段必须是原文中能精确找到的最短片段\n- 不改：专业术语、人名地名、数字、日期、标准编号（如DL5180-2003）、英文缩写\n- 无错误时输出：{\"corrections\": []}\n\n文本：\n{text}\n```\n\n用 JSON 三级容错解析（提取代码块→直接解析→修复尾逗号），得到 `corrections` 数组，进入 Step 3。\n\n## Step 2B — 分块模式（path=schedule，静默）\n\n### Step 2B-1 — 初始化分块\n\nexecuteFile: skills/wps-proofreader/scripts/init-schedule.js\nparams: { text: {text} }\n\n返回：`{ success, chunks, totalChunks }`\n\n### Step 2B-2 — 调度子Agent逐块分析\n\nsubmitScheduler，对每个 chunk 使用 subAgentSystemPrompt，输入为 `chunk.text`，收集每个 chunk 返回的 `corrections` 数组，合并为 `allCorrections`。\n\n**全程不输出任何内容。**\n\n进入 Step 3，使用合并后的 `allCorrections`。\n\n## Step 3 — 写回修订（静默）\n\nexecuteFile: skills/wps-proofreader/scripts/apply-corrections.js\nparams:\n  corrections: {corrections 或 allCorrections}\n\n返回：`{ success, applied, failed }`\n\n## Step 4 — 唯一输出\n\n- `success=false` → `校对失败：{error}，如文档被保护请在「审阅」→「限制编辑」中关闭后重试`\n- `applied > 0` → `✓ 发现 {applied} 处问题，已在文档中标记修订，可在「审阅」面板逐条接受或一键全部接受`\n- `applied = 0` → `✓ 文档校对完成，未发现明显错误`\n\n## 异常处理\n\n- AI 返回 JSON 解析失败 → 跳过该块，继续其他块，不中断\n- Find&Replace 未找到原文（failed > 0）→ 不影响已成功项，仅报 applied 数\n- 文档受保护 → 提示关闭「限制编辑」后重试\n\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/wps-proofreader/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 10
+    }
+  },
+  {
+    "id": "tool_1775121789249_1dnp",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775121789249,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/wps-proofreader/scripts/get-text.js"
+      },
+      "output": "$artifact:20260402-egmvh7\n{\"success\":true,\"text\":\"新突破，DeepSeek助力知识库问答升级！\\n在数字化转型的浪朝中，财务公司正不断探索如何通过技术创…[562字]\",\"isSelection\":false,\"charCount\":562,\"path\":\"direct\"}",
+      "durationMs": 15
+    }
+  },
+  {
+    "id": "tool_1775121791119_4lhx",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775121791119,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "// 调用 AI 校对文本，返回 corrections 数组\nvar text = $artifact_text;\nvar prompt = \"你是文档校对助手。分析以下文本，找出三类错误：\\n1. 错别字：同音字误用、形近字误用、\\\"的地得\\\"误用\\n2. 标点符号：中英文标点混用、全半角混用、顿号逗号误用、句末符号缺失\\n3. 大小写：英文首字母该大写未大写、专有名词大小写\\n\\n只输出纯 JSON，不输出任何解释，格式：\\n{\\\"corrections\\\": [{\\\"o\\\": \\\"原文片段\\\", \\\"c\\\": \\\"修正后内容\\\", \\\"t\\\": \\\"typo 或 punct 或 case\\\"}]}\\n\\n严格规则：\\n- 宁可漏报，不误报——只改有明确依据的错误\\n- o 字段必须是原文中能精确找到的最短片段\\n- 不改：专业术语、人名地名、数字、日期、标准编号（如 DL5180-2003）、英文缩写\\n- 无错误时输出：{\\\"corrections\\\": []}\\n\\n文本：\\n\" + text;\n\n// 模拟 AI 调用（实际由系统处理）\nreturn { prompt: prompt, text: text };",
+        "params": {
+          "$artifact_text": "{\"success\":true,\"text\":\"新突破，DeepSeek 助力知识库问答升级！\\n在数字化转型的浪朝中，财务公司正不断探索如何通过技术创…[562 字]\",\"isSelection\":false,\"charCount\":562,\"path\":\"direct\"}"
+        }
+      },
+      "output": "[ExecutionError] $artifact_text is not defined",
+      "durationMs": 16
+    }
+  },
+  {
+    "id": "tool_1775121797412_z954",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775121797412,
+    "toolCall": {
+      "toolName": "artifactRead",
+      "input": {
+        "id": "20260402-egmvh7",
+        "mode": "data"
+      },
+      "output": "{\n  \"success\": true,\n  \"text\": \"新突破，DeepSeek助力知识库问答升级！\\n在数字化转型的浪朝中，财务公司正不断探索如何通过技术创新提升内部管理效率与服务质量。如今，借助DeepSeek强大的人工智能技术，财务公司成功搭建了知识库问答系统，为企业的晶细化管理注入了新的活力。\\ndeepSeek作为一款先进的人工智能模型，以其卓越的自然语言处理能力、强大的知识整合与检所功能，助力财务公司打造智能、高效、精准的知识库问答系统。通过深度学习技术，deepSeek能够快速理解专业术语、复杂问题，并从海量的知识库中精准提取答案。提供即时、准确的咨询服务。\\n通过接入DeepSeek，财务公司构建了一个全面、智能的知识库系统。该系统能够将复杂的各种制度、操做手册等知识进行结构化存储，并通过自然语言处理技术实现精准查询。无论是风险识别。评估还是控制措施，只需通过简单的文字输入，即可快速获取相关内容，确保在日常工作中严格尊循合规要求。知识库问答系统能够实时解答员工在实际操作中遇到的问题，提供清晰的操作指引和解决方案。无论是资金调泊流程、结算系统的使用，还是财务报表的生成与分析，系统都能给出详细；准确的答复，大大提高了工作效率。此外，数据安全也是财务公司最为关注的问题之一。知识库问答系统采用本地化步署和动态权限管理，敏感数据不出内网，确保知识库数据的安全性。\",\n  \"isSelection\": false,\n  \"charCount\": 562,\n  \"path\": \"direct\"\n}",
+      "durationMs": 20
+    }
+  },
+  {
+    "id": "tool_1775121798648_s4nv",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775121798648,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "// 校对文本并返回 corrections\nvar text = \"新突破，DeepSeek 助力知识库问答升级！\\n在数字化转型的浪朝中，财务公司正不断探索如何通过技术创新提升内部管理效率与服务质量。如今，借助 DeepSeek 强大的人工智能技术，财务公司成功搭建了知识库问答系统，为企业的晶细化管理注入了新的活力。\\ndeepSeek 作为一款先进的人工智能模型，以其卓越的自然语言处理能力、强大的知识整合与检所功能，助力财务公司打造智能、高效、精准的知识库问答系统。通过深度学习技术，deepSeek 能够快速理解专业术语、复杂问题，并从海量的知识库中精准提取答案。提供即时、准确的咨询服务。\\n通过接入 DeepSeek，财务公司构建了一个全面、智能的知识库系统。该系统能够将复杂的各种制度、操做手册等知识进行结构化存储，并通过自然语言处理技术实现精准查询。无论是风险识别。评估还是控制措施，只需通过简单的文字输入，即可快速获取相关内容，确保在日常工作中严格尊循合规要求。知识库问答系统能够实时解答员工在实际操作中遇到的问题，提供清晰的操作指引和解决方案。无论是资金调泊流程、结算系统的使用，还是财务报表的生成与分析，系统都能给出详细；准确的答复，大大提高了工作效率。此外，数据安全也是财务公司最为关注的问题之一。知识库问答系统采用本地化步署和动态权限管理，敏感数据不出内网，确保知识库数据的安全性。\";\n\nvar corrections = [\n  {o: \"浪朝\", c: \"浪潮\", t: \"typo\"},\n  {o: \"晶细化\", c: \"精细化\", t: \"typo\"},\n  {o: \"deepSeek\", c: \"DeepSeek\", t: \"case\"},\n  {o: \"检所\", c: \"检索\", t: \"typo\"},\n  {o: \"deepSeek\", c: \"DeepSeek\", t: \"case\"},\n  {o: \"操做\", c: \"操作\", t: \"typo\"},\n  {o: \"风险识别。评估\", c: \"风险识别、评估\", t: \"punct\"},\n  {o: \"尊循\", c: \"遵循\", t: \"typo\"},\n  {o: \"调泊\", c: \"调拨\", t: \"typo\"},\n  {o: \"详细；准确\", c: \"详细、准确\", t: \"punct\"},\n  {o: \"步署\", c: \"部署\", t: \"typo\"}\n];\n\nreturn {corrections: corrections};"
+      },
+      "output": "$artifact:20260402-huneab\n{\"corrections\":[{\"o\":\"浪朝\",\"c\":\"浪潮\",\"t\":\"typo\"},{\"o\":\"晶细化\",\"c\":\"精细化\",\"t\":\"typo\"},\"…共11条\"]}",
+      "durationMs": 22
+    }
+  },
+  {
+    "id": "tool_1775121806898_abm8",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775121806898,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/wps-proofreader/scripts/apply-corrections.js",
+        "params": {
+          "corrections": "$artifact:20260402-huneab"
+        }
+      },
+      "output": "{\"success\":true,\"applied\":0,\"failed\":0}",
+      "durationMs": 13
+    }
+  },
+  {
+    "id": "tool_1775121808781_s0ts",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775121808781,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/wps-proofreader/scripts/apply-corrections.js",
+        "params": {
+          "corrections": [
+            {
+              "o": "浪朝",
+              "c": "浪潮",
+              "t": "typo"
+            },
+            {
+              "o": "晶细化",
+              "c": "精细化",
+              "t": "typo"
+            },
+            {
+              "o": "deepSeek",
+              "c": "DeepSeek",
+              "t": "case"
+            },
+            {
+              "o": "检所",
+              "c": "检索",
+              "t": "typo"
+            },
+            {
+              "o": "deepSeek",
+              "c": "DeepSeek",
+              "t": "case"
+            },
+            {
+              "o": "操做",
+              "c": "操作",
+              "t": "typo"
+            },
+            {
+              "o": "风险识别。评估",
+              "c": "风险识别、评估",
+              "t": "punct"
+            },
+            {
+              "o": "尊循",
+              "c": "遵循",
+              "t": "typo"
+            },
+            {
+              "o": "调泊",
+              "c": "调拨",
+              "t": "typo"
+            },
+            {
+              "o": "详细；准确",
+              "c": "详细、准确",
+              "t": "punct"
+            },
+            {
+              "o": "步署",
+              "c": "部署",
+              "t": "typo"
+            }
+          ]
+        }
+      },
+      "output": "{\"success\":true,\"applied\":11,\"failed\":0}",
+      "durationMs": 29
+    }
+  },
+  {
+    "id": "1775121812552_e53gvqb",
+    "role": "assistant",
+    "content": "✓ 发现 11 处问题，已在文档中标记修订，可在「审阅」面板逐条接受或一键全部接受",
+    "timestamp": 1775121812552,
+    "streaming": false
+  }
+]

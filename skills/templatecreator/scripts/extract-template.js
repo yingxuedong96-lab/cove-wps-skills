@@ -334,7 +334,7 @@
     name: s.name,
     count: s.count,
     params: formatStyleDetail(s),
-    samples: s.samples || []
+    format: s.format  // 保留原始格式数据
   }));
 
   // 页面设置信息
@@ -346,43 +346,51 @@
     rightMargin: `${template.pageSetup.rightMargin.toFixed(2)}cm`
   };
 
-  // 生成用户可读的详细展示信息
-  const displayMessage = `✅ 样式模板提取完成！
+  // 尝试保存模板文件
+  const templateFileName = `模板_${docType}_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.json`;
+  const templateJsonString = JSON.stringify(template, null, 2);
 
-📄 源文档：${DOC.Name}
-📁 模板保存：${fullTemplatePath}
-
-📋 提取结果（共 ${template.styles.length} 种样式，${paragraphs.Count} 个段落）：
-
-${template.styles.map(s => {
-  const detail = formatStyleDetail(s);
-  return `【${s.name}】${s.count}处\n   ${detail}`;
-}).join('\n\n')}
-
-📐 页面设置：
-- 纸张：A4
-- 上边距：${pageSetupInfo.topMargin} | 下边距：${pageSetupInfo.bottomMargin}
-- 左边距：${pageSetupInfo.leftMargin} | 右边距：${pageSetupInfo.rightMargin}
-
-💡 可使用"应用模板"将此模板应用到其他文档`;
+  // 生成详细的样式表格（供UI展示）
+  const stylesTable = template.styles.map(s => {
+    const fmt = s.format || {};
+    return {
+      样式名称: s.name,
+      出现次数: s.count + "处",
+      字体: fmt.fontCN || "-",
+      字号: fmt.fontSize ? fmt.fontSize + "pt" : "-",
+      加粗: fmt.bold ? "是" : "否",
+      对齐: { 0: "左对齐", 1: "居中", 2: "右对齐", 3: "两端对齐" }[fmt.alignment] || "-",
+      首行缩进: fmt.firstLineIndent ? fmt.firstLineIndent.toFixed(1) + "字符" : "-",
+      行距: fmt.lineSpacing ? fmt.lineSpacing.toFixed(1) + "pt" : "-"
+    };
+  });
 
   return JSON.stringify({
     success: true,
-    // UI展示用的message
-    message: displayMessage,
-    // 详细数据（供LLM或高级用途）
-    template: template,
-    styleDetails: styleDetails,
-    pageSetupInfo: pageSetupInfo,
-    // 汇总信息
+
+    // ===== 核心展示信息 =====
+    title: "样式模板提取完成",
+    docName: DOC.Name,
+    docType: docTypeName,
     totalStyles: template.styles.length,
     totalParagraphs: paragraphs.Count,
-    unmatchedCount: results.unmatched.length,
-    // 路径信息
+
+    // ===== 详细样式表格 =====
+    stylesTable: stylesTable,
+
+    // ===== 页面设置 =====
+    pageSetup: pageSetupInfo,
+
+    // ===== 完整模板JSON =====
+    templateJson: template,
     templateFileName: templateFileName,
-    templatePath: `templates/${templateFileName}`,
-    fullTemplatePath: fullTemplatePath,
-    docName: DOC.Name
+
+    // ===== 原始详细数据 =====
+    styleDetails: styleDetails,
+
+    // ===== 兼容旧格式 =====
+    message: `已提取${template.styles.length}种样式`,
+    template: template
   }, null, 2);
 
 })();

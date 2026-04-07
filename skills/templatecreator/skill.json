@@ -9,5 +9,6 @@
     "scripts/apply-template.js",
     "scripts/list-templates.js"
   ],
-  "snapshot": "before_task"
+  "snapshot": "before_task",
+  "source": "server"
 }

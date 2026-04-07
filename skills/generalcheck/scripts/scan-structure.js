@@ -82,7 +82,9 @@ try {
     return parts.join('.');
   }
 
-  var totalParas = doc.Paragraphs.Count;
+  var docText = doc.Content && doc.Content.Text ? String(doc.Content.Text) : '';
+  var paras = docText.split('\r');
+  var totalParas = paras.length;
   console.log('[scan] 开始规划，总段落数: ' + totalParas + ', scope=' + scopeType);
 
   var plans = [];
@@ -149,13 +151,16 @@ try {
     appendixFormulaCounter = 0;
   }
 
-  for (var i = 1; i <= totalParas; i++) {
-    var para = doc.Paragraphs.Item(i);
-    var text = cleanText(para.Range.Text);
-    if (!text) continue;
+  // 辅助函数：检查是否是中文标题（排除表格中的数字+单位格式）
+  function isChineseTitle(str) {
+    if (!str) return false;
+    // 标题必须以中文字符开头
+    return /^[\u4e00-\u9fa5]/.test(str);
+  }
 
-    // 跳过表格内的段落（标题不可能在表格内）
-    if (para.Range.Tables.Count > 0) continue;
+  for (var i = 0; i < totalParas; i++) {
+    var text = cleanText(paras[i]);
+    if (!text) continue;
 
     var appendixMatch = text.match(/^附\s*录\s*([A-Z一二三四五六七八九十]?)[\s　]*(.*)$/i);
     if (appendixMatch && appendixMatch[1]) {
@@ -190,9 +195,9 @@ try {
     }
 
     // 识别数字格式的一级标题：如 "3 系统范围"、"5 系统设计"
-    // 特征：单个数字开头，后面是空格和标题文字（不含点号）
+    // 特征：单个数字开头，后面是空格和中文标题
     var m1num = text.match(/^(\d+)\s+([^\d\s].*)$/);
-    if (m1num && !text.match(/^\d+\.\d/)) {
+    if (m1num && !text.match(/^\d+\.\d/) && isChineseTitle(m1num[2])) {
       // 这是数字格式的一级标题
       var detectedChapter = parseInt(m1num[1], 10);
       if (detectedChapter > 0) {
@@ -289,7 +294,7 @@ try {
     }
 
     var m2 = text.match(/^(\d+)\.(\d+)\s+(.+)$/);
-    if (m2 && text.indexOf('表') !== 0 && text.indexOf('图') !== 0) {
+    if (m2 && text.indexOf('表') !== 0 && text.indexOf('图') !== 0 && isChineseTitle(m2[3])) {
       if (expectedChapter <= 0) {
         expectedChapter = 1;
         currentChapter = 1;
@@ -305,7 +310,7 @@ try {
     }
 
     var m3 = text.match(/^(\d+)\.(\d+)\.(\d+)\s+(.+)$/);
-    if (m3) {
+    if (m3 && isChineseTitle(m3[4])) {
       if (expectedChapter <= 0) {
         expectedChapter = 1;
         currentChapter = 1;
@@ -325,7 +330,7 @@ try {
     }
 
     var m4 = text.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)\s+(.+)$/);
-    if (m4) {
+    if (m4 && isChineseTitle(m4[5])) {
       if (expectedChapter <= 0) {
         expectedChapter = 1;
         currentChapter = 1;
@@ -349,7 +354,7 @@ try {
     }
 
     var m5 = text.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)\.(\d+)\s+(.+)$/);
-    if (m5) {
+    if (m5 && isChineseTitle(m5[6])) {
       if (expectedChapter <= 0) {
         expectedChapter = 1;
         currentChapter = 1;

@@ -1,10 +1,20 @@
 {
   "conversations": [
     {
+      "id": "1775577044632_uivvjn",
+      "title": "提取样式",
+      "createdAt": 1775577044632,
+      "updatedAt": 1775577062523,
+      "messageCount": 8,
+      "pinned": false,
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/模版生成/样式提取.docx",
+      "documentName": "样式提取.docx"
+    },
+    {
       "id": "1775576903470_psb2c2",
       "title": "generalcheck：校对文档中的标题编号。检查一级标题",
       "createdAt": 1775576903470,
-      "updatedAt": 1775576903470,
+      "updatedAt": 1775577041127,
       "messageCount": 0,
       "pinned": false,
       "skillName": "generalcheck",

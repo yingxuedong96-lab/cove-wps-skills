@@ -304,15 +304,63 @@
 
   // 保存模板
   const templateFileName = `模板_${docType}_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.json`;
+  const skillPath = Application.Env?.SkillPath || '';
+  const fullTemplatePath = skillPath ? `${skillPath}/templates/${templateFileName}` : `templates/${templateFileName}`;
+
+  // 生成详细参数描述
+  function formatStyleDetail(style) {
+    const fmt = style.format;
+    const alignMap = { 0: "左对齐", 1: "居中", 2: "右对齐", 3: "两端对齐" };
+    const lineRuleMap = { 0: "单倍行距", 1: "最小值", 4: "固定值" };
+
+    const parts = [];
+    if (fmt.fontCN) parts.push(`字体: ${fmt.fontCN}`);
+    if (fmt.fontSize) parts.push(`字号: ${fmt.fontSize}pt`);
+    if (fmt.bold) parts.push("加粗");
+    if (fmt.italic) parts.push("斜体");
+    if (fmt.alignment !== undefined) parts.push(`对齐: ${alignMap[fmt.alignment] || '未知'}`);
+    if (fmt.firstLineIndent) parts.push(`首行缩进: ${fmt.firstLineIndent.toFixed(1)}字符`);
+    if (fmt.leftIndent) parts.push(`左缩进: ${fmt.leftIndent.toFixed(1)}字符`);
+    if (fmt.lineSpacing) parts.push(`行距: ${fmt.lineSpacing.toFixed(1)}pt`);
+    if (fmt.lineSpacingRule !== undefined) parts.push(`行距规则: ${lineRuleMap[fmt.lineSpacingRule] || '自动'}`);
+    if (fmt.spaceBefore) parts.push(`段前: ${fmt.spaceBefore.toFixed(1)}pt`);
+    if (fmt.spaceAfter) parts.push(`段后: ${fmt.spaceAfter.toFixed(1)}pt`);
+
+    return parts.join(" | ");
+  }
+
+  // 生成每种样式的详细信息
+  const styleDetails = template.styles.map(s => ({
+    name: s.name,
+    count: s.count,
+    params: formatStyleDetail(s),
+    samples: s.samples || []
+  }));
+
+  // 页面设置信息
+  const pageSetupInfo = {
+    paperSize: "A4",
+    topMargin: `${template.pageSetup.topMargin.toFixed(2)}cm`,
+    bottomMargin: `${template.pageSetup.bottomMargin.toFixed(2)}cm`,
+    leftMargin: `${template.pageSetup.leftMargin.toFixed(2)}cm`,
+    rightMargin: `${template.pageSetup.rightMargin.toFixed(2)}cm`
+  };
 
   return JSON.stringify({
     success: true,
     template: template,
-    matchedStyles: template.styles.map(s => `${s.name}(${s.count}处)`).join(", "),
+    // 详细展示信息
+    styleDetails: styleDetails,
+    pageSetupInfo: pageSetupInfo,
+    // 汇总信息
+    totalStyles: template.styles.length,
+    totalParagraphs: paragraphs.Count,
     unmatchedCount: results.unmatched.length,
-    message: `已提取${template.styles.length}种样式，共${paragraphs.Count}个段落`,
+    // 路径信息
+    templateFileName: templateFileName,
     templatePath: `templates/${templateFileName}`,
-    note: "模板已生成，可使用apply-template应用"
+    fullTemplatePath: fullTemplatePath,
+    docName: DOC.Name
   }, null, 2);
 
 })();

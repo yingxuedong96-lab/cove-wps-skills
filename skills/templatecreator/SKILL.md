@@ -101,7 +101,7 @@ filePath: skills/templatecreator/scripts/extract-template.js
 params: {"docType": "论文", "searchFormat": "22pt黑体加粗居中"}
 ```
 
-#### 步骤5：生成模板
+#### 步骤5：生成模板并展示结果
 
 用户确认后：
 
@@ -115,12 +115,71 @@ params: {"docType": "论文", "confirmMapping": {"22pt黑体加粗居中": "docT
 ```json
 {
   "success": true,
-  "template": {...},
-  "matchedStyles": "主标题(1处), 一级标题(5处), 正文(150处)",
-  "message": "已提取10种样式",
-  "templatePath": "templates/模板_paper_20260407.json"
+  "styleDetails": [
+    {
+      "name": "论文标题",
+      "count": 1,
+      "params": "字体: 黑体 | 字号: 22pt | 加粗 | 对齐: 居中"
+    },
+    {
+      "name": "一级标题",
+      "count": 5,
+      "params": "字体: 黑体 | 字号: 16pt | 加粗 | 对齐: 左对齐"
+    },
+    {
+      "name": "正文",
+      "count": 150,
+      "params": "字体: 宋体 | 字号: 12pt | 对齐: 两端对齐 | 首行缩进: 2.0字符 | 行距: 22.0pt"
+    }
+  ],
+  "pageSetupInfo": {
+    "paperSize": "A4",
+    "topMargin": "2.54cm",
+    "bottomMargin": "2.54cm",
+    "leftMargin": "3.17cm",
+    "rightMargin": "3.17cm"
+  },
+  "totalStyles": 10,
+  "totalParagraphs": 200,
+  "templateFileName": "模板_paper_20260407.json",
+  "templatePath": "templates/模板_paper_20260407.json",
+  "fullTemplatePath": "/Users/.../skills/templatecreator/templates/模板_paper_20260407.json",
+  "docName": "样式提取.docx"
 }
 ```
+
+**展示格式要求：**
+
+收到上述返回后，**必须按以下格式展示给用户**：
+
+```
+✅ 样式模板提取完成！
+
+📄 源文档：样式提取.docx
+📁 模板保存位置：/Users/.../skills/templatecreator/templates/模板_paper_20260407.json
+
+📋 提取结果（共10种样式，200个段落）：
+
+| 样式名称 | 出现次数 | 详细参数 |
+|---------|---------|---------|
+| 论文标题 | 1处 | 字体: 黑体 \| 字号: 22pt \| 加粗 \| 对齐: 居中 |
+| 一级标题 | 5处 | 字体: 黑体 \| 字号: 16pt \| 加粗 \| 对齐: 左对齐 |
+| 二级标题 | 8处 | 字体: 黑体 \| 字号: 15pt \| 加粗 \| 对齐: 左对齐 |
+| 正文 | 150处 | 字体: 宋体 \| 字号: 12pt \| 对齐: 两端对齐 \| 首行缩进: 2.0字符 \| 行距: 22.0pt |
+| 图名 | 6处 | 字体: 黑体 \| 字号: 9pt \| 对齐: 居中 |
+| ... | ... | ... |
+
+📐 页面设置：
+- 纸张大小：A4
+- 上边距：2.54cm | 下边距：2.54cm
+- 左边距：3.17cm | 右边距：3.17cm
+
+💡 后续操作：
+- 使用"应用模板"可将此模板应用到其他文档
+- 模板文件：模板_paper_20260407.json
+```
+
+**注意：必须展示 styleDetails 中的 params 字段，让用户看到每种样式的具体参数！**
 
 ---
 
@@ -239,6 +298,30 @@ params: {"templateName": "中航机载报告模板"}
 
 **你**：[executeFile: extract-template.js, params: {docType: "论文", confirmMapping: {"22pt黑体加粗居中": "docTitle"}}]
 
-**返回**：`{"success": true, "message": "已提取10种样式"}`
+**返回**：
+```json
+{
+  "success": true,
+  "styleDetails": [...],
+  "pageSetupInfo": {...},
+  "templateFileName": "模板_paper_20260407.json",
+  "fullTemplatePath": "/Users/.../skills/templatecreator/templates/模板_paper_20260407.json"
+}
+```
 
-**你**：样式模板已提取完成！包含：论文标题(1处)、一级标题(5处)、正文(150处)等。模板保存在 templates/模板_paper_20260407.json
+**你**：（按格式展示）
+✅ 样式模板提取完成！
+
+📄 源文档：样式提取.docx
+📁 模板保存位置：/Users/.../skills/templatecreator/templates/模板_paper_20260407.json
+
+📋 提取结果（共10种样式）：
+
+| 样式名称 | 出现次数 | 详细参数 |
+|---------|---------|---------|
+| 论文标题 | 1处 | 字体: 黑体 \| 字号: 22pt \| 加粗 \| 对齐: 居中 |
+| 一级标题 | 5处 | 字体: 黑体 \| 字号: 16pt \| 加粗 \| 对齐: 左对齐 |
+| 正文 | 150处 | 字体: 宋体 \| 字号: 12pt \| 对齐: 两端对齐 \| 首行缩进: 2.0字符 \| 行距: 22.0pt |
+| ... | ... | ... |
+
+📐 页面设置：A4纸张，边距 上下2.54cm 左右3.17cm

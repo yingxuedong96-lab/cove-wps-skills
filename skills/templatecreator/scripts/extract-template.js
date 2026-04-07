@@ -14,42 +14,67 @@
     return JSON.stringify({ success: false, error: "没有打开的文档" });
   }
 
-  // 加载样式规范表（如果在WPS环境中）
-  // 这里直接内嵌简化版，实际可从style-spec-table.js加载
+  // 样式规范表 - 完整版，与样式元素规范表.md保持一致
+  // 注意：检测顺序很重要，长的模式要放在前面（如五级标题在四级标题前面）
   const STYLE_SPEC = {
     paper: {
       name: "论文报告样式",
       tags: [
-        { id: "docTitle", name: "论文标题", detectPattern: null, detectHint: "文档首段，字号最大居中" },
-        { id: "heading1", name: "一级标题", detectPattern: "^\\d+\\s", detectHint: "如'1 引言'" },
-        { id: "heading2", name: "二级标题", detectPattern: "^\\d+\\.\\d+\\s", detectHint: "如'1.1 背景'" },
-        { id: "heading3", name: "三级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+\\s", detectHint: "如'1.1.1'" },
-        { id: "heading4", name: "四级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+\\.\\d+\\s", detectHint: "如'1.1.1.1'" },
+        // 标题类（按层级从深到浅排列，确保长编号先匹配）
         { id: "heading5", name: "五级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+\\.\\d+\\.\\d+\\s", detectHint: "如'1.1.1.1.1'" },
-        { id: "body", name: "正文", detectPattern: "default", detectHint: "默认类型" },
-        { id: "figureCaption", name: "图名", detectPattern: "^图\\s*\\d+", detectHint: "'图'开头" },
-        { id: "tableCaption", name: "表名", detectPattern: "^表\\s*\\d+", detectHint: "'表'开头" },
-        { id: "listItem", name: "列表项", detectPattern: null, detectHint: "列表符号" },
-        { id: "reference", name: "参考文献", detectPattern: "^\\[\\d+\\]|^\\d+\\.\\s+.+", detectHint: "文献编号" },
-        { id: "referenceTitle", name: "参考文献标题", detectPattern: "^参考文献", detectHint: "'参考文献'" },
+        { id: "heading4", name: "四级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+\\.\\d+\\s", detectHint: "如'1.1.1.1'" },
+        { id: "heading3", name: "三级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+\\s", detectHint: "如'1.1.1'" },
+        { id: "heading2", name: "二级标题", detectPattern: "^\\d+\\.\\d+\\s", detectHint: "如'1.1 背景'" },
+        { id: "heading1", name: "一级标题", detectPattern: "^\\d+\\s+[^\d\\.]", detectHint: "如'1 范围'（数字后直接跟汉字）" },
+        { id: "chapterTitle", name: "章标题", detectPattern: "^第[一二三四五六七八九十\\d]+章", detectHint: "如'第一章 范围'" },
+
+        // 标题/前置部分
+        { id: "docTitle", name: "论文标题", detectPattern: null, detectHint: "文档首段，字号最大居中" },
         { id: "abstractTitle", name: "摘要标题", detectPattern: "^摘要|^Abstract", detectHint: "'摘要'" },
         { id: "keywords", name: "关键词", detectPattern: "^关键词|^Keywords", detectHint: "'关键词'" },
-        { id: "appendixTitle", name: "附录标题", detectPattern: "^附录", detectHint: "'附录'" },
-        { id: "appendixSection", name: "附录节题", detectPattern: "^[A-Z]\\.[A-Z]?\\s", detectHint: "如'A.1'" }
+        { id: "tocTitle", name: "目录标题", detectPattern: "^目\\s*录$|^目次$", detectHint: "'目录'" },
+
+        // 正文类
+        { id: "body", name: "正文", detectPattern: "default", detectHint: "默认类型" },
+        { id: "listItem", name: "列表项", detectPattern: "^\\s*[a-z]\\)|^\\s*\\d+\\)|^[①②③④⑤⑥⑦⑧⑨⑩]", detectHint: "如'a)'、'1)'、'①'" },
+
+        // 图表公式
+        { id: "figureCaption", name: "图名", detectPattern: "^图\\s*\\d+", detectHint: "'图'开头" },
+        { id: "tableCaption", name: "表名", detectPattern: "^表\\s*\\d+", detectHint: "'表'开头" },
+
+        // 附录/参考文献
+        { id: "appendixTitle", name: "附录标题", detectPattern: "^附录\\s*[A-Z]?", detectHint: "'附录'或'附录A'" },
+        { id: "appendixSection", name: "附录节题", detectPattern: "^[A-Z]\\.\\d+\\s", detectHint: "如'A.1 详细说明'" },
+        { id: "referenceTitle", name: "参考文献标题", detectPattern: "^参考文献", detectHint: "'参考文献'" },
+        { id: "reference", name: "参考文献条目", detectPattern: "^\\[\\d+\\]", detectHint: "如'[1]'" },
+
+        // 注释
+        { id: "note", name: "注释说明", detectPattern: "^注\\s*\\d*", detectHint: "'注'开头" }
       ]
     },
     official: {
       name: "公文样式",
       tags: [
-        { id: "docTitle", name: "公文标题", detectPattern: null, detectHint: "主标题居中大字" },
+        // 版头
+        { id: "issuer", name: "发文机关标志", detectPattern: null, detectHint: "如'XX市人民政府文件'" },
         { id: "docNumber", name: "发文字号", detectPattern: "[\\d]{4}[\\d号]|〔[\\d]{4}〕[\\d号]", detectHint: "如'国发〔2024〕1号'" },
-        { id: "issuer", name: "发文机关", detectPattern: null, detectHint: "发文单位名称" },
-        { id: "heading1", name: "一级标题", detectPattern: "^一、|^二、|^三、|^四、|^五、", detectHint: "汉字数字加顿号" },
-        { id: "heading2", name: "二级标题", detectPattern: "^\\(一\\)|^\\(二\\)|^\\(三\\)|^\\(四\\)|^\\(五\\)", detectHint: "括号加汉字数字" },
-        { id: "heading3", name: "三级标题", detectPattern: "^\\d+\\.\\s", detectHint: "阿拉伯数字加点" },
+
+        // 标题
+        { id: "docTitle", name: "公文标题", detectPattern: null, detectHint: "主标题居中大字" },
+        { id: "heading1", name: "一级标题", detectPattern: "^[一二三四五六七八九十]+、", detectHint: "如'一、'" },
+        { id: "heading2", name: "二级标题", detectPattern: "^\\([一二三四五六七八九十]+\\)", detectHint: "如'(一)'" },
+        { id: "heading3", name: "三级标题", detectPattern: "^\\d+\\.\\s", detectHint: "如'1.'" },
+
+        // 正文
         { id: "body", name: "正文", detectPattern: "default", detectHint: "默认类型" },
+
+        // 结尾
         { id: "attachment", name: "附件说明", detectPattern: "^附件", detectHint: "'附件'开头" },
-        { id: "signature", name: "落款", detectPattern: null, detectHint: "右下方署名日期" }
+        { id: "signature", name: "发文机关署名", detectPattern: null, detectHint: "落款单位" },
+        { id: "signDate", name: "成文日期", detectPattern: "\\d{4}年\\d{1,2}月\\d{1,2}日", detectHint: "如'2024年1月1日'" },
+
+        // 版记
+        { id: "copySender", name: "抄送机关", detectPattern: "^抄送", detectHint: "'抄送'开头" }
       ]
     }
   };

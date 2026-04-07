@@ -35,24 +35,17 @@ try {
     var text = cleanText(paras[i]);
     if (!text) continue;
 
-    // 检测附录（支持字母和中文数字）
+    // 检测附录（统一转换为字母格式）
     var appMatch = text.match(/^附\s*录\s*([A-Z一二三四五六七八九十]+)[\s　]*(.*)$/i);
     if (appMatch) {
       inAppendix = true;
       appState.l1 = 0;
       appState.l2 = 0;
       appState.l3 = 0;
-      // 按出现顺序重排
+      // 统一使用字母，按出现顺序排列
       appState.letterIndex++;
-      var newLetter = '';
-      if (/[A-Z]/.test(appMatch[1])) {
-        // 原文是字母，按顺序重排字母
-        var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        newLetter = letters.charAt((appState.letterIndex - 1) % 26);
-      } else {
-        // 原文是中文数字，按顺序重排中文数字
-        newLetter = num2cn[appState.letterIndex] || appState.letterIndex;
-      }
+      var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      var newLetter = letters.charAt((appState.letterIndex - 1) % 26);
       appState.letter = newLetter;
       counts.headings++;
       var newText = '附录' + newLetter + (appMatch[2] ? ' ' + appMatch[2] : '');

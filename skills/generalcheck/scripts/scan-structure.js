@@ -158,7 +158,7 @@ try {
     var text = cleanText(paras[i]);
     if (!text) continue;
 
-    var appendixMatch = text.match(/^附录\s*([A-Z一二三四五六七八九十]?)[\s　]*(.*)$/i);
+    var appendixMatch = text.match(/^附\s*录\s*([A-Z一二三四五六七八九十]?)[\s　]*(.*)$/i);
     if (appendixMatch && appendixMatch[1]) {
       appendixIndex++;
       currentAppendix = appendixLetterFromIndex(appendixIndex);
@@ -219,8 +219,9 @@ try {
     }
 
     if (inAppendix) {
-      var appM1 = text.match(/^(?:[A-Z])?(\d+)\s+(.+)$/);
-      if (appM1 && text.indexOf('表') !== 0 && text.indexOf('图') !== 0) {
+      // 支持两种格式：A1 标题 或 A.1 标题
+      var appM1 = text.match(/^(?:[A-Z]\.?)?(\d+)\s+([^\d].*)$/);
+      if (appM1 && text.indexOf('表') !== 0 && text.indexOf('图') !== 0 && isChineseTitle(appM1[2])) {
         appendixTitle1++;
         appendixTitle2 = 0;
         appendixTitle3 = 0;
@@ -231,8 +232,8 @@ try {
         continue;
       }
 
-      var appM2 = text.match(/^(?:[A-Z])?(\d+)\.(\d+)\s+(.+)$/);
-      if (appM2 && text.indexOf('表') !== 0 && text.indexOf('图') !== 0) {
+      var appM2 = text.match(/^(?:[A-Z]\.?)?(\d+)\.(\d+)\s+(.+)$/);
+      if (appM2 && text.indexOf('表') !== 0 && text.indexOf('图') !== 0 && isChineseTitle(appM2[3])) {
         if (appendixTitle1 <= 0) appendixTitle1 = 1;
         appendixTitle2++;
         appendixTitle3 = 0;
@@ -243,8 +244,8 @@ try {
         continue;
       }
 
-      var appM3 = text.match(/^(?:[A-Z])?(\d+)\.(\d+)\.(\d+)\s+(.+)$/);
-      if (appM3) {
+      var appM3 = text.match(/^(?:[A-Z]\.?)?(\d+)\.(\d+)\.(\d+)\s+(.+)$/);
+      if (appM3 && isChineseTitle(appM3[4])) {
         if (appendixTitle1 <= 0) appendixTitle1 = 1;
         if (appendixTitle2 <= 0) appendixTitle2 = 1;
         appendixTitle3++;

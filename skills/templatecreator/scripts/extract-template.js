@@ -1,6 +1,6 @@
 /**
  * extract-template.js - 使用样式规范表进行结构化提取
- * 版本: 26.0408.1220 - 基础版本测试
+ * 版本: 26.0408.1230 - 添加段落文本调试日志
  *
  * 流程：
  * 1. 用户选择文档类型（公文/论文）
@@ -10,7 +10,7 @@
  */
 
 (function() {
-  const SCRIPT_VERSION = "26.0408.1220";
+  const SCRIPT_VERSION = "26.0408.1230";
   console.log("[extract-template] 脚本版本: " + SCRIPT_VERSION);
 
   const DOC = Application.ActiveDocument;
@@ -202,6 +202,11 @@
     const para = paragraphs.Item(i);
     const text = para.Range.Text.trim();
     if (!text) continue;
+
+    // 调试：打印前15个段落的原始文本
+    if (i <= 15) {
+      console.log("[段落" + i + "] " + text.substring(0, 40));
+    }
 
     const fmt = extractParaFormat(para);
     const sig = formatSignature(fmt);

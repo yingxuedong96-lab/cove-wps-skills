@@ -40,7 +40,6 @@
 
         // 正文类
         { id: "body", name: "正文", detectPattern: "default", detectHint: "默认类型" },
-        { id: "listItem", name: "列表项", detectPattern: "^\\s*[a-z]\\)|^\\s*\\d+\\)|^[①②③④⑤⑥⑦⑧⑨⑩]", detectHint: "如'a)'、'1)'、'①'" },
 
         // 图表公式
         { id: "figureCaption", name: "图名", detectPattern: "^图\\s*\\d+", detectHint: "'图'开头" },

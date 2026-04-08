@@ -29,43 +29,12 @@ try {
   // 解析中文字号
   function parseFontSize(sizeText) {
     if (!sizeText) return 0;
-    var s = sizeText.replace(/\s/g, '').replace(/号$/, '');  // 去掉末尾的'号'
+    var s = sizeText.replace(/\s/g, '');
     if (FONT_SIZE_MAP[s]) return FONT_SIZE_MAP[s];
     // 尝试直接数字
     var num = parseFloat(s);
     if (num > 0) return num;
     return 0;
-  }
-
-  // 从文本中解析格式（如"黑体五号居中" → {fontCN:'黑体', fontSize:10.5, alignment:1}）
-  function parseFormatFromText(text) {
-    var result = {};
-    text = text || '';
-
-    // 字体
-    if (text.indexOf('黑体') !== -1) result.fontCN = '黑体';
-    else if (text.indexOf('宋体') !== -1) result.fontCN = '宋体';
-    else if (text.indexOf('楷体') !== -1) result.fontCN = '楷体';
-    else if (text.indexOf('仿宋') !== -1) result.fontCN = '仿宋';
-
-    // 字号
-    for (var sizeName in FONT_SIZE_MAP) {
-      if (text.indexOf(sizeName) !== -1) {
-        result.fontSize = FONT_SIZE_MAP[sizeName];
-        break;
-      }
-    }
-
-    // 对齐
-    if (text.indexOf('居中') !== -1) result.alignment = 1;
-    else if (text.indexOf('靠右') !== -1 || text.indexOf('右对齐') !== -1) result.alignment = 2;
-    else if (text.indexOf('靠左') !== -1 || text.indexOf('左对齐') !== -1) result.alignment = 0;
-    else if (text.indexOf('两端对齐') !== -1) result.alignment = 3;
-
-    // 加粗
-    if (text.indexOf('加粗') !== -1) result.bold = true;
-
-    return result;
   }
 
   // 解析配置
@@ -88,9 +57,7 @@ try {
     body: ['正文', '正文格式', '段落格式', '正文内容', '文本内容', 'content'],
     tableCaption: ['表名', '表格名', '表标题', '表号', '表格标题', 'table'],
     figureCaption: ['图名', '图片名', '图标题', '图号', '图片标题', '插图名', 'figure'],
-    ref: ['参考文献', '引用文献', 'reference'],
-    tableHeader: ['表头', '表格表头', '表格标题行'],
-    tableContent: ['表格内容', '表内容', '表格正文', '表格数据']
+    ref: ['参考文献', '引用文献', 'reference']
   };
 
   var specText = configData.specText || '';
@@ -173,37 +140,6 @@ try {
   }
 
   rules = filteredRules;
-
-  // 自动补全缺失的类型配置（在 rules 赋值后执行）
-  if (missingTypes.length > 0) {
-    for (var mi = 0; mi < missingTypes.length; mi++) {
-      var missingType = missingTypes[mi];
-      // 表头
-      if (missingType === 'tableHeader' && specText.indexOf('表头') !== -1) {
-        var headerMatch = specText.match(/表头用([^。，]+)/);
-        if (headerMatch) {
-          rules.tableHeader = parseFormatFromText(headerMatch[1]);
-          console.log('[format] 自动补全 tableHeader: ' + JSON.stringify(rules.tableHeader));
-        }
-      }
-      // 表格内容
-      if (missingType === 'tableContent' && specText.indexOf('表格内容') !== -1) {
-        var contentMatch = specText.match(/表格内容用([^。，]+)/);
-        if (contentMatch) {
-          rules.tableContent = parseFormatFromText(contentMatch[1]);
-          console.log('[format] 自动补全 tableContent: ' + JSON.stringify(rules.tableContent));
-        }
-      }
-      // 一级标题/章标题
-      if (missingType === 'zhangTitle') {
-        var zhangMatch = specText.match(/一级标题用([^。，]+)/) || specText.match(/章标题用([^。，]+)/);
-        if (zhangMatch) {
-          rules.zhangTitle = parseFormatFromText(zhangMatch[1]);
-          console.log('[format] 自动补全 zhangTitle: ' + JSON.stringify(rules.zhangTitle));
-        }
-      }
-    }
-  }
 
   // 修正编号正则
   for (var key in patterns) {
@@ -352,6 +288,13 @@ try {
       }
     }
     if (inRef) return 'ref';
+
+    // 列表项检测：(1)《书名》或 (1)标准编号 格式 → 正文，不是标题
+    var listMatch = text.match(/^[（(](\d+)[）)]\s*[《(A-Z]/);
+    if (listMatch) {
+      // (1)《...》 或 (1)GB... 或 (1)DL... 等是列表项
+      return 'body';
+    }
 
     for (var i = 0; i < compiled.tableCaption.length; i++) {
       if (compiled.tableCaption[i].test(text)) return 'tableCaption';
@@ -644,7 +587,7 @@ try {
     }
 
     // ========================================
-    // 表格处理（等宽、跨页重复表头、表头格式、表格内容格式）
+    // 表格处理（等宽、跨页重复表头）
     // ========================================
     // 从 specText 自动识别表格规则
     if (specTextLower.indexOf('表格等宽') !== -1 || specTextLower.indexOf('与页面等宽') !== -1 || elementSettings.tableFullWidth) {
@@ -656,64 +599,10 @@ try {
       console.log('[format] 启用跨页重复表头');
     }
 
-    // 检查是否有表格内部格式规则
-    var hasTableFormat = rules.tableHeader || rules.tableContent;
-
-    if (elementSettings.tableFullWidth || elementSettings.tableHeadingRepeat || hasTableFormat) {
+    if (elementSettings.tableFullWidth || elementSettings.tableHeadingRepeat) {
       try {
         var tableCount = doc.Tables ? doc.Tables.Count : 0;
         var tablesProcessed = 0;
-
-        // ========================================
-        // 高效表格字体设置：使用临时样式批量应用
-        // ========================================
-        var tableContentStyleName = '';
-        var tableHeaderStyleName = '';
-
-        // 如果需要设置表格字体，创建临时样式
-        if (rules.tableContent && (rules.tableContent.fontCN || rules.tableContent.fontSize || rules.tableContent.bold !== undefined)) {
-          tableContentStyleName = 'TempTableContent_' + Date.now();
-          try {
-            // 创建新样式
-            var newStyle = doc.Styles.Add(tableContentStyleName, 1); // 1 = wdStyleTypeParagraph
-            if (newStyle) {
-              var sf = newStyle.Font;
-              sf.NameFarEast = rules.tableContent.fontCN || fontDefaults.fontCN || '宋体';
-              sf.Name = rules.tableContent.fontEN || fontDefaults.fontEN || 'Times New Roman';
-              if (rules.tableContent.fontSize !== undefined) sf.Size = rules.tableContent.fontSize;
-              sf.Bold = (rules.tableContent.bold === true) ? -1 : 0;
-              // 设置段落格式
-              var spf = newStyle.ParagraphFormat;
-              if (rules.tableContent.alignment !== undefined) spf.Alignment = rules.tableContent.alignment;
-              spf.FirstLineIndent = 0;
-              console.log('[format] 创建表格内容样式: ' + tableContentStyleName);
-            }
-          } catch (e) {
-            console.log('[format] 创建样式失败，降级为直接设置: ' + e);
-            tableContentStyleName = ''; // 失败时清空，改用直接设置
-          }
-        }
-
-        if (rules.tableHeader && (rules.tableHeader.fontCN || rules.tableHeader.fontSize || rules.tableHeader.bold !== undefined)) {
-          tableHeaderStyleName = 'TempTableHeader_' + Date.now();
-          try {
-            var headerStyle = doc.Styles.Add(tableHeaderStyleName, 1);
-            if (headerStyle) {
-              var hsf = headerStyle.Font;
-              hsf.NameFarEast = rules.tableHeader.fontCN || fontDefaults.fontCN || '宋体';
-              hsf.Name = rules.tableHeader.fontEN || fontDefaults.fontEN || 'Times New Roman';
-              if (rules.tableHeader.fontSize !== undefined) hsf.Size = rules.tableHeader.fontSize;
-              hsf.Bold = (rules.tableHeader.bold === true) ? -1 : 0;
-              var hspf = headerStyle.ParagraphFormat;
-              if (rules.tableHeader.alignment !== undefined) hspf.Alignment = rules.tableHeader.alignment;
-              hspf.FirstLineIndent = 0;
-              console.log('[format] 创建表格表头样式: ' + tableHeaderStyleName);
-            }
-          } catch (e) {
-            console.log('[format] 创建表头样式失败: ' + e);
-            tableHeaderStyleName = '';
-          }
-        }
 
         for (var tblIdx = 1; tblIdx <= tableCount; tblIdx++) {
           try {
@@ -723,8 +612,9 @@ try {
             // 表格等宽：设置为页面宽度
             if (elementSettings.tableFullWidth) {
               try {
-                var pageWidth = 595;  // A4默认：210mm = 595磅
-                var leftMargin = 72;   // 默认边距：25.4mm = 72磅
+                // 获取页面宽度（从第一个节）
+                var pageWidth = 595;  // 默认A4宽度约595磅（210mm）
+                var leftMargin = 72;   // 默认左右边距各72磅（25.4mm）
                 var rightMargin = 72;
                 try {
                   var section = doc.Sections.Item(1);
@@ -732,66 +622,53 @@ try {
                     pageWidth = section.PageSetup.PageWidth;
                     leftMargin = section.PageSetup.LeftMargin;
                     rightMargin = section.PageSetup.RightMargin;
-                    console.log('[format] 页面尺寸: 宽=' + pageWidth + ' 左边距=' + leftMargin + ' 右边距=' + rightMargin);
                   }
                 } catch (e) {}
+
                 var usableWidth = pageWidth - leftMargin - rightMargin;
-                console.log('[format] 表格可用宽度: ' + usableWidth + '磅');
-                try { table.PreferredWidthType = 3; } catch (e1) {}  // 3 = wdPreferredWidthPoints（磅值）
-                try { table.PreferredWidth = usableWidth; } catch (e2) {}
-                try { table.AllowAutoFit = false; } catch (e3) {}
-              } catch (e) {}
-            }
 
-            // 跨页重复表头
-            if (elementSettings.tableHeadingRepeat && table.Rows && table.Rows.Count > 0) {
-              try { table.Rows.Item(1).HeadingFormat = true; } catch (e) {}
-            }
+                // 尝试多种方式设置表格宽度
+                try {
+                  // 方法1: PreferredWidth
+                  table.PreferredWidthType = 2;  // wdPreferredWidthPoints = 磅值
+                  table.PreferredWidth = usableWidth;
+                } catch (e1) {}
 
-            // 表格内容：应用样式（批量，高效）
-            if (rules.tableContent && table.Range) {
-              try {
-                if (tableContentStyleName) {
-                  // 使用样式批量应用（最快）
-                  table.Range.Style = tableContentStyleName;
-                  applied++;
-                } else if (table.Range.ParagraphFormat) {
-                  // 无样式时只设置对齐
-                  if (rules.tableContent.alignment !== undefined) {
-                    table.Range.ParagraphFormat.Alignment = rules.tableContent.alignment;
+                try {
+                  // 方法2: 直接设置 Columns 宽度
+                  if (table.Columns) {
+                    var colCount = table.Columns.Count;
+                    var colWidth = usableWidth / colCount;
+                    for (var c = 1; c <= colCount; c++) {
+                      try {
+                        table.Columns.Item(c).Width = colWidth;
+                      } catch (e2) {}
+                    }
                   }
-                  table.Range.ParagraphFormat.FirstLineIndent = 0;
-                  applied++;
-                }
-              } catch (e) {}
+                } catch (e3) {}
+
+                try {
+                  // 方法3: 禁止自动调整
+                  table.AllowAutoFit = false;
+                } catch (e4) {}
+
+                console.log('[format] 表格' + tblIdx + '宽度设置为: ' + usableWidth + '磅');
+              } catch (e) {
+                console.log('[format] 表格宽度设置失败: ' + e);
+              }
             }
 
-            // 表头：应用样式
-            if (rules.tableHeader && table.Rows && table.Rows.Count > 0) {
+            // 跨页重复表头：设置首行 HeadingFormat
+            if (elementSettings.tableHeadingRepeat) {
               try {
-                var headerRow = table.Rows.Item(1);
-                if (headerRow.Range) {
-                  if (tableHeaderStyleName) {
-                    headerRow.Range.Style = tableHeaderStyleName;
-                    applied++;
-                  } else if (headerRow.Range.ParagraphFormat && rules.tableHeader.alignment !== undefined) {
-                    headerRow.Range.ParagraphFormat.Alignment = rules.tableHeader.alignment;
-                    applied++;
-                  }
+                if (table.Rows && table.Rows.Count > 0) {
+                  table.Rows.Item(1).HeadingFormat = true;
                 }
               } catch (e) {}
             }
 
             tablesProcessed++;
           } catch (e) {}
-        }
-
-        // 清理临时样式
-        if (tableContentStyleName) {
-          try { doc.Styles.Item(tableContentStyleName).Delete(); } catch (e) {}
-        }
-        if (tableHeaderStyleName) {
-          try { doc.Styles.Item(tableHeaderStyleName).Delete(); } catch (e) {}
         }
 
         if (tablesProcessed > 0) {
@@ -939,11 +816,9 @@ try {
         var hfFontEN = 'Arial';
         var hfFontSize = 9;  // 小五号
 
-        // 改进的正则：匹配"页眉页脚小五号"或"页眉页脚：小五号"等格式
-        var hfFontMatch = specTextLower.match(/页眉页脚[^号]*?(小?[一二三四五六七八九十初]+号)/);
+        var hfFontMatch = specTextLower.match(/页眉页脚[字号]?[：:]?\s*小?[一二三四五]号/);
         if (hfFontMatch) {
-          hfFontSize = parseFontSize(hfFontMatch[1]);
-          console.log('[format] 解析页眉页脚字号: ' + hfFontMatch[1] + ' → ' + hfFontSize + '磅');
+          hfFontSize = parseFontSize(hfFontMatch[0].replace(/页眉页脚[字号]?[：:]?\s*/, ''));
         }
 
         // 解析字体
@@ -1029,8 +904,7 @@ try {
     // ========================================
     // 页面设置处理
     // ========================================
-    if (specTextLower.indexOf('页边距') !== -1 || specTextLower.indexOf('纸张') !== -1 ||
-        specTextLower.indexOf('页眉距') !== -1 || specTextLower.indexOf('页脚距') !== -1) {
+    if (specTextLower.indexOf('页边距') !== -1 || specTextLower.indexOf('页眉距') !== -1 || specTextLower.indexOf('页脚距') !== -1) {
       console.log('[format] 启用页面设置');
       try {
         var pageSetupCount = 0;
@@ -1040,55 +914,15 @@ try {
           return cm * 72 / 2.54;
         }
 
-        // 解析页边距（支持多种格式）
+        // 解析页边距（支持cm和厘米两种格式）
         var topMargin = 0, bottomMargin = 0, leftMargin = 0, rightMargin = 0;
-
-        // 格式1：页边距上下2.5cm左右2.5cm（无逗号分隔）
-        var marginMatch1 = specTextLower.match(/页边距[：:]?\s*上下\s*([\d.]+)\s*(?:cm|厘米)\s*左右\s*([\d.]+)\s*(?:cm|厘米)?/);
-        if (marginMatch1) {
-          topMargin = cmToPoints(parseFloat(marginMatch1[1]));
+        var marginMatch = specTextLower.match(/页边距[：:]?\s*上下\s*([\d.]+)\s*(?:cm|厘米)\s*[，,、]\s*左右\s*([\d.]+)\s*(?:cm|厘米)/);
+        if (marginMatch) {
+          topMargin = cmToPoints(parseFloat(marginMatch[1]));
           bottomMargin = topMargin;
-          leftMargin = cmToPoints(parseFloat(marginMatch1[2]));
+          leftMargin = cmToPoints(parseFloat(marginMatch[2]));
           rightMargin = leftMargin;
-          console.log('[format] 页边距(格式1): 上下=' + marginMatch1[1] + 'cm, 左右=' + marginMatch1[2] + 'cm');
-        }
-
-        // 格式2：页边距上下2.5cm，左右2.5cm（有逗号分隔）
-        if (!marginMatch1) {
-          var marginMatch2 = specTextLower.match(/页边距[：:]?\s*上下\s*([\d.]+)\s*(?:cm|厘米)\s*[，,、]\s*左右\s*([\d.]+)\s*(?:cm|厘米)/);
-          if (marginMatch2) {
-            topMargin = cmToPoints(parseFloat(marginMatch2[1]));
-            bottomMargin = topMargin;
-            leftMargin = cmToPoints(parseFloat(marginMatch2[2]));
-            rightMargin = leftMargin;
-            console.log('[format] 页边距(格式2): 上下=' + marginMatch2[1] + 'cm, 左右=' + marginMatch2[2] + 'cm');
-          }
-        }
-
-        // 解析纸张大小
-        var pageWidth = 0, pageHeight = 0;
-        if (specTextLower.indexOf('a4') !== -1 || specTextLower.indexOf('a四') !== -1) {
-          pageWidth = cmToPoints(21);    // A4宽度21cm
-          pageHeight = cmToPoints(29.7); // A4高度29.7cm
-          console.log('[format] 纸张: A4 (210×297mm)');
-        } else if (specTextLower.indexOf('a3') !== -1) {
-          pageWidth = cmToPoints(29.7);
-          pageHeight = cmToPoints(42);
-          console.log('[format] 纸张: A3');
-        } else if (specTextLower.indexOf('b5') !== -1) {
-          pageWidth = cmToPoints(18.2);
-          pageHeight = cmToPoints(25.7);
-          console.log('[format] 纸张: B5');
-        }
-
-        // 解析纸张方向
-        var orientation = -1;  // -1=不修改, 0=纵向, 1=横向
-        if (specTextLower.indexOf('纵向') !== -1) {
-          orientation = 0;
-          console.log('[format] 方向: 纵向');
-        } else if (specTextLower.indexOf('横向') !== -1) {
-          orientation = 1;
-          console.log('[format] 方向: 横向');
+          console.log('[format] 页边距: 上下=' + marginMatch[1] + 'cm, 左右=' + marginMatch[2] + 'cm → ' + topMargin + '/' + leftMargin + '磅');
         }
 
         // 解析页眉页脚距边界（支持cm和厘米）
@@ -1113,9 +947,6 @@ try {
               if (bottomMargin > 0) ps.BottomMargin = bottomMargin;
               if (leftMargin > 0) ps.LeftMargin = leftMargin;
               if (rightMargin > 0) ps.RightMargin = rightMargin;
-              if (pageWidth > 0) ps.PageWidth = pageWidth;
-              if (pageHeight > 0) ps.PageHeight = pageHeight;
-              if (orientation >= 0) ps.Orientation = orientation;
               if (headerDist > 0) ps.HeaderDistance = headerDist;
               if (footerDist > 0) ps.FooterDistance = footerDist;
               pageSetupCount++;
@@ -1196,16 +1027,9 @@ try {
               // 注意：WPS JS API中页码通过PageNumbers对象设置
               var footers = sec.Footers;
               if (footers) {
-                // 处理主页脚
+                // 清除现有页码（主页脚）
                 var primaryFooter = footers.Item(1);  // wdHeaderFooterPrimary
                 if (primaryFooter) {
-                  // 先清除现有页脚内容（避免"第 页 共 页"冲突）
-                  try {
-                    if (primaryFooter.Range) {
-                      primaryFooter.Range.Delete();
-                    }
-                  } catch (e) {}
-
                   // 添加页码域
                   try {
                     var pn = primaryFooter.PageNumbers;
@@ -1214,11 +1038,22 @@ try {
                       pn.NumberStyle = pageNumStyle;
                       pn.Add(pageNumAlign);
                     }
-                  } catch (e) {
-                    console.log('[format] 节' + si + '页码添加失败: ' + e);
-                  }
+                  } catch (e) {}
 
-                  // 设置页码字体（使用前面解析好的字号）
+                  // 设置页码字体（如果指定了页眉页脚字体）
+                  var hfFontSize = 9;
+                  var hfFontCN = '宋体';
+                  var hfFontEN = 'Arial';
+
+                  var hfFontMatch = specTextLower.match(/页眉页脚[字号]?[：:]?\s*小?[一二三四五]号/);
+                  if (hfFontMatch) {
+                    hfFontSize = parseFontSize(hfFontMatch[0].replace(/页眉页脚[字号]?[：:]?\s*/, ''));
+                  }
+                  var cnFontMatch = specTextLower.match(/中文字体[为是]\s*([宋黑楷仿][体])/);
+                  if (cnFontMatch) hfFontCN = cnFontMatch[1];
+                  var enFontMatch = specTextLower.match(/西文字体[为是]\s*([A-Za-z\s]+)/);
+                  if (enFontMatch) hfFontEN = enFontMatch[1].trim();
+
                   try {
                     if (primaryFooter.Range && primaryFooter.Range.Font) {
                       primaryFooter.Range.Font.NameFarEast = hfFontCN;

@@ -6,14 +6,15 @@
     "timestamp": 1775641279576,
     "commandMeta": {
       "name": "应用模板"
-    }
+    },
+    "taskId": "task_1775641279579_u8c2y5"
   },
   {
     "id": "1775641279576_r6hmha9",
     "role": "assistant",
-    "content": "",
+    "content": "抱歉，我尝试了多次但未能成功完成操作。\n\n最后一次错误信息：[ExecutionError] artifact \"20260327-a3f8k2\" 不存在或已过期\n\n你可以尝试：\n- 换一种方式描述需求\n- 检查当前文档状态是否符合预期\n- 简化操作步骤后重试",
     "timestamp": 1775641279576,
-    "streaming": true
+    "streaming": false
   },
   {
     "id": "tool_1775641281996_byk6",
@@ -65,10 +66,9 @@
       "toolName": "confirmEdits",
       "input": {
         "mode": "format",
-        "summary": "格式修改已完成",
-        "reportSnapshot": {}
+        "summary": "格式修改已完成"
       },
-      "executing": true
+      "output": "[Error] bridge.invoke(\"edit:confirm\") 超时（120000ms），未收到响应"
     }
   }
 ]

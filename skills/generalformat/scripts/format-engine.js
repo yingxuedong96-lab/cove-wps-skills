@@ -664,27 +664,55 @@ try {
         var tableCount = doc.Tables ? doc.Tables.Count : 0;
         var tablesProcessed = 0;
 
-        // 辅助函数：对表格行应用格式（使用整行Range，快速）
-        function applyRuleToTableRow(row, rule) {
-          if (!row || !rule) return false;
+        // ========================================
+        // 高效表格字体设置：使用临时样式批量应用
+        // ========================================
+        var tableContentStyleName = '';
+        var tableHeaderStyleName = '';
+
+        // 如果需要设置表格字体，创建临时样式
+        if (rules.tableContent && (rules.tableContent.fontCN || rules.tableContent.fontSize || rules.tableContent.bold !== undefined)) {
+          tableContentStyleName = 'TempTableContent_' + Date.now();
           try {
-            // 使用整行Range快速设置
-            if (row.Range && row.Range.Font) {
-              var f = row.Range.Font;
-              if (rule.fontCN || fontDefaults.fontCN) f.NameFarEast = rule.fontCN || fontDefaults.fontCN;
-              if (rule.fontEN || fontDefaults.fontEN) f.Name = rule.fontEN || fontDefaults.fontEN;
-              if (rule.fontSize !== undefined) f.Size = rule.fontSize;
-              // 强制清除加粗（除非规则明确要求）
-              f.Bold = (rule.bold === true) ? -1 : 0;
+            // 创建新样式
+            var newStyle = doc.Styles.Add(tableContentStyleName, 1); // 1 = wdStyleTypeParagraph
+            if (newStyle) {
+              var sf = newStyle.Font;
+              sf.NameFarEast = rules.tableContent.fontCN || fontDefaults.fontCN || '宋体';
+              sf.Name = rules.tableContent.fontEN || fontDefaults.fontEN || 'Times New Roman';
+              if (rules.tableContent.fontSize !== undefined) sf.Size = rules.tableContent.fontSize;
+              sf.Bold = (rules.tableContent.bold === true) ? -1 : 0;
+              // 设置段落格式
+              var spf = newStyle.ParagraphFormat;
+              if (rules.tableContent.alignment !== undefined) spf.Alignment = rules.tableContent.alignment;
+              spf.FirstLineIndent = 0;
+              console.log('[format] 创建表格内容样式: ' + tableContentStyleName);
             }
-            if (row.Range && row.Range.ParagraphFormat) {
-              var pf = row.Range.ParagraphFormat;
-              if (rule.alignment !== undefined) pf.Alignment = rule.alignment;
-              // 清除首行缩进（表格内不需要）
-              pf.FirstLineIndent = 0;
+          } catch (e) {
+            console.log('[format] 创建样式失败，降级为直接设置: ' + e);
+            tableContentStyleName = ''; // 失败时清空，改用直接设置
+          }
+        }
+
+        if (rules.tableHeader && (rules.tableHeader.fontCN || rules.tableHeader.fontSize || rules.tableHeader.bold !== undefined)) {
+          tableHeaderStyleName = 'TempTableHeader_' + Date.now();
+          try {
+            var headerStyle = doc.Styles.Add(tableHeaderStyleName, 1);
+            if (headerStyle) {
+              var hsf = headerStyle.Font;
+              hsf.NameFarEast = rules.tableHeader.fontCN || fontDefaults.fontCN || '宋体';
+              hsf.Name = rules.tableHeader.fontEN || fontDefaults.fontEN || 'Times New Roman';
+              if (rules.tableHeader.fontSize !== undefined) hsf.Size = rules.tableHeader.fontSize;
+              hsf.Bold = (rules.tableHeader.bold === true) ? -1 : 0;
+              var hspf = headerStyle.ParagraphFormat;
+              if (rules.tableHeader.alignment !== undefined) hspf.Alignment = rules.tableHeader.alignment;
+              hspf.FirstLineIndent = 0;
+              console.log('[format] 创建表格表头样式: ' + tableHeaderStyleName);
             }
-            return true;
-          } catch (e) { return false; }
+          } catch (e) {
+            console.log('[format] 创建表头样式失败: ' + e);
+            tableHeaderStyleName = '';
+          }
         }
 
         for (var tblIdx = 1; tblIdx <= tableCount; tblIdx++) {
@@ -718,30 +746,50 @@ try {
               try { table.Rows.Item(1).HeadingFormat = true; } catch (e) {}
             }
 
-            // 表格内容对齐（快速操作）
-            if (rules.tableContent && table.Range && table.Range.ParagraphFormat) {
+            // 表格内容：应用样式（批量，高效）
+            if (rules.tableContent && table.Range) {
               try {
-                if (rules.tableContent.alignment !== undefined) {
-                  table.Range.ParagraphFormat.Alignment = rules.tableContent.alignment;
+                if (tableContentStyleName) {
+                  // 使用样式批量应用（最快）
+                  table.Range.Style = tableContentStyleName;
+                  applied++;
+                } else if (table.Range.ParagraphFormat) {
+                  // 无样式时只设置对齐
+                  if (rules.tableContent.alignment !== undefined) {
+                    table.Range.ParagraphFormat.Alignment = rules.tableContent.alignment;
+                  }
+                  table.Range.ParagraphFormat.FirstLineIndent = 0;
+                  applied++;
                 }
-                table.Range.ParagraphFormat.FirstLineIndent = 0;
-                applied++;
               } catch (e) {}
             }
 
-            // 表头对齐（快速操作）
+            // 表头：应用样式
             if (rules.tableHeader && table.Rows && table.Rows.Count > 0) {
               try {
                 var headerRow = table.Rows.Item(1);
-                if (headerRow.Range && headerRow.Range.ParagraphFormat && rules.tableHeader.alignment !== undefined) {
-                  headerRow.Range.ParagraphFormat.Alignment = rules.tableHeader.alignment;
-                  applied++;
+                if (headerRow.Range) {
+                  if (tableHeaderStyleName) {
+                    headerRow.Range.Style = tableHeaderStyleName;
+                    applied++;
+                  } else if (headerRow.Range.ParagraphFormat && rules.tableHeader.alignment !== undefined) {
+                    headerRow.Range.ParagraphFormat.Alignment = rules.tableHeader.alignment;
+                    applied++;
+                  }
                 }
               } catch (e) {}
             }
 
             tablesProcessed++;
           } catch (e) {}
+        }
+
+        // 清理临时样式
+        if (tableContentStyleName) {
+          try { doc.Styles.Item(tableContentStyleName).Delete(); } catch (e) {}
+        }
+        if (tableHeaderStyleName) {
+          try { doc.Styles.Item(tableHeaderStyleName).Delete(); } catch (e) {}
         }
 
         if (tablesProcessed > 0) {

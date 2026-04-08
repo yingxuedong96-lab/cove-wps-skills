@@ -20,6 +20,24 @@ compatibility:
 
 ## 执行步骤
 
+**⚠️⚠️⚠️ 重要：必须调用脚本执行，禁止自己写代码！**
+
+本技能的所有功能都已实现在 `scripts/format-engine.js` 中，Agent只需：
+1. 解析用户输入生成配置JSON
+2. 调用 executeFile 执行脚本
+
+**禁止行为**：
+- ❌ 禁止自己编写WPS JS代码
+- ❌ 禁止直接操作Application.ActiveDocument
+- ❌ 禁止返回代码片段
+
+**正确流程**：
+```
+用户输入 → 解析规则 → 生成JSON配置 → 调用format-engine.js → 返回执行结果
+```
+
+---
+
 ### Step 1 — 解析排版规则
 
 从用户输入或快捷指令 prompt 中提取排版规则，生成配置 JSON。

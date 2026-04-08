@@ -734,11 +734,7 @@ try {
                   // 方法3: 禁止自动调整
                   table.AllowAutoFit = false;
                 } catch (e4) {}
-
-                console.log('[format] 表格' + tblIdx + '宽度设置为: ' + usableWidth + '磅');
-              } catch (e) {
-                console.log('[format] 表格宽度设置失败: ' + e);
-              }
+              } catch (e) {}
             }
 
             // 跨页重复表头：设置首行 HeadingFormat
@@ -754,20 +750,15 @@ try {
             if (rules.tableHeader && table.Rows && table.Rows.Count > 0) {
               try {
                 var headerRow = table.Rows.Item(1);
-                if (applyRuleToTableRow(headerRow, rules.tableHeader)) {
-                  applied++;
-                  console.log('[format] 表格' + tblIdx + '表头: ' + JSON.stringify(rules.tableHeader));
-                }
-              } catch (e) {
-                console.log('[format] 表格' + tblIdx + '表头失败: ' + e);
-              }
+                applyRuleToTableRow(headerRow, rules.tableHeader);
+                applied++;
+              } catch (e) {}
             }
 
             // 表格内容格式（一次性设置整个表格，再覆盖表头）
             if (rules.tableContent) {
               try {
-                // 方法：先设置整个表格，再单独设置表头
-                // 这样避免逐行遍历，大幅提升性能
+                // 先设置整个表格
                 if (table.Range && table.Range.Font) {
                   var tf = table.Range.Font;
                   if (rules.tableContent.fontCN || fontDefaults.fontCN) {
@@ -776,7 +767,6 @@ try {
                   if (rules.tableContent.fontSize !== undefined) {
                     tf.Size = rules.tableContent.fontSize;
                   }
-                  // 强制清除加粗
                   tf.Bold = (rules.tableContent.bold === true) ? -1 : 0;
                 }
                 if (table.Range && table.Range.ParagraphFormat) {
@@ -784,24 +774,18 @@ try {
                   if (rules.tableContent.alignment !== undefined) {
                     tpf.Alignment = rules.tableContent.alignment;
                   }
-                  // 清除首行缩进
                   tpf.FirstLineIndent = 0;
                 }
                 applied++;
-                console.log('[format] 表格' + tblIdx + '内容(整体): ' + JSON.stringify(rules.tableContent));
 
-                // 重新设置表头（覆盖刚才的整体设置）
+                // 重新设置表头（覆盖整体设置）
                 if (rules.tableHeader && table.Rows && table.Rows.Count > 0) {
                   try {
                     var headerRow2 = table.Rows.Item(1);
-                    if (applyRuleToTableRow(headerRow2, rules.tableHeader)) {
-                      console.log('[format] 表格' + tblIdx + '表头(重设): ' + JSON.stringify(rules.tableHeader));
-                    }
+                    applyRuleToTableRow(headerRow2, rules.tableHeader);
                   } catch (e) {}
                 }
-              } catch (e) {
-                console.log('[format] 表格' + tblIdx + '内容失败: ' + e);
-              }
+              } catch (e) {}
             }
 
             tablesProcessed++;

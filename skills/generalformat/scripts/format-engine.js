@@ -388,10 +388,9 @@ try {
   var classifications = [];
   var typeIndices = {};  // 按类型存储段落索引
 
-  // 初始化所有可能需要的类型（确保标题等被记录，后续可覆盖回来）
-  var allTypes = ['body', 'docTitle', 'zhangTitle', 'appendixTitle', 'heading2', 'heading3', 'heading4', 'heading5', 'tableCaption', 'figureCaption', 'ref'];
-  for (var t = 0; t < allTypes.length; t++) {
-    typeIndices[allTypes[t]] = [];
+  // 只初始化用户规则中定义的类型
+  for (var t in rules) {
+    if (rules[t]) typeIndices[t] = [];
   }
 
   for (var i = 0; i < maxParaCount; i++) {
@@ -492,15 +491,13 @@ try {
     // 正文批量处理：用连续 Range 一次设置
     var bodyIndices = typeIndices['body'] || [];
     if (bodyIndices.length > 0 && rules.body) {
-      // ⚠️ 分段策略：合并相邻段落为大块，减少Range操作次数
+      // ⚠️ 长文档优化：根据分段数选择策略
       var segments = [];
       var segStart = bodyIndices[0];
       var segEnd = bodyIndices[0];
-      var MAX_SEGMENT_SIZE = 50;  // 每段最多50个段落，减少Range操作
 
       for (var i = 1; i < bodyIndices.length; i++) {
-        // 连续且不超过大小限制
-        if (bodyIndices[i] === segEnd + 1 && (segEnd - segStart + 1) < MAX_SEGMENT_SIZE) {
+        if (bodyIndices[i] === segEnd + 1) {
           segEnd = bodyIndices[i];
         } else {
           segments.push({ start: segStart, end: segEnd });
@@ -512,23 +509,61 @@ try {
 
       console.log('[format] 正文分段数: ' + segments.length + ', 总段落: ' + bodyIndices.length);
 
-      // 分段处理
-      for (var s = 0; s < segments.length; s++) {
+      // ⚠️ 策略选择：只有正文高度连续时才用整体Range
+      // 连续性判断：分段数/正文数比例 < 0.1 表示正文高度连续（大部分正文段落连在一起）
+      // 比例 > 0.1 表示正文和标题严重穿插，整体Range会覆盖标题，必须分段处理
+      var continuityRatio = segments.length / bodyIndices.length;
+      var useWideRange = continuityRatio < 0.1 && segments.length > 50;
+      var wideRangeApplied = false;
+
+      console.log('[format] 正文连续性: ' + (continuityRatio * 100).toFixed(1) + '% (分段/正文比例)');
+
+      if (useWideRange) {
         try {
-          // 跳过与表格重叠的分段
-          if (rangeOverlapWithTable(segments[s].start, segments[s].end)) continue;
+          var firstBodyPara = doc.Paragraphs.Item(bodyIndices[0]);
+          var lastBodyPara = doc.Paragraphs.Item(bodyIndices[bodyIndices.length - 1]);
+          if (firstBodyPara && firstBodyPara.Range && lastBodyPara && lastBodyPara.Range) {
+            var wideRange = doc.Range(firstBodyPara.Range.Start, lastBodyPara.Range.End);
 
-          var startPara = doc.Paragraphs.Item(segments[s].start);
-          var endPara = doc.Paragraphs.Item(segments[s].end);
-          if (!startPara || !startPara.Range || !endPara || !endPara.Range) continue;
-
-          var segRange = doc.Range(startPara.Range.Start, endPara.Range.End);
-          if (applyRuleToRange(segRange, rules.body)) {
-            applied += segments[s].end - segments[s].start + 1;
+            // 检查整体Range是否与表格重叠（用预计算的tableRanges）
+            var wideRangeParaStart = bodyIndices[0];
+            var wideRangeParaEnd = bodyIndices[bodyIndices.length - 1];
+            if (!rangeOverlapWithTable(wideRangeParaStart, wideRangeParaEnd)) {
+              if (applyRuleToRange(wideRange, rules.body)) {
+                applied += bodyIndices.length;
+                wideRangeApplied = true;
+                console.log('[format] 正文整体Range处理: ' + bodyIndices.length + '段 (连续性' + (continuityRatio * 100).toFixed(1) + '%)');
+              }
+            } else {
+              console.log('[format] 整体Range与表格重叠，改用分段处理');
+            }
           }
-        } catch (segErr) {}
+        } catch (wideErr) {
+          console.log('[format] 整体Range失败: ' + wideErr);
+        }
+      } else {
+        console.log('[format] 正文分散度高，使用分段处理避免覆盖标题');
       }
-      console.log('[format] 正文处理完成');
+
+      // 分段处理（未使用整体Range时）
+      if (!wideRangeApplied) {
+        for (var s = 0; s < segments.length; s++) {
+          try {
+            // 用预计算的表格位置快速判断，不调用Tables.Count（很慢）
+            if (rangeOverlapWithTable(segments[s].start, segments[s].end)) continue;
+
+            var startPara = doc.Paragraphs.Item(segments[s].start);
+            var endPara = doc.Paragraphs.Item(segments[s].end);
+            if (!startPara || !startPara.Range || !endPara || !endPara.Range) continue;
+
+            var segRange = doc.Range(startPara.Range.Start, endPara.Range.End);
+            if (applyRuleToRange(segRange, rules.body)) {
+              applied += segments[s].end - segments[s].start + 1;
+            }
+          } catch (segErr) {}
+        }
+        console.log('[format] 正文分段处理完成: ' + segments.length + '段');
+      }
     }
 
     // 标题、图表等：逐个处理（数量少）
@@ -629,21 +664,6 @@ try {
         var tableCount = doc.Tables ? doc.Tables.Count : 0;
         var tablesProcessed = 0;
 
-        // 预计算页面可用宽度（只计算一次）
-        var usableWidth = 445;  // 默认值
-        if (elementSettings.tableFullWidth) {
-          try {
-            var section = doc.Sections.Item(1);
-            if (section && section.PageSetup) {
-              var pageWidth = section.PageSetup.PageWidth;
-              var leftMargin = section.PageSetup.LeftMargin;
-              var rightMargin = section.PageSetup.RightMargin;
-              usableWidth = pageWidth - leftMargin - rightMargin;
-              console.log('[format] 页面尺寸: 宽=' + pageWidth + ' 左边距=' + leftMargin + ' 右边距=' + rightMargin + ' 可用=' + usableWidth + '磅');
-            }
-          } catch (e) {}
-        }
-
         // ========================================
         // 高效表格字体设置：使用临时样式批量应用
         // ========================================
@@ -703,20 +723,23 @@ try {
             // 表格等宽：设置为页面宽度
             if (elementSettings.tableFullWidth) {
               try {
-                // 清除表格自动调整
-                try { table.AllowAutoFit = false; } catch (e0) {}
-                // 设置宽度类型为磅值
-                try { table.PreferredWidthType = 3; } catch (e1) {}
-                // 设置宽度
-                try { table.PreferredWidth = usableWidth; } catch (e2) {}
-                // 尝试设置所有列为自动宽度
+                var pageWidth = 595;  // A4默认：210mm = 595磅
+                var leftMargin = 72;   // 默认边距：25.4mm = 72磅
+                var rightMargin = 72;
                 try {
-                  if (table.Columns && table.Columns.Count > 0) {
-                    for (var colIdx = 1; colIdx <= table.Columns.Count; colIdx++) {
-                      try { table.Columns.Item(colIdx).PreferredWidthType = 1; } catch (e) {} // 1 = wdPreferredWidthAuto
-                    }
+                  var section = doc.Sections.Item(1);
+                  if (section && section.PageSetup) {
+                    pageWidth = section.PageSetup.PageWidth;
+                    leftMargin = section.PageSetup.LeftMargin;
+                    rightMargin = section.PageSetup.RightMargin;
+                    console.log('[format] 页面尺寸: 宽=' + pageWidth + ' 左边距=' + leftMargin + ' 右边距=' + rightMargin);
                   }
-                } catch (e3) {}
+                } catch (e) {}
+                var usableWidth = pageWidth - leftMargin - rightMargin;
+                console.log('[format] 表格可用宽度: ' + usableWidth + '磅');
+                try { table.PreferredWidthType = 3; } catch (e1) {}  // 3 = wdPreferredWidthPoints（磅值）
+                try { table.PreferredWidth = usableWidth; } catch (e2) {}
+                try { table.AllowAutoFit = false; } catch (e3) {}
               } catch (e) {}
             }
 
@@ -729,9 +752,7 @@ try {
             if (rules.tableContent && table.Range) {
               try {
                 if (tableContentStyleName) {
-                  // 先清除直接格式，再应用样式
-                  try { table.Range.Font.Reset(); } catch (e1) {}
-                  try { table.Range.ParagraphFormat.Reset(); } catch (e2) {}
+                  // 使用样式批量应用（最快）
                   table.Range.Style = tableContentStyleName;
                   applied++;
                 } else if (table.Range.ParagraphFormat) {
@@ -751,9 +772,6 @@ try {
                 var headerRow = table.Rows.Item(1);
                 if (headerRow.Range) {
                   if (tableHeaderStyleName) {
-                    // 先清除直接格式，再应用样式
-                    try { headerRow.Range.Font.Reset(); } catch (e1) {}
-                    try { headerRow.Range.ParagraphFormat.Reset(); } catch (e2) {}
                     headerRow.Range.Style = tableHeaderStyleName;
                     applied++;
                   } else if (headerRow.Range.ParagraphFormat && rules.tableHeader.alignment !== undefined) {

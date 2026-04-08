@@ -54,9 +54,11 @@ try {
     heading4: ['四级标题', '标题四', 'Heading 4'],
     heading5: ['五级标题', '标题五', 'Heading 5'],
     body: ['正文', '正文格式', '段落格式', '正文内容', '文本内容', 'content'],
-    tableCaption: ['表名', '表格名', '表标题', '表号', '表格标题', 'table'],
+    tableCaption: ['表名', '表格名', '表标题', '表号'],
     figureCaption: ['图名', '图片名', '图标题', '图号', '图片标题', '插图名', 'figure'],
-    ref: ['参考文献', '引用文献', 'reference']
+    ref: ['参考文献', '引用文献', 'reference'],
+    tableHeader: ['表头', '表格标题行', '表格头部'],
+    tableContent: ['表格内容', '表内容', '表格正文', '单元格', '表格']
   };
 
   var specText = configData.specText || '';
@@ -486,6 +488,67 @@ try {
         } catch (e) { errors++; }
       }
       console.log('[format] ' + typeName + ': ' + indices.length + '段' + (outlineLevel ? ' (大纲' + outlineLevel + ')' : ''));
+    }
+
+    // ========================================
+    // 表格处理（tableHeader / tableContent）
+    // ========================================
+    var tableRules = rules.tableHeader || rules.tableContent;
+    if (tableRules) {
+      console.log('[format] 启用表格处理');
+      try {
+        var tableCount = doc.Tables ? doc.Tables.Count : 0;
+        var tableApplied = 0;
+
+        for (var tblIdx = 1; tblIdx <= tableCount; tblIdx++) {
+          try {
+            var table = doc.Tables.Item(tblIdx);
+            if (!table || !table.Rows) continue;
+
+            var rowCount = table.Rows.Count;
+
+            // 处理表头（第一行整体Range）
+            if (rules.tableHeader && rowCount > 0) {
+              try {
+                var headerRow = table.Rows.Item(1);
+                if (headerRow && headerRow.Range) {
+                  applyRuleToRange(headerRow.Range, rules.tableHeader);
+                  tableApplied += headerRow.Cells ? headerRow.Cells.Count : 1;
+                }
+              } catch (e) {}
+            }
+
+            // 处理表格内容（其余行整体Range）
+            if (rules.tableContent && rowCount > 1) {
+              try {
+                // 从第2行到最后一行创建Range
+                var startRow = table.Rows.Item(2);
+                var endRow = table.Rows.Item(rowCount);
+                if (startRow && startRow.Range && endRow && endRow.Range) {
+                  var contentRange = doc.Range(startRow.Range.Start, endRow.Range.End);
+                  applyRuleToRange(contentRange, rules.tableContent);
+                  tableApplied += rowCount - 1;
+                }
+              } catch (e) {
+                // 如果整体Range失败，逐行处理
+                for (var r = 2; r <= rowCount; r++) {
+                  try {
+                    var row = table.Rows.Item(r);
+                    if (row && row.Range) {
+                      applyRuleToRange(row.Range, rules.tableContent);
+                      tableApplied++;
+                    }
+                  } catch (e2) {}
+                }
+              }
+            }
+          } catch (e) {}
+        }
+        applied += tableApplied;
+        console.log('[format] 表格处理: ' + tableCount + '个表格, ' + tableApplied + '行');
+      } catch (e) {
+        console.log('[format] 表格处理失败: ' + e);
+      }
     }
 
     // ========================================

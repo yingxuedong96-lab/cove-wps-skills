@@ -737,7 +737,7 @@ try {
                 } catch (e) {}
                 var usableWidth = pageWidth - leftMargin - rightMargin;
                 console.log('[format] 表格可用宽度: ' + usableWidth + '磅');
-                try { table.PreferredWidthType = 2; } catch (e1) {}  // 2 = wdPreferredWidthTypePoints
+                try { table.PreferredWidthType = 3; } catch (e1) {}  // 3 = wdPreferredWidthPoints（磅值）
                 try { table.PreferredWidth = usableWidth; } catch (e2) {}
                 try { table.AllowAutoFit = false; } catch (e3) {}
               } catch (e) {}

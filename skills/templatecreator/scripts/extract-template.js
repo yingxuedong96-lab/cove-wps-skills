@@ -409,43 +409,47 @@ try {
 
   var jsonContent = JSON.stringify(templateData, null, 2);
 
-  // 尝试保存文件（Node.js 环境）
+  // 尝试保存文件（使用 WPS 文档 API）
   var saveResult = "";
   var fileSaved = false;
 
   try {
-    // 尝试使用 Node.js fs 模块
-    if (typeof require !== 'undefined') {
-      var fs = require('fs');
-      var path = require('path');
+    // 方案1: 用 WPS 创建临时文档保存 JSON
+    var jsonDoc = Application.Documents.Add();
+    jsonDoc.Range(0, 0).Text = jsonContent;
+    jsonDoc.SaveAs2(jsonFile.replace('.json', '.txt'), 7);  // 7 = txt 格式
+    jsonDoc.Close(false);  // 关闭不保存
+    fileSaved = true;
+    saveResult = "\n\n📁 模板已保存到：\n" + jsonFile.replace('.json', '.txt');
+    console.log("[extract] WPS保存成功: " + jsonFile.replace('.json', '.txt'));
+  } catch(e1) {
+    console.log("[extract] WPS保存失败: " + String(e1));
 
-      // 确保目录存在
-      try {
-        fs.mkdirSync(templateDir, { recursive: true });
-      } catch(e) {}
-
-      // 保存 JSON 文件
-      fs.writeFileSync(jsonFile, jsonContent, 'utf8');
-      fileSaved = true;
-      saveResult = "\n\n📁 模板已保存到：\n" + jsonFile;
-      console.log("[extract] 文件保存成功: " + jsonFile);
+    // 方案2: 尝试 Node.js fs 模块（部分环境可能支持）
+    try {
+      if (typeof require !== 'undefined') {
+        var fs = require('fs');
+        try { fs.mkdirSync(templateDir, { recursive: true }); } catch(e) {}
+        fs.writeFileSync(jsonFile, jsonContent, 'utf8');
+        fileSaved = true;
+        saveResult = "\n\n📁 模板已保存到：\n" + jsonFile;
+      }
+    } catch(e2) {
+      console.log("[extract] Node.js保存失败: " + String(e2));
     }
-  } catch(e) {
-    console.log("[extract] Node.js保存失败: " + String(e));
   }
 
-  // 如果文件保存失败，在返回中包含 JSON 内容
   if (!fileSaved) {
-    saveResult = "\n\n⚠️ Mac 环境无法直接保存文件，模板 JSON 数据已返回，请查看下方或手动保存。";
+    saveResult = "\n\n⚠️ 无法自动保存，请回复「保存模板」由 Python 端处理。";
   }
 
-  // 返回结果：message 显示样式详情，data 包含完整 JSON（避免 artifact 包装）
+  // 返回结果：message 显示样式详情，templateJson 供后续保存
   return {
     success: true,
     message: lines.join("\n") + saveResult,
     styleCount: Object.keys(styles).length,
-    templateFile: jsonFile,
-    templateJson: jsonContent  // 返回完整 JSON，供 UI 或 Python 端保存
+    templateFile: fileSaved ? (jsonFile.replace('.json', '.txt')) : "",
+    templateJson: jsonContent  // Python 端可从 artifact 提取并保存
   };
 } catch (e) {
   return { success: false, error: String(e) };

@@ -1,32 +1,61 @@
 /**
  * extract-template.js - 完整样式提取（符合样式元素规范表）
- * 版本: 26.0410.1002
+ * 版本: 26.0410.1003
  * 支持元素: 论文报告26种 + 公文20种
  * 支持参数: 45个（字体7 + 段落5 + 间距4 + 大纲3 + 表格10 + 页面9 + 其他7）
  * 更新:
- *   - 修复缩进和行距单位显示
+ *   - 自动检测文档类型（扫描前30段统计特征得分）
+ *   - 默认论文报告，不再弹出选择框
  *   - 新增模板保存功能（JSON + Markdown双格式）
- *   - 保存路径: /Users/cassia/Desktop/dyx/wpsjs/模版生成/
  */
 try {
-  var VER = "26.0410.1002";
+  var VER = "26.0410.1003";
   console.log("[extract] 版本: " + VER);
 
   var DOC = Application.ActiveDocument;
   if (!DOC) return { success: false, error: "没有打开的文档" };
 
+  // ============================================================
+  // 自动检测文档类型
+  // ============================================================
   var docTypeParam = typeof docType !== 'undefined' ? docType : '';
-  if (!docTypeParam) {
-    return {
-      success: true,
-      needUserInput: true,
-      question: "请选择文档类型：",
-      options: ["论文/技术报告", "公文"]
-    };
+
+  // 自动检测逻辑：扫描前30段落，统计公文/论文特征
+  var paperScore = 0, govScore = 0;
+  var paras = DOC.Paragraphs;
+  var scanCount = Math.min(30, paras.Count);
+
+  for (var i = 1; i <= scanCount; i++) {
+    var text = clean(paras.Item(i).Range.Text);
+    if (!text) continue;
+
+    // 论文报告特征
+    if (/^第[一二三四五六七八九十百零\d]+章/.test(text)) paperScore += 3;
+    if (/^\d+\.\d+/.test(text)) paperScore += 2;
+    if (/^附\s*录/.test(text)) paperScore += 2;
+    if (/^摘\s*要|^Abstract/i.test(text)) paperScore += 2;
+    if (/^目\s*录$|^目次$/.test(text)) paperScore += 1;
+    if (/^图\s*\d+|^表\s*\d+/.test(text)) paperScore += 1;
+
+    // 公文特征
+    if (/^关于/.test(text)) govScore += 3;
+    if (/通知$|决定$|意见$|办法$|规定$|批复$|请示$|报告$/.test(text)) govScore += 2;
+    if (/^附\s*件/.test(text)) govScore += 2;
+    if (/\d{4}年\d{1,2}月\d{1,2}日$/.test(text)) govScore += 1;
+    if (/^抄送|^印发/.test(text)) govScore += 2;
   }
 
-  var isPaper = docTypeParam === "论文/技术报告" || docTypeParam === "paper";
-  console.log("[extract] 类型: " + docTypeParam);
+  // 确定类型：得分高者胜，默认论文报告
+  if (docTypeParam) {
+    // 用户指定类型
+    var isPaper = docTypeParam === "论文/技术报告" || docTypeParam === "paper";
+  } else {
+    // 自动判断
+    isPaper = paperScore >= govScore;
+  }
+
+  var detectedType = isPaper ? "论文报告" : "公文";
+  console.log("[extract] 类型: " + detectedType + " (论文=" + paperScore + ", 公文=" + govScore + ")");
 
   // ============================================================
   // 一、元素名称定义（符合样式元素规范表）
@@ -315,12 +344,11 @@ try {
   lines.push("\n模板已保存，可在后续【应用模板】时使用。");
 
   // ============================================================
-  // 七、保存模板到指定目录（便于查看和后续应用）
+  // 七、生成模板数据（供保存或直接返回）
   // ============================================================
   var templateDir = "/Users/cassia/Desktop/dyx/wpsjs/模版生成/";
   var docNameBase = DOC.Name.replace(/\.[docxdoc]+$/i, "");
   var jsonFile = templateDir + docNameBase + "-样式模板.json";
-  var mdFile = templateDir + docNameBase + "-样式详情.md";
 
   // 构建完整的样式数据结构
   var templateData = {
@@ -362,6 +390,7 @@ try {
           color: f.color,
           // 段落参数
           alignment: f.alignment,
+          alignmentName: alignMap[f.alignment] || "",
           firstLineIndent: f.firstLineIndent,
           firstLineIndentChars: f.characterUnitFirstLine || (f.firstLineIndent / 10.5),
           leftIndent: f.leftIndent,
@@ -370,47 +399,52 @@ try {
           spaceBefore: f.spaceBefore,
           spaceAfter: f.spaceAfter,
           lineSpacing: f.lineSpacing,
-          lineSpacingRule: f.lineSpacingRule
+          lineSpacingRule: f.lineSpacingRule,
+          lineSpacingRuleName: lineRuleMap[f.lineSpacingRule] || ""
         };
       }),
       samples: s.samples
     };
   });
 
-  // 尝试保存文件（WPS JS 环境）
+  var jsonContent = JSON.stringify(templateData, null, 2);
+
+  // 尝试保存文件（Node.js 环境）
   var saveResult = "";
+  var fileSaved = false;
+
   try {
-    // 使用 WPS 内置方法保存到本地
-    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    // 尝试使用 Node.js fs 模块
+    if (typeof require !== 'undefined') {
+      var fs = require('fs');
+      var path = require('path');
 
-    // 确保目录存在
-    if (!fso.FolderExists(templateDir)) {
-      fso.CreateFolder(templateDir);
+      // 确保目录存在
+      try {
+        fs.mkdirSync(templateDir, { recursive: true });
+      } catch(e) {}
+
+      // 保存 JSON 文件
+      fs.writeFileSync(jsonFile, jsonContent, 'utf8');
+      fileSaved = true;
+      saveResult = "\n\n📁 模板已保存到：\n" + jsonFile;
+      console.log("[extract] 文件保存成功: " + jsonFile);
     }
-
-    // 保存 JSON 文件（供 apply-template.js 使用）
-    var jsonContent = JSON.stringify(templateData, null, 2);
-    var jsonFileObj = fso.CreateTextFile(jsonFile, true, true);
-    jsonFileObj.Write(jsonContent);
-    jsonFileObj.Close();
-
-    // 保存 Markdown 文件（供用户查看）
-    var mdFileObj = fso.CreateTextFile(mdFile, true, true);
-    mdFileObj.Write(lines.join("\n"));
-    mdFileObj.Close();
-
-    saveResult = "\n\n📁 模板已保存到：\n- JSON: " + jsonFile + "\n- 详情: " + mdFile;
-    console.log("[extract] 模板已保存: " + jsonFile);
   } catch(e) {
-    saveResult = "\n\n⚠️ 文件保存失败（可手动复制下方内容）: " + String(e);
-    console.log("[extract] 保存失败: " + String(e));
+    console.log("[extract] Node.js保存失败: " + String(e));
+  }
+
+  // 如果文件保存失败，在返回中包含 JSON 内容
+  if (!fileSaved) {
+    saveResult = "\n\n⚠️ 文件保存失败，模板 JSON 内容如下（可手动保存）：";
   }
 
   return {
     success: true,
     message: lines.join("\n") + saveResult,
     styleCount: Object.keys(styles).length,
-    templateFile: jsonFile
+    templateFile: fileSaved ? jsonFile : "",
+    templateJson: fileSaved ? "" : jsonContent  // 未保存时返回完整 JSON
   };
 } catch (e) {
   return { success: false, error: String(e) };

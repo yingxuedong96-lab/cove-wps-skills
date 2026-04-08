@@ -218,7 +218,7 @@ try {
   lines.push("纸张: " + (DOC.PageSetup.PaperSize === 1 ? "A4" : "自定义"));
   lines.push("上边距: " + (DOC.PageSetup.TopMargin / 567).toFixed(2) + "cm | 下边距: " + (DOC.PageSetup.BottomMargin / 567).toFixed(2) + "cm");
   lines.push("左边距: " + (DOC.PageSetup.LeftMargin / 567).toFixed(2) + "cm | 右边距: " + (DOC.PageSetup.RightMargin / 567).toFixed(2) + "cm");
-  lines.push("\n模板已保存，可在后续"应用模板"时使用。");
+  lines.push("\n模板已保存，可在后续【应用模板】时使用。");
 
   return {
     success: true,

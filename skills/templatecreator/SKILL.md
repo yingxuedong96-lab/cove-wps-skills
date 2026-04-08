@@ -5,11 +5,12 @@ description: >
 
   【触发词】提取模板、应用模板、样式模板、样式复制
 
-  【核心流程 - 推荐使用「样式复制」快捷指令】
-  1. A文档点击「样式复制」 → 提取样式，提示"样式已提取"
-  2. 切换到B文档，再次点击「样式复制」 → 应用样式
+  【核心流程】
+  1. 打开源文档A → 点击「提取模板」
+  2. 切换到目标文档B → 点击「应用模板」
 
-  无需用户手动保存文件！单快捷指令一键完成。
+  ⚠️ 重要限制：WPS JS API 只能操作 ActiveDocument，无法切换文档！
+  必须用户手动在 WPS 中切换打开的文档。
 ---
 
 # 样式模板技能
@@ -86,7 +87,7 @@ executeFile:
 apply-template.js 需要接收 templateJson 参数。agent 必须：
 
 1. **从上下文获取**：如果用户刚才提取过模板，templateJson 应该在上下文中
-2. **从 artifact 获取**：读取最近包含 templateJson 的 artifact 文件
+2. **从 artifact 获取**：查找最近包含 `templateJson` 字段的 artifact 文件
 
 #### 执行方式
 
@@ -97,7 +98,20 @@ executeFile:
     templateJson: {...从上下文或artifact获取的模板数据...}
 ```
 
-**如果无法获取 templateJson**，返回提示用户先执行「提取模板」。
+#### ⚠️ 如果无法获取 templateJson
+
+**直接执行 apply-template.js（不带参数）**，让脚本返回错误提示：
+
+```
+executeFile:
+  filePath: skills/templatecreator/scripts/apply-template.js
+  params: {}
+```
+
+脚本会返回 `"缺少 templateJson 参数，请先执行「提取模板」"`。
+
+**禁止使用 askUser 让用户选择「从其他文档提取」！**
+WPS JS API 只能操作 ActiveDocument，无法切换文档。
 
 ---
 

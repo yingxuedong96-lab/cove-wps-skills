@@ -1,6 +1,38 @@
 {
   "conversations": [
     {
+      "id": "1775622817681_ftk73z",
+      "title": "generalcheck：对文档进行全面的编号校对。\n\n【顺",
+      "createdAt": 1775622817681,
+      "updatedAt": 1775622860955,
+      "messageCount": 6,
+      "pinned": false,
+      "skillName": "generalcheck",
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/机载/228页长文档校对排版.docx",
+      "documentName": "228页长文档校对排版.docx"
+    },
+    {
+      "id": "1775622748885_aelfqm",
+      "title": "提取样式",
+      "createdAt": 1775622748885,
+      "updatedAt": 1775622762844,
+      "messageCount": 7,
+      "pinned": false,
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/模版生成/样式提取.docx",
+      "documentName": "样式提取.docx"
+    },
+    {
+      "id": "1775622640623_eanevv",
+      "title": "generalcheck：对文档进行全面的编号校对。\n\n【章",
+      "createdAt": 1775622640624,
+      "updatedAt": 1775622740539,
+      "messageCount": 6,
+      "pinned": false,
+      "skillName": "generalcheck",
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/机载/228页长文档校对排版.docx",
+      "documentName": "228页长文档校对排版.docx"
+    },
+    {
       "id": "1775622424165_cfiqh7",
       "title": "提取样式",
       "createdAt": 1775622424165,

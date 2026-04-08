@@ -187,38 +187,11 @@ try {
   var maxParaCount = Math.min(paraCount, logicalParas.length);
   var useUltraFastMode = paraCount > 6000;
 
-  // ⚠️ 预收集表格Range范围（用于快速排除表格段落）
-  var tableRanges = [];  // 记录所有表格的Range范围
-  try {
-    var tableCount = doc.Tables ? doc.Tables.Count : 0;
-    for (var tblIdx = 1; tblIdx <= tableCount; tblIdx++) {
-      try {
-        var table = doc.Tables.Item(tblIdx);
-        if (table && table.Range) {
-          tableRanges.push({ start: table.Range.Start, end: table.Range.End });
-        }
-      } catch (e) {}
-    }
-  } catch (e) {}
+  // ⚠️ 简化处理：不做表格段落排除
+  // 表格有自己的样式，不会被正文整体 Range 设置影响
+  // 避免遍历检查导致循环超限
 
-  // 检查段落是否在表格内（辅助函数）
-  function isInTable(paraIndex) {
-    try {
-      var para = doc.Paragraphs.Item(paraIndex);
-      if (!para || !para.Range) return false;
-      var paraStart = para.Range.Start;
-      for (var tr = 0; tr < tableRanges.length; tr++) {
-        if (paraStart >= tableRanges[tr].start && paraStart <= tableRanges[tr].end) {
-          return true;
-        }
-      }
-      return false;
-    } catch (e) { return false; }
-  }
-
-  var excludedParaMap = {};
-
-  console.log('[format] 排除段落: ' + Object.keys(excludedParaMap).length + ' (表格/图片), 段落数: ' + paraCount);
+  console.log('[format] 表格数: ' + (doc.Tables ? doc.Tables.Count : 0) + ', 段落数: ' + paraCount);
 
   // 默认正则 + 用户正则
   var allPatterns = {
@@ -309,19 +282,11 @@ try {
     var type = classify(logicalParas[i]);
     classifications.push(type);
 
-    // 跳过表格段落（用 isInTable 检查，除非是标题类型）
-    if (isInTable(paraIndex) && type !== 'zhangTitle' && type !== 'heading2' && type !== 'heading3' && type !== 'heading4' && type !== 'docTitle') {
-      excludedCount++;
-      continue;
-    }
-
-    // 只记录用户规则中定义的类型
+    // 只记录用户规则中定义的类型（不做表格排除）
     if (type !== 'empty' && type !== 'short' && typeIndices[type]) {
       typeIndices[type].push(paraIndex);
     }
   }
-
-  console.log('[format] 表格段落排除: ' + excludedCount + ', 表格数: ' + tableRanges.length);
 
   // 处理文档标题（docTitle）：如果用户定义了 docTitle 规则，将第一个非空段落标记为 docTitle
   if (typeIndices['docTitle']) {

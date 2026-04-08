@@ -1,16 +1,17 @@
 {
-  "description": "样式模板提取与应用。从文档提取字体、字号、缩进、行距等具体参数，展示完整的样式详情。触发词：提取模板、应用模板、样式模板。注意：输出必须包含每种样式的具体参数值（字体、字号、缩进等），禁止简化。",
+  "description": "样式模板提取与应用。从文档提取字体、字号、缩进、行距等具体参数，展示完整的样式详情。触发词：提取模板、应用模板、样式模板、样式复制。注意：输出必须包含每种样式的具体参数值（字体、字号、缩进等），禁止简化。",
   "files": [
     "skill.json",
     "SKILL.md",
     "scripts/style-spec-table.js",
     "scripts/extract-template.js",
     "scripts/apply-template.js",
+    "scripts/copy-style.js",
     "scripts/list-templates.js",
     "scripts/save-template.js"
   ],
   "name": "templatecreator",
   "snapshot": "before_task",
   "source": "server",
-  "version": "26.0408.1641"
+  "version": "26.0410.1007"
 }

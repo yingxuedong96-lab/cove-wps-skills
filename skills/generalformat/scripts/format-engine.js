@@ -695,9 +695,8 @@ try {
             // 表格等宽：设置为页面宽度
             if (elementSettings.tableFullWidth) {
               try {
-                // 获取页面宽度（从第一个节）
-                var pageWidth = 595;  // 默认A4宽度约595磅（210mm）
-                var leftMargin = 72;   // 默认左右边距各72磅（25.4mm）
+                var pageWidth = 595;
+                var leftMargin = 72;
                 var rightMargin = 72;
                 try {
                   var section = doc.Sections.Item(1);
@@ -707,104 +706,37 @@ try {
                     rightMargin = section.PageSetup.RightMargin;
                   }
                 } catch (e) {}
-
                 var usableWidth = pageWidth - leftMargin - rightMargin;
-
-                // 尝试多种方式设置表格宽度
-                try {
-                  // 方法1: PreferredWidth
-                  table.PreferredWidthType = 2;  // wdPreferredWidthPoints = 磅值
-                  table.PreferredWidth = usableWidth;
-                } catch (e1) {}
-
-                try {
-                  // 方法2: 直接设置 Columns 宽度
-                  if (table.Columns) {
-                    var colCount = table.Columns.Count;
-                    var colWidth = usableWidth / colCount;
-                    for (var c = 1; c <= colCount; c++) {
-                      try {
-                        table.Columns.Item(c).Width = colWidth;
-                      } catch (e2) {}
-                    }
-                  }
-                } catch (e3) {}
-
-                try {
-                  // 方法3: 禁止自动调整
-                  table.AllowAutoFit = false;
-                } catch (e4) {}
+                try { table.PreferredWidthType = 2; } catch (e1) {}
+                try { table.PreferredWidth = usableWidth; } catch (e2) {}
+                try { table.AllowAutoFit = false; } catch (e3) {}
               } catch (e) {}
             }
 
-            // 跨页重复表头：设置首行 HeadingFormat
-            if (elementSettings.tableHeadingRepeat) {
-              try {
-                if (table.Rows && table.Rows.Count > 0) {
-                  table.Rows.Item(1).HeadingFormat = true;
-                }
-              } catch (e) {}
+            // 跨页重复表头
+            if (elementSettings.tableHeadingRepeat && table.Rows && table.Rows.Count > 0) {
+              try { table.Rows.Item(1).HeadingFormat = true; } catch (e) {}
             }
 
-            // 表格内容格式（优化版：检查后再设置）
-            if (rules.tableContent) {
+            // 表格内容对齐（快速操作）
+            if (rules.tableContent && table.Range && table.Range.ParagraphFormat) {
               try {
-                // 检查是否需要设置字体（避免不必要的操作）
-                var needSetFont = rules.tableContent.fontCN && fontDefaults.fontCN;
-                var targetFont = rules.tableContent.fontCN || fontDefaults.fontCN;
-
-                // 快速设置对齐和缩进（这些操作很快）
-                if (table.Range && table.Range.ParagraphFormat) {
-                  var tpf = table.Range.ParagraphFormat;
-                  if (rules.tableContent.alignment !== undefined) {
-                    tpf.Alignment = rules.tableContent.alignment;
-                  }
-                  tpf.FirstLineIndent = 0;
+                if (rules.tableContent.alignment !== undefined) {
+                  table.Range.ParagraphFormat.Alignment = rules.tableContent.alignment;
                 }
-
-                // 字体设置：只设置一次，避免重复
-                if (needSetFont && table.Range) {
-                  try {
-                    var tr = table.Range;
-                    // 一次性设置所有字体属性，减少 API 调用
-                    tr.SetRange(tr.Start, tr.End);
-                    if (tr.Font) {
-                      // 批量设置，比分开设置更快
-                      tr.Font.Name = targetFont;  // 西文字体
-                      tr.Font.NameFarEast = targetFont;  // 中文字体
-                      if (rules.tableContent.fontSize !== undefined) {
-                        tr.Font.Size = rules.tableContent.fontSize;
-                      }
-                      tr.Font.Bold = 0;
-                    }
-                  } catch (fontErr) {
-                    // 字体设置失败不影响其他操作
-                  }
-                }
+                table.Range.ParagraphFormat.FirstLineIndent = 0;
                 applied++;
               } catch (e) {}
             }
 
-            // 表头格式（第一行）
+            // 表头对齐（快速操作）
             if (rules.tableHeader && table.Rows && table.Rows.Count > 0) {
               try {
                 var headerRow = table.Rows.Item(1);
-                if (headerRow.Range) {
-                  // 对齐
-                  if (headerRow.Range.ParagraphFormat && rules.tableHeader.alignment !== undefined) {
-                    headerRow.Range.ParagraphFormat.Alignment = rules.tableHeader.alignment;
-                  }
-                  // 字体
-                  if (headerRow.Range.Font && rules.tableHeader.fontCN) {
-                    headerRow.Range.Font.Name = rules.tableHeader.fontCN;
-                    headerRow.Range.Font.NameFarEast = rules.tableHeader.fontCN;
-                    if (rules.tableHeader.fontSize !== undefined) {
-                      headerRow.Range.Font.Size = rules.tableHeader.fontSize;
-                    }
-                    headerRow.Range.Font.Bold = (rules.tableHeader.bold === true) ? -1 : 0;
-                  }
+                if (headerRow.Range && headerRow.Range.ParagraphFormat && rules.tableHeader.alignment !== undefined) {
+                  headerRow.Range.ParagraphFormat.Alignment = rules.tableHeader.alignment;
+                  applied++;
                 }
-                applied++;
               } catch (e) {}
             }
 

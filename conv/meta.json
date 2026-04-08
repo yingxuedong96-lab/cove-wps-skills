@@ -1,6 +1,17 @@
 {
   "conversations": [
     {
+      "id": "1775639338286_4cdo66",
+      "title": "templatecreator：请从当前文档提取样式模板。",
+      "createdAt": 1775639338286,
+      "updatedAt": 1775639338286,
+      "messageCount": 0,
+      "pinned": false,
+      "skillName": "templatecreator",
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/模版生成/样式提取.docx",
+      "documentName": "样式提取.docx"
+    },
+    {
       "id": "1775638772826_8yqq6c",
       "title": "generalformat：排版表格。\n\n表头用黑体五号居中",
       "createdAt": 1775638772826,

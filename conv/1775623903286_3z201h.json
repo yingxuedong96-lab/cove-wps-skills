@@ -13,7 +13,7 @@
     "role": "assistant",
     "content": "",
     "timestamp": 1775623903323,
-    "streaming": true
+    "streaming": false
   },
   {
     "id": "tool_1775623905446_4v8e",
@@ -113,11 +113,16 @@
       "toolName": "confirmEdits",
       "input": {
         "mode": "format",
-        "summary": "## 格式修改报告\n\n1. **主标题排版（1处）**\n   - 黑体二号居中加粗\n   - 无缩进\n\n2. **一级标题排版（20处）**\n   - 黑体三号靠左对齐加粗\n   - 无缩进\n\n3. **二级标题排版（121处）**\n   - 黑体小三号靠左对齐加粗\n   - 无缩进\n\n4. **三级标题排版（8处）**\n   - 黑体四号靠左对齐加粗\n   - 无缩进",
-        "reportSnapshot": {}
+        "summary": "## 格式修改报告\n\n1. **主标题排版（1处）**\n   - 黑体二号居中加粗\n   - 无缩进\n\n2. **一级标题排版（20处）**\n   - 黑体三号靠左对齐加粗\n   - 无缩进\n\n3. **二级标题排版（121处）**\n   - 黑体小三号靠左对齐加粗\n   - 无缩进\n\n4. **三级标题排版（8处）**\n   - 黑体四号靠左对齐加粗\n   - 无缩进"
       },
-      "executing": true,
-      "codeStreaming": false
+      "output": "[UserCancelled] 已取消本次格式调整。",
+      "durationMs": 105261
     }
+  },
+  {
+    "id": "confirm_edits_note_1775624062858_qmryf1",
+    "role": "assistant",
+    "content": "已取消本次格式调整。",
+    "timestamp": 1775624062858
   }
 ]

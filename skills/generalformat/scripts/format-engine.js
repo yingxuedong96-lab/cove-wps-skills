@@ -222,9 +222,13 @@ try {
 
   // 默认正则 + 用户正则
   var allPatterns = {
+    // 一级标题/章标题
     zhangTitle: ['^第[一二三四五六七八九十百零]+章', '^第\\s*[一二三四五六七八九十百零]+章', '^第\\d{1,3}章', '^\\d{1,3}\\s+[\\u4e00-\\u9fff]', '^[一二三四五六七八九十]+、'],
-    heading2: ['^\\d+\\.\\d+\\s', '^[（(][一二三四五六七八九十]+[）)]'],
-    heading3: ['^\\d+\\.\\d+\\.\\d+\\s', '^[（(]\\d+[）)]'],
+    // 附录标题：单独类型
+    appendixTitle: ['^附录[一二三四五六七八九十A-Za-z]\\s'],
+    heading2: ['^\\d+\\.\\d+\\s', '^[（(][一二三四五六七八九十]+[）)]\\s*[\\u4e00-\\u9fff]'],
+    // 三级标题：(1) 格式，但排除列表项（以书名号开头的是列表项，不是标题）
+    heading3: ['^\\d+\\.\\d+\\.\\d+\\s'],
     heading4: ['^\\d+\\.\\d+\\.\\d+\\.\\d+\\s', '^[（(][一二三四五六七八九十]+[）)][（(]\\d+[）)]'],
     heading5: ['^\\d+\\.\\d+\\.\\d+\\.\\d+\\.\\d+\\s'],
     tableCaption: ['^表\\s*\\d+', '^表\\s*[\\d\\.\\-]+'],
@@ -267,11 +271,22 @@ try {
     }
     if (inRef) return 'ref';
 
+    // 列表项检测：(1)《书名》或 (1)标准编号 格式 → 正文，不是标题
+    var listMatch = text.match(/^[（(](\d+)[）)]\s*[《(A-Z]/);
+    if (listMatch) {
+      // (1)《...》 或 (1)GB... 或 (1)DL... 等是列表项
+      return 'body';
+    }
+
     for (var i = 0; i < compiled.tableCaption.length; i++) {
       if (compiled.tableCaption[i].test(text)) return 'tableCaption';
     }
     for (var i = 0; i < compiled.figureCaption.length; i++) {
       if (compiled.figureCaption[i].test(text)) return 'figureCaption';
+    }
+    // 附录标题检测（在zhangTitle之前）
+    for (var i = 0; compiled.appendixTitle && i < compiled.appendixTitle.length; i++) {
+      if (compiled.appendixTitle[i].test(text)) return 'appendixTitle';
     }
     for (var i = 0; compiled.zhangTitle && i < compiled.zhangTitle.length; i++) {
       if (compiled.zhangTitle[i].test(text)) return 'zhangTitle';

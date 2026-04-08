@@ -2,7 +2,7 @@
 name: generalformat
 description: >
   文档格式排版。根据排版规则自动识别段落类型并应用格式。
-  支持两种模式：(1)快捷指令模式：直接从prompt获取规则 (2)规范文档模式：从规范文档提取规则。
+  【强制要求】必须调用executeFile执行scripts/format-engine.js，禁止自己写代码！
   触发词：排版标题、排版正文、排版图表、排版表格、排版页面设置、排版页眉页脚、排版列表、完整排版。
 compatibility:
   runtime: WPS JS 宏 / WPS 加载项（JSAPI）

@@ -1,12 +1,15 @@
 /**
  * extract-template.js - 完整样式提取（符合样式元素规范表）
- * 版本: 26.0410.1001
+ * 版本: 26.0410.1002
  * 支持元素: 论文报告26种 + 公文20种
  * 支持参数: 45个（字体7 + 段落5 + 间距4 + 大纲3 + 表格10 + 页面9 + 其他7）
- * 更新: 修复缩进和行距单位显示（首行缩进用字符单位，行距根据LineSpacingRule解释）
+ * 更新:
+ *   - 修复缩进和行距单位显示
+ *   - 新增模板保存功能（JSON + Markdown双格式）
+ *   - 保存路径: /Users/cassia/Desktop/dyx/wpsjs/模版生成/
  */
 try {
-  var VER = "26.0410.1001";
+  var VER = "26.0410.1002";
   console.log("[extract] 版本: " + VER);
 
   var DOC = Application.ActiveDocument;
@@ -311,10 +314,103 @@ try {
 
   lines.push("\n模板已保存，可在后续【应用模板】时使用。");
 
+  // ============================================================
+  // 七、保存模板到指定目录（便于查看和后续应用）
+  // ============================================================
+  var templateDir = "/Users/cassia/Desktop/dyx/wpsjs/模版生成/";
+  var docNameBase = DOC.Name.replace(/\.[docxdoc]+$/i, "");
+  var jsonFile = templateDir + docNameBase + "-样式模板.json";
+  var mdFile = templateDir + docNameBase + "-样式详情.md";
+
+  // 构建完整的样式数据结构
+  var templateData = {
+    version: VER,
+    docName: DOC.Name,
+    docType: isPaper ? "论文报告" : "公文",
+    extractTime: new Date().toISOString(),
+    pageSetup: {
+      paperSize: DOC.PageSetup.PaperSize === 1 ? "A4" : "自定义",
+      orientation: DOC.PageSetup.Orientation === 1 ? "横向" : "纵向",
+      topMargin: (DOC.PageSetup.TopMargin / 567).toFixed(2),
+      bottomMargin: (DOC.PageSetup.BottomMargin / 567).toFixed(2),
+      leftMargin: (DOC.PageSetup.LeftMargin / 567).toFixed(2),
+      rightMargin: (DOC.PageSetup.RightMargin / 567).toFixed(2),
+      headerDistance: (DOC.PageSetup.HeaderDistance / 567).toFixed(2),
+      footerDistance: (DOC.PageSetup.FooterDistance / 567).toFixed(2),
+      gutter: DOC.PageSetup.Gutter > 0 ? (DOC.PageSetup.Gutter / 567).toFixed(2) : "0"
+    },
+    styles: {}
+  };
+
+  // 保存每种样式的完整参数
+  sortedTypes.forEach(function(t) {
+    var s = styles[t];
+    templateData.styles[t] = {
+      id: t,
+      name: STYLE_NAMES[t] || t,
+      count: s.count,
+      formats: s.formats.map(function(f) {
+        return {
+          // 字体参数
+          fontCN: f.fontCN,
+          fontEN: f.fontEN,
+          fontSize: f.fontSize,
+          fontSizeName: f.fontSizeName,
+          bold: f.bold,
+          italic: f.italic,
+          underline: f.underline,
+          color: f.color,
+          // 段落参数
+          alignment: f.alignment,
+          firstLineIndent: f.firstLineIndent,
+          firstLineIndentChars: f.characterUnitFirstLine || (f.firstLineIndent / 10.5),
+          leftIndent: f.leftIndent,
+          rightIndent: f.rightIndent,
+          // 间距参数
+          spaceBefore: f.spaceBefore,
+          spaceAfter: f.spaceAfter,
+          lineSpacing: f.lineSpacing,
+          lineSpacingRule: f.lineSpacingRule
+        };
+      }),
+      samples: s.samples
+    };
+  });
+
+  // 尝试保存文件（WPS JS 环境）
+  var saveResult = "";
+  try {
+    // 使用 WPS 内置方法保存到本地
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+
+    // 确保目录存在
+    if (!fso.FolderExists(templateDir)) {
+      fso.CreateFolder(templateDir);
+    }
+
+    // 保存 JSON 文件（供 apply-template.js 使用）
+    var jsonContent = JSON.stringify(templateData, null, 2);
+    var jsonFileObj = fso.CreateTextFile(jsonFile, true, true);
+    jsonFileObj.Write(jsonContent);
+    jsonFileObj.Close();
+
+    // 保存 Markdown 文件（供用户查看）
+    var mdFileObj = fso.CreateTextFile(mdFile, true, true);
+    mdFileObj.Write(lines.join("\n"));
+    mdFileObj.Close();
+
+    saveResult = "\n\n📁 模板已保存到：\n- JSON: " + jsonFile + "\n- 详情: " + mdFile;
+    console.log("[extract] 模板已保存: " + jsonFile);
+  } catch(e) {
+    saveResult = "\n\n⚠️ 文件保存失败（可手动复制下方内容）: " + String(e);
+    console.log("[extract] 保存失败: " + String(e));
+  }
+
   return {
     success: true,
-    message: lines.join("\n"),
-    styleCount: Object.keys(styles).length
+    message: lines.join("\n") + saveResult,
+    styleCount: Object.keys(styles).length,
+    templateFile: jsonFile
   };
 } catch (e) {
   return { success: false, error: String(e) };

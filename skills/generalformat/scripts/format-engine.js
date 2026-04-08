@@ -763,21 +763,42 @@ try {
               }
             }
 
-            // 表格内容格式（第2-N行）
-            if (rules.tableContent && table.Rows && table.Rows.Count > 1) {
+            // 表格内容格式（一次性设置整个表格，再覆盖表头）
+            if (rules.tableContent) {
               try {
-                var rowCount = table.Rows.Count;
-                var contentApplied = 0;
-                for (var r = 2; r <= rowCount; r++) {
+                // 方法：先设置整个表格，再单独设置表头
+                // 这样避免逐行遍历，大幅提升性能
+                if (table.Range && table.Range.Font) {
+                  var tf = table.Range.Font;
+                  if (rules.tableContent.fontCN || fontDefaults.fontCN) {
+                    tf.NameFarEast = rules.tableContent.fontCN || fontDefaults.fontCN;
+                  }
+                  if (rules.tableContent.fontSize !== undefined) {
+                    tf.Size = rules.tableContent.fontSize;
+                  }
+                  // 强制清除加粗
+                  tf.Bold = (rules.tableContent.bold === true) ? -1 : 0;
+                }
+                if (table.Range && table.Range.ParagraphFormat) {
+                  var tpf = table.Range.ParagraphFormat;
+                  if (rules.tableContent.alignment !== undefined) {
+                    tpf.Alignment = rules.tableContent.alignment;
+                  }
+                  // 清除首行缩进
+                  tpf.FirstLineIndent = 0;
+                }
+                applied++;
+                console.log('[format] 表格' + tblIdx + '内容(整体): ' + JSON.stringify(rules.tableContent));
+
+                // 重新设置表头（覆盖刚才的整体设置）
+                if (rules.tableHeader && table.Rows && table.Rows.Count > 0) {
                   try {
-                    var contentRow = table.Rows.Item(r);
-                    if (applyRuleToTableRow(contentRow, rules.tableContent)) {
-                      applied++;
-                      contentApplied++;
+                    var headerRow2 = table.Rows.Item(1);
+                    if (applyRuleToTableRow(headerRow2, rules.tableHeader)) {
+                      console.log('[format] 表格' + tblIdx + '表头(重设): ' + JSON.stringify(rules.tableHeader));
                     }
                   } catch (e) {}
                 }
-                console.log('[format] 表格' + tblIdx + '内容: ' + contentApplied + '行, ' + JSON.stringify(rules.tableContent));
               } catch (e) {
                 console.log('[format] 表格' + tblIdx + '内容失败: ' + e);
               }

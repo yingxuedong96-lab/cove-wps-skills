@@ -1,238 +1,170 @@
 /**
- * extract-template.js - 稳定版本
- * 版本: 26.0408.1600 - 使用字符串匹配，避免正则状态问题
+ * extract-template.js - 带详细调试输出
+ * 版本: 26.0408.1615
  */
-
 (function() {
-  const SCRIPT_VERSION = "26.0408.1600";
-  console.log("[extract-template] 脚本版本: " + SCRIPT_VERSION);
+  "use strict";
+  const VER = "26.0408.1615";
 
-  const DOC = Application.ActiveDocument;
-  if (!DOC) {
-    return JSON.stringify({ success: false, error: "没有打开的文档" });
-  }
+  try {
+    console.log("[extract] 开始执行，版本: " + VER);
 
-  // 清理文本
-  function cleanText(text) {
-    return String(text || '').replace(/\u0007/g, '').replace(/[\r\n]/g, '').trim();
-  }
-
-  // 检测函数 - 使用新创建的正则，避免状态问题
-  function detectTag(text, docType) {
-    // 论文报告样式
-    if (docType === "paper") {
-      // 按从长到短检测
-      if (/^\d+\.\d+\.\d+\.\d+\.\d+/.test(text)) return { id: "heading5", name: "五级标题" };
-      if (/^\d+\.\d+\.\d+\.\d+/.test(text)) return { id: "heading4", name: "四级标题" };
-      if (/^\d+\.\d+\.\d+/.test(text)) return { id: "heading3", name: "三级标题" };
-      if (/^\d+\.\d+[^.\d]/.test(text)) return { id: "heading2", name: "二级标题" };
-      if (/^\d+[^.\d]/.test(text)) return { id: "heading1", name: "一级标题" };
-      if (/^第[一二三四五六七八九十\d]+章/.test(text)) return { id: "chapterTitle", name: "章标题" };
-      if (/^摘要|^Abstract/.test(text)) return { id: "abstractTitle", name: "摘要标题" };
-      if (/^关键词|^Keywords/.test(text)) return { id: "keywords", name: "关键词" };
-      if (/^目\s*录$|^目次$/.test(text)) return { id: "tocTitle", name: "目录标题" };
-      if (/^\s*[a-z]\)|^\s*\d+\)|^[①②③④⑤⑥⑦⑧⑨⑩]/.test(text)) return { id: "listItem", name: "列表项" };
-      if (/^图\s*\d+/.test(text)) return { id: "figureCaption", name: "图名" };
-      if (/^表\s*\d+/.test(text)) return { id: "tableCaption", name: "表名" };
-      if (/^\([\d.\-–—]+\)$/.test(text)) return { id: "formulaCaption", name: "公式编号" };
-      if (/^式中[：:]/.test(text)) return { id: "formulaNote", name: "公式说明" };
-      if (/^附\s*录/.test(text)) return { id: "appendixTitle", name: "附录标题" };
-      if (/^[A-Z]\.\d+/.test(text)) return { id: "appendixSection", name: "附录节题" };
-      if (/^参考文献/.test(text)) return { id: "referenceTitle", name: "参考文献标题" };
-      if (/^\[\d+\]/.test(text)) return { id: "reference", name: "参考文献条目" };
-      if (/^注\s*\d*/.test(text)) return { id: "note", name: "注释说明" };
-    }
-    // 公文样式
-    else if (docType === "official") {
-      if (/^[一二三四五六七八九十]+、/.test(text)) return { id: "heading1", name: "一级标题" };
-      if (/^\([一二三四五六七八九十]+\)/.test(text)) return { id: "heading2", name: "二级标题" };
-      if (/^\d+\.\s/.test(text)) return { id: "heading3", name: "三级标题" };
-      if (/^附件/.test(text)) return { id: "attachment", name: "附件说明" };
-      if (/\d{4}年\d{1,2}月\d{1,2}日/.test(text)) return { id: "signDate", name: "成文日期" };
-      if (/^抄送/.test(text)) return { id: "copySender", name: "抄送机关" };
-    }
-    return null;
-  }
-
-  const params = Application.Env?.ScriptParams || {};
-
-  // 选择文档类型
-  if (!params.docType) {
-    return JSON.stringify({
-      success: true,
-      needUserInput: true,
-      stage: "selectDocType",
-      question: "请选择文档类型：",
-      options: ["论文/技术报告", "公文"]
-    }, null, 2);
-  }
-
-  const docType = params.docType === "论文/技术报告" ? "paper" : "official";
-  const docTypeName = docType === "paper" ? "论文报告样式" : "公文样式";
-
-  // 获取段落
-  const paraCount = DOC.Paragraphs.Count;
-  const results = {};
-  const debugList = [];
-
-  // 遍历段落
-  for (let i = 1; i <= paraCount; i++) {
-    const para = DOC.Paragraphs.Item(i);
-    const text = cleanText(para.Range.Text);
-    if (!text) continue;
-
-    // 获取格式
-    const range = para.Range;
-    const fmt = para.Format;
-    const formatInfo = {
-      fontCN: range.Font.NameFarEast || range.Font.Name,
-      fontSize: range.Font.Size,
-      bold: range.Font.Bold,
-      alignment: fmt.Alignment,
-      firstLineIndent: fmt.FirstLineIndent / 240,
-      lineSpacing: fmt.LineSpacing
-    };
-
-    // 检测标签
-    let tag = detectTag(text, docType);
-
-    // 格式特征检测（作为后备）
-    if (!tag) {
-      if (formatInfo.bold && formatInfo.fontSize >= 14) {
-        tag = { id: "heading1", name: "一级标题" };
-      } else {
-        tag = { id: "body", name: "正文" };
-      }
+    const DOC = Application.ActiveDocument;
+    if (!DOC) {
+      return JSON.stringify({ success: false, error: "没有打开的文档" });
     }
 
-    // 记录调试信息（前15个段落）
-    if (debugList.length < 15) {
-      debugList.push({
-        idx: i,
-        text: text.substring(0, 30),
-        tagId: tag.id,
-        fontSize: formatInfo.fontSize,
-        bold: formatInfo.bold
+    console.log("[extract] 文档: " + DOC.Name + ", 段落数: " + DOC.Paragraphs.Count);
+
+    // 参数处理
+    const params = Application.Env?.ScriptParams || {};
+    console.log("[extract] 参数: " + JSON.stringify(params));
+
+    if (!params.docType) {
+      return JSON.stringify({
+        success: true,
+        needUserInput: true,
+        question: "请选择文档类型：",
+        options: ["论文/技术报告", "公文"]
       });
     }
 
-    // 累计结果
-    if (!results[tag.id]) {
-      results[tag.id] = { name: tag.name, count: 0, formats: [], samples: [] };
+    const isPaper = params.docType === "论文/技术报告";
+    console.log("[extract] 文档类型: " + (isPaper ? "论文" : "公文"));
+
+    // 收集段落信息
+    const paras = DOC.Paragraphs;
+    const debugSamples = [];
+    const styles = {};
+
+    // 清理文本
+    function clean(t) {
+      return String(t || '').replace(/\u0007/g, '').replace(/[\r\n]/g, '').trim();
     }
-    results[tag.id].count++;
-    results[tag.id].formats.push(formatInfo);
-    if (results[tag.id].samples.length < 3) {
-      results[tag.id].samples.push(text.substring(0, 50));
+
+    // 检测标题级别 - 论文
+    function detectPaper(text) {
+      if (/^\d+\.\d+\.\d+\.\d+\.\d+/.test(text)) return "heading5";
+      if (/^\d+\.\d+\.\d+\.\d+/.test(text)) return "heading4";
+      if (/^\d+\.\d+\.\d+/.test(text)) return "heading3";
+      if (/^\d+\.\d+[^.\d]/.test(text)) return "heading2";
+      if (/^\d+[^.\d]/.test(text)) return "heading1";
+      if (/^第[一二三四五六七八九十\d]+章/.test(text)) return "chapterTitle";
+      if (/^摘要|^Abstract/.test(text)) return "abstractTitle";
+      if (/^关键词|^Keywords/.test(text)) return "keywords";
+      if (/^图\s*\d+/.test(text)) return "figureCaption";
+      if (/^表\s*\d+/.test(text)) return "tableCaption";
+      if (/^附\s*录/.test(text)) return "appendixTitle";
+      if (/^[A-Z]\.\d+/.test(text)) return "appendixSection";
+      if (/^参考文献/.test(text)) return "referenceTitle";
+      if (/^\[\d+\]/.test(text)) return "reference";
+      return null;
     }
-  }
 
-  // 生成输出
-  const alignMap = { 0: "左对齐", 1: "居中", 2: "右对齐", 3: "两端对齐" };
-  const lines = [];
+    // 处理每个段落
+    for (let i = 1; i <= paras.Count; i++) {
+      const para = paras.Item(i);
+      const rawText = para.Range.Text;
+      const text = clean(rawText);
 
-  lines.push("✅ 样式模板提取完成！版本: " + SCRIPT_VERSION);
-  lines.push("");
-  lines.push("════════════════════════════════════════");
-  lines.push("【调试信息】前15个段落");
-  lines.push("════════════════════════════════════════");
-  debugList.forEach(d => {
-    lines.push(`[${d.idx}] "${d.text}" => ${d.tagId} (${d.fontSize}pt, bold=${d.bold})`);
-  });
-  lines.push("════════════════════════════════════════");
-  lines.push("");
+      if (!text) continue;
 
-  lines.push(`📄 源文档：${DOC.Name}`);
-  lines.push(`📑 类型：${docTypeName}`);
-  lines.push(`📊 共 ${Object.keys(results).length} 种样式，${paraCount} 个段落`);
-  lines.push("");
-  lines.push("## 提取的样式详情");
-  lines.push("");
+      // 获取格式
+      const fmt = {
+        fontCN: para.Range.Font.NameFarEast || para.Range.Font.Name,
+        fontSize: para.Range.Font.Size,
+        bold: para.Range.Font.Bold,
+        align: para.Format.Alignment
+      };
 
-  // 按类型排序输出
-  const tagOrder = ["docTitle", "heading1", "heading2", "heading3", "heading4", "heading5",
-                    "body", "figureCaption", "tableCaption", "appendixTitle", "appendixSection"];
-  const sortedTags = Object.keys(results).sort((a, b) => {
-    const ia = tagOrder.indexOf(a);
-    const ib = tagOrder.indexOf(b);
-    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-  });
+      // 检测类型
+      let type = isPaper ? detectPaper(text) : null;
 
-  sortedTags.forEach(id => {
-    const data = results[id];
-    if (!data.formats.length) return;
-    // 取众数格式
-    const fmt = data.formats[0];
-    lines.push(`### ${data.name}（${data.count}处）`);
-    const params = [];
-    if (fmt.fontCN) params.push(`字体: ${fmt.fontCN}`);
-    if (fmt.fontSize) params.push(`字号: ${fmt.fontSize}pt`);
-    if (fmt.bold) params.push("加粗");
-    if (fmt.alignment !== undefined) params.push(`对齐: ${alignMap[fmt.alignment]}`);
-    if (fmt.firstLineIndent) params.push(`首行缩进: ${fmt.firstLineIndent.toFixed(1)}字符`);
-    if (fmt.lineSpacing) params.push(`行距: ${fmt.lineSpacing.toFixed(1)}pt`);
-    lines.push(params.join(" | "));
-    if (data.samples.length > 0) {
-      lines.push(`示例: "${data.samples[0]}"`);
+      // 格式后备检测
+      if (!type && fmt.bold && fmt.fontSize >= 14) {
+        type = "heading1";
+      }
+      if (!type) {
+        type = "body";
+      }
+
+      // 记录前10个段落用于调试
+      if (debugSamples.length < 10) {
+        debugSamples.push({
+          i: i,
+          text: text.substring(0, 35),
+          type: type,
+          fs: fmt.fontSize,
+          bold: fmt.bold
+        });
+      }
+
+      // 累计
+      if (!styles[type]) {
+        styles[type] = { name: type, count: 0, formats: [], samples: [] };
+      }
+      styles[type].count++;
+      styles[type].formats.push(fmt);
+      if (styles[type].samples.length < 2) {
+        styles[type].samples.push(text.substring(0, 40));
+      }
     }
+
+    console.log("[extract] 检测完成，样式数: " + Object.keys(styles).length);
+
+    // 生成输出
+    const alignMap = { 0: "左对齐", 1: "居中", 2: "右对齐", 3: "两端对齐" };
+
+    const lines = [];
+    lines.push("✅ 样式模板提取完成！v" + VER);
     lines.push("");
-  });
+    lines.push("=== 调试信息 ===");
+    debugSamples.forEach(d => {
+      lines.push(`[${d.i}] "${d.text}" → ${d.type} (${d.fs}pt, bold=${d.bold})`);
+    });
+    lines.push("=== 调试结束 ===");
+    lines.push("");
+    lines.push(`📄 源文档：${DOC.Name}`);
+    lines.push(`📊 共 ${Object.keys(styles).length} 种样式`);
+    lines.push("");
 
-  // 页面设置
-  lines.push("## 页面设置");
-  lines.push(`- 纸张: A4`);
-  lines.push(`- 上边距: ${(DOC.PageSetup.TopMargin / 567).toFixed(2)}cm`);
-  lines.push(`- 下边距: ${(DOC.PageSetup.BottomMargin / 567).toFixed(2)}cm`);
-  lines.push(`- 左边距: ${(DOC.PageSetup.LeftMargin / 567).toFixed(2)}cm`);
-  lines.push(`- 右边距: ${(DOC.PageSetup.RightMargin / 567).toFixed(2)}cm`);
+    // 输出样式
+    const typeOrder = ["heading1", "heading2", "heading3", "heading4", "heading5", "body", "figureCaption", "tableCaption", "appendixTitle"];
+    typeOrder.forEach(t => {
+      if (!styles[t]) return;
+      const s = styles[t];
+      const fmt = s.formats[0];
+      lines.push(`### ${s.name}（${s.count}处）`);
+      const p = [];
+      if (fmt.fontCN) p.push(`字体: ${fmt.fontCN}`);
+      if (fmt.fontSize) p.push(`字号: ${fmt.fontSize}pt`);
+      if (fmt.bold) p.push("加粗");
+      if (fmt.align !== undefined) p.push(`对齐: ${alignMap[fmt.align]}`);
+      lines.push(p.join(" | "));
+      lines.push("");
+    });
 
-  // 构建样式表格
-  const stylesTable = sortedTags.map(id => {
-    const data = results[id];
-    const fmt = data.formats[0];
-    return {
-      样式名称: data.name,
-      出现次数: data.count + "处",
-      字体: fmt.fontCN || "-",
-      字号: fmt.fontSize ? fmt.fontSize + "pt" : "-",
-      加粗: fmt.bold ? "是" : "否",
-      对齐: alignMap[fmt.alignment] || "-"
+    // 页面设置
+    lines.push("## 页面设置");
+    lines.push(`- 上边距: ${(DOC.PageSetup.TopMargin / 567).toFixed(2)}cm`);
+    lines.push(`- 下边距: ${(DOC.PageSetup.BottomMargin / 567).toFixed(2)}cm`);
+
+    const result = {
+      success: true,
+      scriptVersion: VER,
+      message: lines.join("\n"),
+      stylesTable: Object.keys(styles).map(k => ({
+        样式: styles[k].name,
+        次数: styles[k].count + "处"
+      })),
+      debugSamples: debugSamples
     };
-  });
 
-  // 构建模板JSON
-  const template = {
-    name: DOC.Name.replace(/\.(docx|doc)$/i, '') + '_模板',
-    docType: docType,
-    styles: sortedTags.map(id => ({
-      id: id,
-      name: results[id].name,
-      count: results[id].count,
-      format: results[id].formats[0]
-    })),
-    pageSetup: {
-      topMargin: DOC.PageSetup.TopMargin / 567,
-      bottomMargin: DOC.PageSetup.BottomMargin / 567,
-      leftMargin: DOC.PageSetup.LeftMargin / 567,
-      rightMargin: DOC.PageSetup.RightMargin / 567
-    }
-  };
+    console.log("[extract] 返回结果");
+    return JSON.stringify(result, null, 2);
 
-  return JSON.stringify({
-    success: true,
-    scriptVersion: SCRIPT_VERSION,
-    message: lines.join("\n"),
-    stylesTable: stylesTable,
-    templateJson: template,
-    template: template,
-    pageSetup: {
-      paperSize: "A4",
-      topMargin: `${(DOC.PageSetup.TopMargin / 567).toFixed(2)}cm`,
-      bottomMargin: `${(DOC.PageSetup.BottomMargin / 567).toFixed(2)}cm`,
-      leftMargin: `${(DOC.PageSetup.LeftMargin / 567).toFixed(2)}cm`,
-      rightMargin: `${(DOC.PageSetup.RightMargin / 567).toFixed(2)}cm`
-    },
-    debugList: debugList
-  }, null, 2);
-
+  } catch (e) {
+    console.log("[extract] 错误: " + e);
+    return JSON.stringify({ success: false, error: String(e) });
+  }
 })();

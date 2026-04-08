@@ -1,10 +1,87 @@
-{
-  "id": "1775624839381_mznjdw",
-  "title": "generalformat：排版正文。\n\n正文用宋体小四号两",
-  "createdAt": 1775624839381,
-  "updatedAt": 1775624839381,
-  "messages": [],
-  "skillName": "generalformat",
-  "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/机载/228页长文档校对排版.docx",
-  "documentName": "228页长文档校对排版.docx"
-}
+[
+  {
+    "id": "1775625278019_7wrhv4d",
+    "role": "user",
+    "content": "generalformat：排版正文。\n\n正文用宋体小四号两端对齐首行缩进2字符行距固定值22磅。",
+    "timestamp": 1775625278019,
+    "commandMeta": {
+      "name": "排版正文"
+    }
+  },
+  {
+    "id": "1775625278019_r67g2en",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775625278019,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775625279827_bkuk",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775625279827,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "generalformat"
+      },
+      "output": "<skill_content name=\"generalformat\">\n# Skill: generalformat\n\n---\nname: generalformat\ndescription: >\n  文档格式排版。根据排版规则自动识别段落类型并应用格式。\n  支持两种模式：(1)快捷指令模式：直接从prompt获取规则 (2)规范文档模式：从规范文档提取规则。\n  触发词：排版标题、排版正文、排版图表、排版表格、排版页面、排版列表、完整排版。\ncompatibility:\n  runtime: WPS JS 宏 / WPS 加载项（JSAPI）\n---\n\n# 通用文档排版\n\n## 使用方式\n\n**两种模式：**\n1. **快捷指令模式**：prompt 中直接包含排版规则 → 直接生成配置并执行\n2. **规范文档模式**：用户提供规范文档文件 → 解析后生成配置执行\n\n---\n\n## 执行步骤\n\n### Step 1 — 解析排版规则\n\n从用户输入或快捷指令 prompt 中提取排版规则，生成配置 JSON。\n\n**⚠️ 规则来源（按优先级）：**\n1. 如果 prompt 中包含排版规则文字 → 直接使用\n2. 如果用户指定了规范文档 → 调用 parse-spec.js 读取\n3. 如果用户说\"当前文档就是规范文档\" → 调用 parse-spec.js\n\n**⚠️ 关键规则：**\n\n1. **specText 必须完整**：将排版规则**完整**放入 specText 字段\n2. **类型必须完整覆盖**：规则提到多少种类型，配置就必须有多少种\n3. **属性必须完整提取**：字体、字号、对齐、段前段后、行距、缩进等，全部提取\n4. **不要添加未提及的类型**：规则没说四级标题，就不要添加 heading4\n5. **加粗规则**：说\"加粗\"设置 `bold: true`，说\"不加粗\"设置 `bold: false`，都没说则不设置\n6. 直接输出 JSON，不要写代码，不要解释\n\n---\n\n### Step 2 — 调用脚本执行\n\n```yaml\nexecuteFile:\n  filePath: \"skills/generalformat/scripts/format-engine.js\"\n  params:\n    config: <生成的JSON配置>\n```\n\n返回值：\n```json\n{\n  \"success\": true,\n  \"applied\": 5656,\n  \"elapsedMs\": 2882,\n  \"typeCounts\": { \"zhangTitle\": 20, \"heading2\": 421, \"body\": 5207 }\n}\n```\n\n---\n\n## 类型映射表\n\n| 规范中的叫法 | 配置中的类型名 | 说明 |\n|-------------|---------------|------|\n| 主标题、文档标题、报告标题 | docTitle | 文档第一个段落 |\n| 章标题、一级标题、标题一 | zhangTitle | 如\"1 引言\"、\"第1章\" |\n| 附录标题 | appendixTitle | 如\"附录一 主要设计规范\"、\"附录A\" |\n| 二级标题、标题二 | heading2 | 如\"1.1 设计依据\" |\n| 三级标题、标题三 | heading3 | 如\"1.1.1 具体内容\" |\n| 四级标题、标题四 | heading4 | 如\"1.1.1.1 详细说明\" |\n| 五级标题、标题五 | heading5 | 如\"1.1.1.1.1 补充说明\" |\n| 正文、正文格式 | body | 普通段落 |\n| 图名、图标题、图号 | figureCaption | 图标题 |\n| 表名、表标题、表号 | tableCaption | 表标题 |\n| 参考文献 | ref | 参考文献 |\n\n---\n\n## 字号对照表\n\n| 中文字号 | 磅值(fontSize) |\n|---------|---------------|\n| 初号 | 42 |\n| 小初 | 36 |\n| 一号 | 26 |\n| 小一 | 24 |\n| 二号 | 22 |\n| 小二 | 18 |\n| 三号 | 16 |\n| 小三 | 15 |\n| 四号 | 14 |\n| 小四 | 12 |\n| 五号 | 10.5 |\n| 小五 | 9 |\n\n---\n\n## 字段说明\n\n| 字段 | 类型 | 说明 |\n|------|------|------|\n| fontCN | string | 中文字体（宋体、黑体、楷体、仿宋） |\n| fontEN | string | 西文字体（Times New Roman） |\n| fontSize | number | 字号磅值 |\n| bold | boolean | 是否加粗 |\n| alignment | number | 对齐：0=左对齐，1=居中，2=右对齐，3=两端对齐 |\n| spaceBefore | number | 段前间距（磅） |\n| spaceAfter | number | 段后间距（磅） |\n| firstLineIndent | number | 首行缩进（磅，2字符≈24磅） |\n| lineSpacingRule | number | 行距：0=单倍，1=1.5倍，2=2倍，4=固定值 |\n\n---\n\n## 配置格式\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"排版规则原文（必须完整）\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontCN\": \"黑体\", \"fontSize\": 16, \"bold\": true, \"alignment\": 1, ... },\n    \"body\": { \"fontCN\": \"宋体\", \"fontSize\": 12, \"alignment\": 3, \"firstLineIndent\": 24, ... }\n  }\n}\n```\n\n---\n\n## 特殊规则（从 specText 自动识别）\n\n| 关键词 | 功能 |\n|-------|------|\n| 图片居中 | 图片段落居中 |\n| 表格等宽 | 表格宽度等于页面宽度 |\n| 跨页重复表头 | 表格首行跨页重复 |\n| 公式居中 | 公式段落居中 |\n| 公式编号右对齐 | 公式编号右对齐 |\n| 页码居中/左对齐/右对齐 | 页码位置 |\n| 页码阿拉伯/罗马/中文 | 页码格式 |\n\n---\n\n## 快捷指令示例\n\n**排版标题：**\n```\ngeneralformat：排版主标题和各级标题。\n主标题用黑体二号居中加粗，\n一级标题用黑体三号靠左加粗，\n二级标题用黑体小三号靠左加粗，\n三级标题用黑体四号靠左加粗，\n四级标题用黑体四号靠左加粗，\n五级标题用黑体四号靠左对齐，\n附录标题用黑体三号居中，\n所有标题无缩进。\n```\n\n**排版正文：**\n```\ngeneralformat：排版正文段落格式。\n正文用宋体小四号两端对齐首行缩进2字符行距固定值22磅。\n```\n\n**排版图表：**\n```\ngeneralformat：排版图名表名。\n图名用黑体小五号居中，表名用黑体小五号居中，图片居中对齐，表格与页面等宽。\n```\n\n---\n\n## 段落类型自动识别\n\n脚本自动识别段落类型并设置大纲级别：\n\n| 类型 | 匹配规则 | 大纲级别 |\n|------|---------|---------|\n| zhangTitle | 第X章、数字+空格+汉字 | 1级 |\n| heading2 | X.X 二级编号 | 2级 |\n| heading3 | X.X.X 三级编号 | 3级 |\n| heading4 | X.X.X.X 四级编号 | 4级 |\n| figureCaption | 图X... | - |\n| tableCaption | 表X... | - |\n| body | 其他正文 | - |\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/generalformat/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 9
+    }
+  },
+  {
+    "id": "tool_1775625281392_0v5n",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775625281392,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/generalformat/scripts/format-engine.js",
+        "params": {
+          "config": {
+            "version": "1.0",
+            "specText": "排版正文。\n\n正文用宋体小四号两端对齐首行缩进2字符行距固定值22磅。",
+            "fontDefaults": {
+              "fontCN": "宋体",
+              "fontEN": "Times New Roman"
+            },
+            "paragraphRules": {
+              "body": {
+                "fontCN": "宋体",
+                "fontSize": 12,
+                "alignment": 3,
+                "firstLineIndent": 24,
+                "lineSpacingRule": 4,
+                "lineSpacing": 22
+              }
+            }
+          }
+        }
+      },
+      "output": "{\"success\":true,\"applied\":5513,\"errors\":0,\"elapsedMs\":25671,\"processedTypes\":{\"body\":5513},\"total\":9388}",
+      "durationMs": 25707
+    }
+  },
+  {
+    "id": "tool_1775625310797_wdmu",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775625310797,
+    "toolCall": {
+      "toolName": "confirmEdits",
+      "input": {
+        "mode": "format",
+        "summary": "## 格式修改报告\n\n1. **正文排版（5513处）**\n   - 统一为宋体小四号\n   - 两端对齐\n   - 首行缩进2字符（24磅）\n   - 行距固定值22磅"
+      },
+      "output": "[UserCancelled] 已取消本次格式调整。",
+      "durationMs": 46911
+    }
+  },
+  {
+    "id": "confirm_edits_note_1775625357445_q43uoo",
+    "role": "assistant",
+    "content": "已取消本次格式调整。",
+    "timestamp": 1775625357445
+  }
+]

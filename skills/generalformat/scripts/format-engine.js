@@ -188,8 +188,9 @@ try {
   var maxParaCount = Math.min(paraCount, logicalParas.length);
   var useUltraFastMode = paraCount > 6000;
 
-  // ⚠️ 预排除表格和图片段落（与zslong完全相同的方式）
+  // ⚠️ 预排除表格和图片段落，同时记录表格位置范围
   var excludedParaMap = {};
+  var tableRanges = [];  // 记录表格的段落范围 [{start: N, end: M}, ...]
 
   try {
     var tableCount = doc.Tables ? doc.Tables.Count : 0;
@@ -197,6 +198,12 @@ try {
       try {
         var table = doc.Tables.Item(tblIdx);
         if (!table || !table.Range || !table.Range.Paragraphs) continue;
+
+        // 记录表格的段落范围
+        var tblStartIdx = table.Range.Paragraphs.Item(1).Index;
+        var tblEndIdx = table.Range.Paragraphs.Item(table.Range.Paragraphs.Count).Index;
+        tableRanges.push({ start: tblStartIdx, end: tblEndIdx });
+
         for (var tp = 1; tp <= table.Range.Paragraphs.Count; tp++) {
           try {
             var tablePara = table.Range.Paragraphs.Item(tp);
@@ -219,7 +226,17 @@ try {
     }
   } catch (e) {}
 
-  console.log('[format] 排除段落: ' + Object.keys(excludedParaMap).length + ' (表格/图片), 段落数: ' + paraCount);
+  console.log('[format] 排除段落: ' + Object.keys(excludedParaMap).length + ' (表格/图片), 表格范围: ' + tableRanges.length + '个, 段落数: ' + paraCount);
+
+  // 快速判断段落范围是否与表格重叠
+  function rangeOverlapWithTable(start, end) {
+    for (var t = 0; t < tableRanges.length; t++) {
+      if (start <= tableRanges[t].end && end >= tableRanges[t].start) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   // 默认正则 + 用户正则
   var allPatterns = {

@@ -955,7 +955,8 @@ try {
     // ========================================
     // 页面设置处理
     // ========================================
-    if (specTextLower.indexOf('页边距') !== -1 || specTextLower.indexOf('页眉距') !== -1 || specTextLower.indexOf('页脚距') !== -1) {
+    if (specTextLower.indexOf('页边距') !== -1 || specTextLower.indexOf('纸张') !== -1 ||
+        specTextLower.indexOf('页眉距') !== -1 || specTextLower.indexOf('页脚距') !== -1) {
       console.log('[format] 启用页面设置');
       try {
         var pageSetupCount = 0;
@@ -965,15 +966,55 @@ try {
           return cm * 72 / 2.54;
         }
 
-        // 解析页边距（支持cm和厘米两种格式）
+        // 解析页边距（支持多种格式）
         var topMargin = 0, bottomMargin = 0, leftMargin = 0, rightMargin = 0;
-        var marginMatch = specTextLower.match(/页边距[：:]?\s*上下\s*([\d.]+)\s*(?:cm|厘米)\s*[，,、]\s*左右\s*([\d.]+)\s*(?:cm|厘米)/);
-        if (marginMatch) {
-          topMargin = cmToPoints(parseFloat(marginMatch[1]));
+
+        // 格式1：页边距上下2.5cm左右2.5cm（无逗号分隔）
+        var marginMatch1 = specTextLower.match(/页边距[：:]?\s*上下\s*([\d.]+)\s*(?:cm|厘米)\s*左右\s*([\d.]+)\s*(?:cm|厘米)?/);
+        if (marginMatch1) {
+          topMargin = cmToPoints(parseFloat(marginMatch1[1]));
           bottomMargin = topMargin;
-          leftMargin = cmToPoints(parseFloat(marginMatch[2]));
+          leftMargin = cmToPoints(parseFloat(marginMatch1[2]));
           rightMargin = leftMargin;
-          console.log('[format] 页边距: 上下=' + marginMatch[1] + 'cm, 左右=' + marginMatch[2] + 'cm → ' + topMargin + '/' + leftMargin + '磅');
+          console.log('[format] 页边距(格式1): 上下=' + marginMatch1[1] + 'cm, 左右=' + marginMatch1[2] + 'cm');
+        }
+
+        // 格式2：页边距上下2.5cm，左右2.5cm（有逗号分隔）
+        if (!marginMatch1) {
+          var marginMatch2 = specTextLower.match(/页边距[：:]?\s*上下\s*([\d.]+)\s*(?:cm|厘米)\s*[，,、]\s*左右\s*([\d.]+)\s*(?:cm|厘米)/);
+          if (marginMatch2) {
+            topMargin = cmToPoints(parseFloat(marginMatch2[1]));
+            bottomMargin = topMargin;
+            leftMargin = cmToPoints(parseFloat(marginMatch2[2]));
+            rightMargin = leftMargin;
+            console.log('[format] 页边距(格式2): 上下=' + marginMatch2[1] + 'cm, 左右=' + marginMatch2[2] + 'cm');
+          }
+        }
+
+        // 解析纸张大小
+        var pageWidth = 0, pageHeight = 0;
+        if (specTextLower.indexOf('a4') !== -1 || specTextLower.indexOf('a四') !== -1) {
+          pageWidth = cmToPoints(21);    // A4宽度21cm
+          pageHeight = cmToPoints(29.7); // A4高度29.7cm
+          console.log('[format] 纸张: A4 (210×297mm)');
+        } else if (specTextLower.indexOf('a3') !== -1) {
+          pageWidth = cmToPoints(29.7);
+          pageHeight = cmToPoints(42);
+          console.log('[format] 纸张: A3');
+        } else if (specTextLower.indexOf('b5') !== -1) {
+          pageWidth = cmToPoints(18.2);
+          pageHeight = cmToPoints(25.7);
+          console.log('[format] 纸张: B5');
+        }
+
+        // 解析纸张方向
+        var orientation = -1;  // -1=不修改, 0=纵向, 1=横向
+        if (specTextLower.indexOf('纵向') !== -1) {
+          orientation = 0;
+          console.log('[format] 方向: 纵向');
+        } else if (specTextLower.indexOf('横向') !== -1) {
+          orientation = 1;
+          console.log('[format] 方向: 横向');
         }
 
         // 解析页眉页脚距边界（支持cm和厘米）
@@ -998,6 +1039,9 @@ try {
               if (bottomMargin > 0) ps.BottomMargin = bottomMargin;
               if (leftMargin > 0) ps.LeftMargin = leftMargin;
               if (rightMargin > 0) ps.RightMargin = rightMargin;
+              if (pageWidth > 0) ps.PageWidth = pageWidth;
+              if (pageHeight > 0) ps.PageHeight = pageHeight;
+              if (orientation >= 0) ps.Orientation = orientation;
               if (headerDist > 0) ps.HeaderDistance = headerDist;
               if (footerDist > 0) ps.FooterDistance = footerDist;
               pageSetupCount++;

@@ -6,7 +6,8 @@
     "timestamp": 1775644975979,
     "commandMeta": {
       "name": "排版正文"
-    }
+    },
+    "taskId": "task_1775644975982_b1xqoy"
   },
   {
     "id": "1775644975979_f7snpz6",
@@ -68,7 +69,7 @@
     "role": "assistant",
     "content": "文档段落数较多（4405 段），脚本执行超时。我将分批次处理正文排版，每批处理约 500 段。\n\n",
     "timestamp": 1775645025106,
-    "streaming": true
+    "streaming": false
   },
   {
     "id": "tool_1775645025899_akca",
@@ -107,11 +108,10 @@
       "toolName": "confirmEdits",
       "input": {
         "mode": "format",
-        "summary": "## 格式修改报告\n\n1. **正文排版（全文）**\n   - 字体：宋体\n   - 字号：小四（12 磅）\n   - 对齐：两端对齐\n   - 首行缩进：2 字符（24 磅）\n   - 行距：固定值 22 磅",
-        "reportSnapshot": {}
+        "summary": "## 格式修改报告\n\n1. **正文排版（全文）**\n   - 字体：宋体\n   - 字号：小四（12 磅）\n   - 对齐：两端对齐\n   - 首行缩进：2 字符（24 磅）\n   - 行距：固定值 22 磅"
       },
-      "executing": true,
-      "codeStreaming": false
+      "output": "[Error] bridge.invoke(\"edit:confirm\") 超时（120000ms），未收到响应",
+      "durationMs": 120966
     }
   }
 ]

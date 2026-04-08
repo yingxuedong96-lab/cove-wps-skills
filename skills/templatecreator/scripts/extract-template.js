@@ -1,5 +1,6 @@
 /**
  * extract-template.js - 使用样式规范表进行结构化提取
+ * 版本: 26.0408.1114 - 修复标题级别误识别
  *
  * 流程：
  * 1. 用户选择文档类型（公文/论文）
@@ -9,6 +10,9 @@
  */
 
 (function() {
+  const SCRIPT_VERSION = "26.0408.1114";
+  console.log("[extract-template] 脚本版本: " + SCRIPT_VERSION);
+
   const DOC = Application.ActiveDocument;
   if (!DOC) {
     return JSON.stringify({ success: false, error: "没有打开的文档" });
@@ -439,11 +443,14 @@
   detailLines.push(`- 左边距: ${pageSetupInfo.leftMargin} | 右边距: ${pageSetupInfo.rightMargin}`);
   detailLines.push("");
   detailLines.push(`📁 模板文件: ${templateFileName}`);
+  detailLines.push("");
+  detailLines.push(`🔧 脚本版本: ${SCRIPT_VERSION}`);
 
   const userMessage = detailLines.join("\n");
 
   return JSON.stringify({
     success: true,
+    scriptVersion: SCRIPT_VERSION,
 
     // ===== 核心展示信息（必须用message字段，UI只展示这个）=====
     message: userMessage,

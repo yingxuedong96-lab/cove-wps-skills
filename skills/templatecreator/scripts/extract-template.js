@@ -1,6 +1,6 @@
 /**
  * extract-template.js - 使用样式规范表进行结构化提取
- * 版本: 26.0408.1125 - 添加调试日志
+ * 版本: 26.0408.1135 - 优化列表项和附录节题识别
  *
  * 流程：
  * 1. 用户选择文档类型（公文/论文）
@@ -10,7 +10,7 @@
  */
 
 (function() {
-  const SCRIPT_VERSION = "26.0408.1125";
+  const SCRIPT_VERSION = "26.0408.1135";
   console.log("[extract-template] 脚本版本: " + SCRIPT_VERSION);
 
   const DOC = Application.ActiveDocument;
@@ -48,12 +48,15 @@
 
         // 附录/参考文献
         { id: "appendixTitle", name: "附录标题", detectPattern: "^附\\s*录\\s*[A-Z]?", detectHint: "'附录'或'附录A'或'附 录 A'" },
-        { id: "appendixSection", name: "附录节题", detectPattern: "^[A-Z]\\.\\d+\\s", detectHint: "如'A.1 详细说明'" },
+        { id: "appendixSection", name: "附录节题", detectPattern: "^[A-Z]\\.\\d+\\.\\d+\\s|^[A-Z]\\.\\d+\\s", detectHint: "如'A.1'或'A.1.1'" },
         { id: "referenceTitle", name: "参考文献标题", detectPattern: "^参考文献", detectHint: "'参考文献'" },
         { id: "reference", name: "参考文献条目", detectPattern: "^\\[\\d+\\]", detectHint: "如'[1]'" },
 
         // 注释
-        { id: "note", name: "注释说明", detectPattern: "^注\\s*\\d*", detectHint: "'注'开头" }
+        { id: "note", name: "注释说明", detectPattern: "^注\\s*\\d*", detectHint: "'注'开头" },
+
+        // 列表项（放在最后，因为匹配范围广）
+        { id: "listItem", name: "列表项", detectPattern: "^[a-z]\\)\\s+|^\\d+\\)\\s+|^[①②③④⑤⑥⑦⑧⑨⑩]", detectHint: "如'a) '、'1) '、'①'" }
       ]
     },
     official: {

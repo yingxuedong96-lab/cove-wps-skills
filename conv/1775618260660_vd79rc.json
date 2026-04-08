@@ -1,0 +1,18 @@
+[
+  {
+    "id": "1775618260700_wknmrvn",
+    "role": "user",
+    "content": "提取样式",
+    "timestamp": 1775618260700,
+    "commandMeta": {
+      "name": "提取样式"
+    }
+  },
+  {
+    "id": "1775618260700_rkubv32",
+    "role": "assistant",
+    "content": "[错误] 会话异常结束（unknown），可能是 API 请求失败或模型端错误",
+    "timestamp": 1775618260700,
+    "streaming": false
+  }
+]

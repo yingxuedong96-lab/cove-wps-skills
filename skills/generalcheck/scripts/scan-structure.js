@@ -2,6 +2,7 @@
  * scan-structure.js
  * 校对标题编号和图编号
  * scope: heading（标题）, figure（图）, numbering（全部）
+ * figureFormat: chapter（图X.Y-Z）, simple（图1、图2...）
  */
 try {
   var doc = Application.ActiveDocument;
@@ -10,6 +11,9 @@ try {
   var scopeType = typeof scope !== 'undefined' ? scope : 'heading';
   var needHeading = scopeType === 'numbering' || scopeType === 'heading';
   var needFigure = scopeType === 'numbering' || scopeType === 'figure';
+
+  // 图编号格式：chapter=图X.Y-Z（章节式），simple=图1、图2...（顺序式）
+  var figFormat = typeof figureFormat !== 'undefined' ? figureFormat : 'chapter';
 
   var cn2num = { '一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'十一':11,'十二':12,'十三':13,'十四':14,'十五':15,'十六':16,'十七':17,'十八':18,'十九':19,'二十':20 };
   var num2cn = { 1:'一',2:'二',3:'三',4:'四',5:'五',6:'六',7:'七',8:'八',9:'九',10:'十',11:'十一',12:'十二',13:'十三',14:'十四',15:'十五',16:'十六',17:'十七',18:'十八',19:'十九',20:'二十' };
@@ -24,7 +28,7 @@ try {
 
   var docText = doc.Content && doc.Content.Text ? String(doc.Content.Text) : '';
   var paras = docText.split('\r');
-  console.log('[scan] 开始规划，总段落数: ' + paras.length + ', scope=' + scopeType);
+  console.log('[scan] 开始规划，总段落数: ' + paras.length + ', scope=' + scopeType + ', figureFormat=' + figFormat);
 
   var plans = [];
   var counts = { headings: 0, figures: 0 };
@@ -34,8 +38,9 @@ try {
   var appState = { letter: '', letterIndex: 0, l1: 0, l2: 0, l3: 0 };
   var inAppendix = false;
 
-  // 图编号计数器：key = "章.节", value = 当前序号
-  var figureCounters = {};
+  // 图编号计数器
+  var figureCounters = {};        // 章节式：key = "章.节"
+  var simpleFigureCounter = 0;    // 顺序式：全文递增
   var appendixFigureCounter = 0;
 
   for (var i = 0; i < paras.length; i++) {
@@ -204,19 +209,28 @@ try {
       // 格式：图X.Y-Z 标题 或 图X-Y 标题 或 图X 标题
       var figMatch = text.match(/^图\s*(\d+)(?:\.(\d+))?(?:-(\d+))?\s+(.+)$/);
       if (figMatch) {
-        if (state.ch === 0) state.ch = 1;
-        var figCh = state.ch;
-        var figSec = state.sec > 0 ? state.sec : 1;
-        var figKey = figCh + '.' + figSec;
-
-        // 计数器递增
-        figureCounters[figKey] = (figureCounters[figKey] || 0) + 1;
-        var figNum = figureCounters[figKey];
-
-        var newText = '图' + figCh + '.' + figSec + '-' + figNum + ' ' + figMatch[4];
-        console.log('[scan] 图: ' + text + ' → ' + newText);
         counts.figures++;
-        if (text !== newText) plans.push({ oldText: text, newText: newText });
+
+        if (figFormat === 'simple') {
+          // 顺序式：图1、图2、图3... 全文递增
+          simpleFigureCounter++;
+          var newText = '图' + simpleFigureCounter + ' ' + figMatch[4];
+          console.log('[scan] 图(顺序式): ' + text + ' → ' + newText);
+          if (text !== newText) plans.push({ oldText: text, newText: newText });
+        } else {
+          // 章节式：图X.Y-Z 格式
+          if (state.ch === 0) state.ch = 1;
+          var figCh = state.ch;
+          var figSec = state.sec > 0 ? state.sec : 1;
+          var figKey = figCh + '.' + figSec;
+
+          figureCounters[figKey] = (figureCounters[figKey] || 0) + 1;
+          var figNum = figureCounters[figKey];
+
+          var newText = '图' + figCh + '.' + figSec + '-' + figNum + ' ' + figMatch[4];
+          console.log('[scan] 图(章节式): ' + text + ' → ' + newText);
+          if (text !== newText) plans.push({ oldText: text, newText: newText });
+        }
         continue;
       }
     }

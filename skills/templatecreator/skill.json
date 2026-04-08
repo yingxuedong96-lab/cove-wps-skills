@@ -3,16 +3,12 @@
   "files": [
     "skill.json",
     "SKILL.md",
-    "scripts/style-spec-table.js",
     "scripts/extract-template.js",
     "scripts/apply-template.js",
-    "scripts/copy-style.js",
-    "scripts/copy-from-linked.js",
-    "scripts/list-templates.js",
-    "scripts/save-template.js"
+    "scripts/copy-from-linked.js"
   ],
   "name": "templatecreator",
   "snapshot": "before_task",
   "source": "server",
-  "version": "26.0410.1011"
+  "version": "26.0410.1012"
 }

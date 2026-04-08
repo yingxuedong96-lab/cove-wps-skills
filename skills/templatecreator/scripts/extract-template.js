@@ -128,8 +128,15 @@
           if (regex.test(text)) {
             matches.push({ tagId: tag.id, tagName: tag.name, pattern: tag.detectPattern });
           }
-        } catch (e) {}
+        } catch (e) {
+          console.log("[detectByPattern] 正则错误: " + tag.detectPattern + " - " + e);
+        }
       }
+    }
+
+    // 调试：打印前几个段落的匹配结果
+    if (text.length < 30 && matches.length > 0) {
+      console.log("[detectByPattern] 文本: " + text + " => 匹配: " + matches.map(m => m.tagId).join(","));
     }
 
     // 如果有多个匹配，选择最具体的那个（优先选择模式长的）
@@ -188,6 +195,9 @@
 
   let isFirstPara = true;
 
+  // 调试：记录处理过程
+  let debugLog = [];
+
   for (let i = 1; i <= paragraphs.Count; i++) {
     const para = paragraphs.Item(i);
     const text = para.Range.Text.trim();
@@ -198,6 +208,17 @@
 
     // 1. 先尝试模式匹配
     let detection = detectByPattern(text, spec);
+
+    // 调试：记录前10个段落
+    if (i <= 10) {
+      debugLog.push({
+        index: i,
+        text: text.substring(0, 30),
+        detection: detection ? detection.tagId : "null",
+        fontSize: fmt.fontSize,
+        bold: fmt.bold
+      });
+    }
 
     // 2. 模式匹配失败，尝试格式特征检测
     if (!detection) {
@@ -451,6 +472,9 @@
   return JSON.stringify({
     success: true,
     scriptVersion: SCRIPT_VERSION,
+
+    // ===== 调试信息 =====
+    debugLog: debugLog,
 
     // ===== 核心展示信息（必须用message字段，UI只展示这个）=====
     message: userMessage,

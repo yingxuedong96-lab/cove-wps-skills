@@ -17,7 +17,8 @@ compatibility:
 
 | 触发词 | scope | figureFormat | tableFormat | formulaFormat | 执行脚本 |
 |-------|-------|--------------|-------------|---------------|---------|
-| 校对编号、校对所有编号、编号校对 | `numbering` | `chapter` | `chapter` | `chapter` | scan-structure.js |
+| 校对编号、校对所有编号、编号校对、校对全部编号 | `numbering` | `chapter` | `chapter` | `chapter` | scan-structure.js |
+| 校对全部编号（顺序式） | `numbering` | `simple` | `simple` | `simple` | scan-structure.js |
 | 校对标题编号、标题编号校对 | `heading` | - | - | - | scan-structure.js |
 | 校对图编号、图编号校对、校对图编号（章节式） | `figure` | `chapter` | - | - | scan-structure.js |
 | 校对图编号（顺序式）、顺序式图编号 | `figure` | `simple` | - | - | scan-structure.js |

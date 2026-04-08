@@ -1,11 +1,20 @@
 {
   "conversations": [
     {
+      "id": "1775631255965_mu7372",
+      "title": "GBT9704：请对当前文档进行党政机关公文格式排版。",
+      "createdAt": 1775631255965,
+      "updatedAt": 1775631273429,
+      "messageCount": 10,
+      "pinned": false,
+      "skillName": "GBT9704"
+    },
+    {
       "id": "1775631094981_ckmlhu",
       "title": "提取样式",
       "createdAt": 1775631094981,
-      "updatedAt": 1775631094981,
-      "messageCount": 0,
+      "updatedAt": 1775631195287,
+      "messageCount": 9,
       "pinned": false
     },
     {

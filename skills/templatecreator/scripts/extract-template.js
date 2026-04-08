@@ -1,6 +1,6 @@
 /**
  * extract-template.js - 使用样式规范表进行结构化提取
- * 版本: 26.0408.1400 - 修复正则表达式匹配问题（去掉末尾空格要求）
+ * 版本: 26.0408.1415 - 调试版本：在message中显示段落文本
  *
  * 流程：
  * 1. 用户选择文档类型（公文/论文）
@@ -10,7 +10,7 @@
  */
 
 (function() {
-  const SCRIPT_VERSION = "26.0408.1400";
+  const SCRIPT_VERSION = "26.0408.1415";
   console.log("[extract-template] 脚本版本: " + SCRIPT_VERSION);
 
   const DOC = Application.ActiveDocument;
@@ -19,38 +19,35 @@
   }
 
   // 样式规范表 - 完整版，与样式元素规范表.md保持一致
-  // 注意：检测顺序很重要，长的模式要放在前面（如五级标题在四级标题前面）
-  // 修复：去掉末尾空格要求，改为匹配编号后紧跟非数字或字符串结束
   const STYLE_SPEC = {
     paper: {
       name: "论文报告样式",
       tags: [
-        // 标题类（按层级从深到浅排列，确保长编号先匹配）
-        // 使用 [^\d\.] 确保编号后不是数字或点号，避免误匹配
-        { id: "heading5", name: "五级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+\\.\\d+\\.\\d+[\\s：:]", detectHint: "如'1.1.1.1.1'" },
-        { id: "heading4", name: "四级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+\\.\\d+[\\s：:]", detectHint: "如'1.1.1.1'" },
-        { id: "heading3", name: "三级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+[\\s：:]", detectHint: "如'1.1.1'" },
-        { id: "heading2", name: "二级标题", detectPattern: "^\\d+\\.\\d+[\\s：:]", detectHint: "如'1.1 背景'" },
-        { id: "heading1", name: "一级标题", detectPattern: "^\\d+[\\s：:]+[^\\d\\.]", detectHint: "如'1 范围'（数字后直接跟汉字）" },
-        { id: "chapterTitle", name: "章标题", detectPattern: "^第[一二三四五六七八九十\\d]+章", detectHint: "如'第一章 范围'" },
+        // 标题类（按层级从深到浅排列）
+        { id: "heading5", name: "五级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+\\.\\d+\\.\\d+", detectHint: "如'1.1.1.1.1'" },
+        { id: "heading4", name: "四级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+\\.\\d+", detectHint: "如'1.1.1.1'" },
+        { id: "heading3", name: "三级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+", detectHint: "如'1.1.1'" },
+        { id: "heading2", name: "二级标题", detectPattern: "^\\d+\\.\\d+[^\\.\\d]", detectHint: "如'1.1 背景'" },
+        { id: "heading1", name: "一级标题", detectPattern: "^\\d+[^\\.\\d]", detectHint: "如'1 范围'" },
+        { id: "chapterTitle", name: "章标题", detectPattern: "^第[一二三四五六七八九十\\d]+章", detectHint: "如'第一章'" },
 
-        // 标题/前置部分
-        { id: "docTitle", name: "论文标题", detectPattern: null, detectHint: "文档首段，字号最大居中" },
+        // 前置部分
+        { id: "docTitle", name: "论文标题", detectPattern: null, detectHint: "文档首段大字居中" },
         { id: "abstractTitle", name: "摘要标题", detectPattern: "^摘要|^Abstract", detectHint: "'摘要'" },
         { id: "keywords", name: "关键词", detectPattern: "^关键词|^Keywords", detectHint: "'关键词'" },
         { id: "tocTitle", name: "目录标题", detectPattern: "^目\\s*录$|^目次$", detectHint: "'目录'" },
 
         // 正文类
         { id: "body", name: "正文", detectPattern: "default", detectHint: "默认类型" },
-        { id: "listItem", name: "列表项", detectPattern: "^\\s*[a-z]\\)|^\\s*[a-z][\\.\\s]|^\\s*\\d+\\)|^[①②③④⑤⑥⑦⑧⑨⑩]", detectHint: "如'a)'、'a.'、'a)'、'1)'、'①'" },
+        { id: "listItem", name: "列表项", detectPattern: "^\\s*[a-z]\\)|^\\s*[a-z][\\.\\s]|^\\s*\\d+\\)|^[①②③④⑤⑥⑦⑧⑨⑩]|^\\(\\d+\\)|^\\([a-z]\\)", detectHint: "如'a)'、'1)'、'①'、'(1)'" },
 
         // 图表公式
         { id: "figureCaption", name: "图名", detectPattern: "^图\\s*\\d+", detectHint: "'图'开头" },
         { id: "tableCaption", name: "表名", detectPattern: "^表\\s*\\d+", detectHint: "'表'开头" },
 
         // 附录/参考文献
-        { id: "appendixTitle", name: "附录标题", detectPattern: "^附\\s*录\\s*[A-Z]?", detectHint: "'附录'或'附录A'或'附 录 A'" },
-        { id: "appendixSection", name: "附录节题", detectPattern: "^[A-Z]\\.(\\d+\\.)*\\d+[\\s：:]", detectHint: "如'A.1'或'A.1.1'" },
+        { id: "appendixTitle", name: "附录标题", detectPattern: "^附\\s*录", detectHint: "'附录'" },
+        { id: "appendixSection", name: "附录节题", detectPattern: "^[A-Z]\\.\\d+", detectHint: "如'A.1'" },
         { id: "referenceTitle", name: "参考文献标题", detectPattern: "^参考文献", detectHint: "'参考文献'" },
         { id: "reference", name: "参考文献条目", detectPattern: "^\\[\\d+\\]", detectHint: "如'[1]'" },
 
@@ -61,25 +58,16 @@
     official: {
       name: "公文样式",
       tags: [
-        // 版头
         { id: "issuer", name: "发文机关标志", detectPattern: null, detectHint: "如'XX市人民政府文件'" },
         { id: "docNumber", name: "发文字号", detectPattern: "[\\d]{4}[\\d号]|〔[\\d]{4}〕[\\d号]", detectHint: "如'国发〔2024〕1号'" },
-
-        // 标题
         { id: "docTitle", name: "公文标题", detectPattern: null, detectHint: "主标题居中大字" },
         { id: "heading1", name: "一级标题", detectPattern: "^[一二三四五六七八九十]+、", detectHint: "如'一、'" },
         { id: "heading2", name: "二级标题", detectPattern: "^\\([一二三四五六七八九十]+\\)", detectHint: "如'(一)'" },
         { id: "heading3", name: "三级标题", detectPattern: "^\\d+\\.\\s", detectHint: "如'1.'" },
-
-        // 正文
         { id: "body", name: "正文", detectPattern: "default", detectHint: "默认类型" },
-
-        // 结尾
         { id: "attachment", name: "附件说明", detectPattern: "^附件", detectHint: "'附件'开头" },
         { id: "signature", name: "发文机关署名", detectPattern: null, detectHint: "落款单位" },
         { id: "signDate", name: "成文日期", detectPattern: "\\d{4}年\\d{1,2}月\\d{1,2}日", detectHint: "如'2024年1月1日'" },
-
-        // 版记
         { id: "copySender", name: "抄送机关", detectPattern: "^抄送", detectHint: "'抄送'开头" }
       ]
     }
@@ -107,7 +95,7 @@
     };
   }
 
-  // 格式特征描述（用于用户确认）
+  // 格式特征描述
   function formatSignature(fmt) {
     const alignMap = { 0: "左齐", 1: "居中", 2: "右齐", 3: "两端" };
     const parts = [];
@@ -119,9 +107,8 @@
     return parts.filter(p => p).join("") || "未知格式";
   }
 
-  // 按模式检测标签类型（精确匹配，优先匹配最长的模式）
-  function detectByPattern(text, spec) {
-    // 先检查是否匹配任何模式，记录所有匹配
+  // 按模式检测标签类型
+  function detectByPattern(text, spec, debugList) {
     const matches = [];
     for (const tag of spec.tags) {
       if (tag.detectPattern && tag.detectPattern !== "default") {
@@ -131,36 +118,28 @@
             matches.push({ tagId: tag.id, tagName: tag.name, pattern: tag.detectPattern });
           }
         } catch (e) {
-          console.log("[detectByPattern] 正则错误: " + tag.detectPattern + " - " + e);
+          debugList.push(`[正则错误] ${tag.id}: ${tag.detectPattern} - ${e}`);
         }
       }
     }
 
-    // 调试：打印前几个段落的匹配结果
-    if (text.length < 30 && matches.length > 0) {
-      console.log("[detectByPattern] 文本: " + text + " => 匹配: " + matches.map(m => m.tagId).join(","));
-    }
-
-    // 如果有多个匹配，选择最具体的那个（优先选择模式长的）
     if (matches.length > 0) {
-      // 按模式长度降序排序，选择最长的模式
+      // 按模式长度降序排序
       matches.sort((a, b) => (b.pattern?.length || 0) - (a.pattern?.length || 0));
       return { tagId: matches[0].tagId, tagName: matches[0].tagName, method: "pattern", confidence: "high" };
     }
     return null;
   }
 
-  // 按格式特征检测（用于模式匹配失败的段落）
+  // 按格式特征检测
   function detectByFormat(fmt, isFirstPara) {
-    // 首段大字号居中可能是标题
     if (isFirstPara && fmt.fontSize >= 18 && fmt.alignment === 1) {
-      return { tagId: "docTitle", tagName: "主标题", method: "format", confidence: "medium", reason: "首段大字居中" };
+      return { tagId: "docTitle", tagName: "主标题", method: "format", confidence: "medium" };
     }
-    // 大字号加粗可能是标题
     if (fmt.bold && fmt.fontSize >= 14) {
-      if (fmt.fontSize >= 16) return { tagId: "heading1", confidence: "low", reason: "16pt加粗" };
-      if (fmt.fontSize >= 15) return { tagId: "heading2", confidence: "low", reason: "15pt加粗" };
-      if (fmt.fontSize >= 14) return { tagId: "heading3", confidence: "low", reason: "14pt加粗" };
+      if (fmt.fontSize >= 16) return { tagId: "heading1", confidence: "low" };
+      if (fmt.fontSize >= 15) return { tagId: "heading2", confidence: "low" };
+      if (fmt.fontSize >= 14) return { tagId: "heading3", confidence: "low" };
     }
     return null;
   }
@@ -169,7 +148,6 @@
 
   const params = Application.Env?.ScriptParams || {};
 
-  // 如果用户还没选择文档类型，先询问
   if (!params.docType) {
     return JSON.stringify({
       success: true,
@@ -183,56 +161,52 @@
 
   const docType = params.docType === "论文/技术报告" || params.docType === "paper" ? "paper" : "official";
   const spec = STYLE_SPEC[docType];
-
-  // 如果有用户确认的映射，直接应用
   const userMapping = params.confirmMapping || {};
 
-  // 扫描文档
   const paragraphs = DOC.Paragraphs;
   const results = {
-    matched: {},      // tagId -> { formats: [], samples: [] }
-    uncertain: [],    // 未确定的格式
-    unmatched: []     // 无法识别的段落
+    matched: {},
+    uncertain: [],
+    unmatched: []
   };
 
   let isFirstPara = true;
-
-  // 调试：记录处理过程
-  let debugLog = [];
+  const debugList = [];  // 调试信息列表
+  const paraSamples = []; // 前15个段落的原始文本
 
   for (let i = 1; i <= paragraphs.Count; i++) {
     const para = paragraphs.Item(i);
-    const text = para.Range.Text.trim();
-    if (!text) continue;
+    const rawText = para.Range.Text;
+    const text = rawText.trim();
 
-    // 调试：打印前15个段落的原始文本
+    // 记录前15个段落的原始信息
     if (i <= 15) {
-      console.log("[段落" + i + "] " + text.substring(0, 40));
+      const charCodes = [];
+      for (let j = 0; j < Math.min(text.length, 10); j++) {
+        charCodes.push(text.charCodeAt(j));
+      }
+      paraSamples.push({
+        index: i,
+        text: text.substring(0, 30),
+        charCodes: charCodes.join(","),
+        length: text.length
+      });
     }
+
+    if (!text) continue;
 
     const fmt = extractParaFormat(para);
     const sig = formatSignature(fmt);
 
-    // 1. 先尝试模式匹配
-    let detection = detectByPattern(text, spec);
+    // 模式匹配
+    let detection = detectByPattern(text, spec, debugList);
 
-    // 调试：记录前10个段落
-    if (i <= 10) {
-      debugLog.push({
-        index: i,
-        text: text.substring(0, 30),
-        detection: detection ? detection.tagId : "null",
-        fontSize: fmt.fontSize,
-        bold: fmt.bold
-      });
-    }
-
-    // 2. 模式匹配失败，尝试格式特征检测
+    // 格式特征检测
     if (!detection) {
       detection = detectByFormat(fmt, isFirstPara);
     }
 
-    // 3. 检查用户已确认的映射
+    // 用户映射
     if (!detection && userMapping[sig]) {
       detection = { tagId: userMapping[sig], method: "userConfirmed", confidence: "high" };
     }
@@ -251,7 +225,6 @@
       results.matched[detection.tagId].confidence = detection.confidence;
       results.matched[detection.tagId].method = detection.method;
     } else if (fmt.fontSize >= 10 && fmt.fontSize <= 14 && !fmt.bold) {
-      // 可能是正文
       if (!results.matched["body"]) {
         results.matched["body"] = { formats: [], samples: [] };
       }
@@ -260,36 +233,17 @@
         results.matched["body"].samples.push(text.substring(0, 50));
       }
     } else {
-      // 无法识别
       results.unmatched.push({
         index: i,
         text: text.substring(0, 30),
         format: sig,
         fontSize: fmt.fontSize,
-        fontCN: fmt.fontCN,
-        bold: fmt.bold,
-        alignment: fmt.alignment
+        bold: fmt.bold
       });
     }
   }
 
-  // 检查是否有低置信度的匹配需要确认
-  const needsConfirm = [];
-  for (const [tagId, data] of Object.entries(results.matched)) {
-    if (data.confidence === "low" && !userMapping[formatSignature(data.formats[0])]) {
-      const tagInfo = spec.tags.find(t => t.id === tagId);
-      needsConfirm.push({
-        tagId: tagId,
-        tagName: tagInfo?.name || tagId,
-        formatSignature: formatSignature(data.formats[0]),
-        count: data.formats.length,
-        samples: data.samples,
-        reason: data.method === "format" ? "格式特征检测" : "未知"
-      });
-    }
-  }
-
-  // 如果有未匹配的特殊格式，也询问用户
+  // 处理未匹配格式
   const specialUnmatched = results.unmatched.filter(u => u.fontSize >= 14 || u.bold);
   if (specialUnmatched.length > 0 && !params.userConfirmedUnmatched) {
     const formatGroups = {};
@@ -313,14 +267,14 @@
         samples: data.samples
       })),
       availableTags: spec.tags.map(t => ({ id: t.id, name: t.name, hint: t.detectHint })),
-      question: `检测到以下格式未能自动识别，请帮助确认它们属于哪种标签类型：\n\n${Object.entries(formatGroups).map(([sig, data]) =>
+      question: `检测到以下格式未能自动识别，请帮助确认：\n\n${Object.entries(formatGroups).map(([sig, data]) =>
         `- ${sig}（${data.count}处）：示例 "${data.samples[0]}"`
-      ).join('\n')}\n\n如果不确定，可以说"帮我找一下类似的格式"或直接指定标签类型。`,
-      note: "回复格式如：'22pt黑体加粗居中 是 主标题' 或 '帮我找一下'"
+      ).join('\n')}`,
+      note: "回复格式如：'22pt黑体加粗居中 是 主标题'"
     }, null, 2);
   }
 
-  // 合并格式（取众数）
+  // 合并格式
   function mergeFormats(formatList) {
     if (!formatList.length) return null;
     const groups = {};
@@ -350,89 +304,45 @@
     }
   };
 
-  // 添加已匹配的样式
   for (const tag of spec.tags) {
     const data = results.matched[tag.id];
     if (!data || !data.formats.length) continue;
-
     const mergedFmt = mergeFormats(data.formats);
-    const styleEntry = {
+    template.styles.push({
       id: tag.id,
       name: tag.name,
       count: data.formats.length,
-      detect: {
-        pattern: tag.detectPattern || null,
-        hint: tag.detectHint
-      },
+      detect: { pattern: tag.detectPattern || null, hint: tag.detectHint },
       format: mergedFmt
-    };
-    template.styles.push(styleEntry);
+    });
   }
 
-  // 保存模板
-  const templateFileName = `模板_${docType}_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.json`;
-  const skillPath = Application.Env?.SkillPath || '';
-  const fullTemplatePath = skillPath ? `${skillPath}/templates/${templateFileName}` : `templates/${templateFileName}`;
-
-  // 生成详细参数描述
-  function formatStyleDetail(style) {
-    const fmt = style.format;
-    const alignMap = { 0: "左对齐", 1: "居中", 2: "右对齐", 3: "两端对齐" };
-    const lineRuleMap = { 0: "单倍行距", 1: "最小值", 4: "固定值" };
-
-    const parts = [];
-    if (fmt.fontCN) parts.push(`字体: ${fmt.fontCN}`);
-    if (fmt.fontSize) parts.push(`字号: ${fmt.fontSize}pt`);
-    if (fmt.bold) parts.push("加粗");
-    if (fmt.italic) parts.push("斜体");
-    if (fmt.alignment !== undefined) parts.push(`对齐: ${alignMap[fmt.alignment] || '未知'}`);
-    if (fmt.firstLineIndent) parts.push(`首行缩进: ${fmt.firstLineIndent.toFixed(1)}字符`);
-    if (fmt.leftIndent) parts.push(`左缩进: ${fmt.leftIndent.toFixed(1)}字符`);
-    if (fmt.lineSpacing) parts.push(`行距: ${fmt.lineSpacing.toFixed(1)}pt`);
-    if (fmt.lineSpacingRule !== undefined) parts.push(`行距规则: ${lineRuleMap[fmt.lineSpacingRule] || '自动'}`);
-    if (fmt.spaceBefore) parts.push(`段前: ${fmt.spaceBefore.toFixed(1)}pt`);
-    if (fmt.spaceAfter) parts.push(`段后: ${fmt.spaceAfter.toFixed(1)}pt`);
-
-    return parts.join(" | ");
-  }
-
-  // 生成每种样式的详细信息
-  const styleDetails = template.styles.map(s => ({
-    name: s.name,
-    count: s.count,
-    params: formatStyleDetail(s),
-    format: s.format  // 保留原始格式数据
-  }));
-
-  // 页面设置信息
-  const pageSetupInfo = {
-    paperSize: "A4",
-    topMargin: `${template.pageSetup.topMargin.toFixed(2)}cm`,
-    bottomMargin: `${template.pageSetup.bottomMargin.toFixed(2)}cm`,
-    leftMargin: `${template.pageSetup.leftMargin.toFixed(2)}cm`,
-    rightMargin: `${template.pageSetup.rightMargin.toFixed(2)}cm`
-  };
-
-  // 尝试保存模板文件
-  const templateJsonString = JSON.stringify(template, null, 2);
-
-  // 生成详细的样式表格（供UI展示）
-  const stylesTable = template.styles.map(s => {
-    const fmt = s.format || {};
-    return {
-      样式名称: s.name,
-      出现次数: s.count + "处",
-      字体: fmt.fontCN || "-",
-      字号: fmt.fontSize ? fmt.fontSize + "pt" : "-",
-      加粗: fmt.bold ? "是" : "否",
-      对齐: { 0: "左对齐", 1: "居中", 2: "右对齐", 3: "两端对齐" }[fmt.alignment] || "-",
-      首行缩进: fmt.firstLineIndent ? fmt.firstLineIndent.toFixed(1) + "字符" : "-",
-      行距: fmt.lineSpacing ? fmt.lineSpacing.toFixed(1) + "pt" : "-"
-    };
-  });
-
-  // 生成用户可直接阅读的详细信息
+  // 生成详细信息
   const detailLines = [];
+
+  // === 调试信息（放在最前面）===
+  detailLines.push("## 🔍 调试信息");
+  detailLines.push("");
+  detailLines.push(`脚本版本: ${SCRIPT_VERSION}`);
+  detailLines.push(`文档类型: ${spec.name}`);
+  detailLines.push(`段落总数: ${paragraphs.Count}`);
+  detailLines.push("");
+  detailLines.push("### 前15个段落原始文本");
+  detailLines.push("");
+  paraSamples.forEach(p => {
+    detailLines.push(`[${p.index}] "${p.text}" (字符码: ${p.charCodes})`);
+  });
+  detailLines.push("");
+
+  if (debugList.length > 0) {
+    detailLines.push("### 正则匹配日志");
+    debugList.forEach(d => detailLines.push(d));
+    detailLines.push("");
+  }
+
+  // === 样式提取结果 ===
+  detailLines.push("---");
+  detailLines.push("");
   detailLines.push("✅ 样式模板提取完成！");
   detailLines.push("");
   detailLines.push(`📄 源文档：${DOC.Name}`);
@@ -445,7 +355,6 @@
   template.styles.forEach(s => {
     const fmt = s.format || {};
     const alignMap = { 0: "左对齐", 1: "居中", 2: "右对齐", 3: "两端对齐" };
-    const lineRuleMap = { 0: "单倍", 1: "最小值", 4: "固定值" };
 
     detailLines.push(`### ${s.name}（${s.count}处）`);
     const params = [];
@@ -455,9 +364,7 @@
     if (fmt.italic) params.push("斜体");
     if (fmt.alignment !== undefined) params.push(`对齐: ${alignMap[fmt.alignment] || '未知'}`);
     if (fmt.firstLineIndent) params.push(`首行缩进: ${fmt.firstLineIndent.toFixed(1)}字符`);
-    if (fmt.leftIndent) params.push(`左缩进: ${fmt.leftIndent.toFixed(1)}字符`);
     if (fmt.lineSpacing) params.push(`行距: ${fmt.lineSpacing.toFixed(1)}pt`);
-    if (fmt.lineSpacingRule !== undefined) params.push(`行距规则: ${lineRuleMap[fmt.lineSpacingRule] || '自动'}`);
     if (fmt.spaceBefore) params.push(`段前: ${fmt.spaceBefore.toFixed(1)}pt`);
     if (fmt.spaceAfter) params.push(`段后: ${fmt.spaceAfter.toFixed(1)}pt`);
 
@@ -467,39 +374,34 @@
 
   detailLines.push("## 页面设置");
   detailLines.push(`- 纸张: A4`);
-  detailLines.push(`- 上边距: ${pageSetupInfo.topMargin} | 下边距: ${pageSetupInfo.bottomMargin}`);
-  detailLines.push(`- 左边距: ${pageSetupInfo.leftMargin} | 右边距: ${pageSetupInfo.rightMargin}`);
-  detailLines.push("");
-  detailLines.push(`📁 模板文件: ${templateFileName}`);
+  detailLines.push(`- 上边距: ${template.pageSetup.topMargin.toFixed(2)}cm | 下边距: ${template.pageSetup.bottomMargin.toFixed(2)}cm`);
+  detailLines.push(`- 左边距: ${template.pageSetup.leftMargin.toFixed(2)}cm | 右边距: ${template.pageSetup.rightMargin.toFixed(2)}cm`);
   detailLines.push("");
   detailLines.push(`🔧 脚本版本: ${SCRIPT_VERSION}`);
 
   const userMessage = detailLines.join("\n");
 
+  // 生成样式表格
+  const stylesTable = template.styles.map(s => {
+    const fmt = s.format || {};
+    return {
+      样式名称: s.name,
+      出现次数: s.count + "处",
+      字体: fmt.fontCN || "-",
+      字号: fmt.fontSize ? fmt.fontSize + "pt" : "-",
+      加粗: fmt.bold ? "是" : "否",
+      对齐: { 0: "左对齐", 1: "居中", 2: "右对齐", 3: "两端对齐" }[fmt.alignment] || "-",
+      首行缩进: fmt.firstLineIndent ? fmt.firstLineIndent.toFixed(1) + "字符" : "-"
+    };
+  });
+
   return JSON.stringify({
     success: true,
     scriptVersion: SCRIPT_VERSION,
-
-    // ===== 调试信息 =====
-    debugLog: debugLog,
-
-    // ===== 核心展示信息（必须用message字段，UI只展示这个）=====
     message: userMessage,
-
-    // ===== 详细样式表格 =====
     stylesTable: stylesTable,
-
-    // ===== 页面设置 =====
-    pageSetup: pageSetupInfo,
-
-    // ===== 完整模板JSON =====
     templateJson: template,
-    templateFileName: templateFileName,
-
-    // ===== 原始详细数据 =====
-    styleDetails: styleDetails,
-
-    // ===== 兼容旧格式 =====
+    styleDetails: template.styles.map(s => ({ name: s.name, count: s.count, format: s.format })),
     template: template
   }, null, 2);
 

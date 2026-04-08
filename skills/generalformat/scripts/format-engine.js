@@ -452,52 +452,60 @@ try {
 
       console.log('[format] 正文分段数: ' + segments.length + ', 总段落: ' + bodyIndices.length);
 
-      // 策略选择：分段>80 或 超快模式 → 尝试整体Range
-      var tryWideRange = segments.length > 80 || useUltraFastMode;
+      // ⚠️ 策略选择：只有正文高度连续时才用整体Range
+      // 连续性判断：分段数/正文数比例 < 0.1 表示正文高度连续（大部分正文段落连在一起）
+      // 比例 > 0.1 表示正文和标题严重穿插，整体Range会覆盖标题，必须分段处理
+      var continuityRatio = segments.length / bodyIndices.length;
+      var useWideRange = continuityRatio < 0.1 && segments.length > 50;
       var wideRangeApplied = false;
 
-      if (tryWideRange) {
+      console.log('[format] 正文连续性: ' + (continuityRatio * 100).toFixed(1) + '% (分段/正文比例)');
+
+      if (useWideRange) {
         try {
           var firstBodyPara = doc.Paragraphs.Item(bodyIndices[0]);
           var lastBodyPara = doc.Paragraphs.Item(bodyIndices[bodyIndices.length - 1]);
           if (firstBodyPara && firstBodyPara.Range && lastBodyPara && lastBodyPara.Range) {
             var wideRange = doc.Range(firstBodyPara.Range.Start, lastBodyPara.Range.End);
 
-            // ⚠️ 采用zslong策略：直接应用整体Range，不做表格检测
-            // 原因：bodyIndices已通过excludedParaMap排除表格段落
-            // 整体Range设置字体字号对表格内容影响小（表格自身有格式设置）
-            if (applyRuleToRange(wideRange, rules.body)) {
-              applied += bodyIndices.length;
-              wideRangeApplied = true;
-              console.log('[format] 正文整体Range处理(zslong策略): ' + bodyIndices.length + '段');
+            // 检查整体Range是否与表格重叠（用预计算的tableRanges）
+            var wideRangeParaStart = bodyIndices[0];
+            var wideRangeParaEnd = bodyIndices[bodyIndices.length - 1];
+            if (!rangeOverlapWithTable(wideRangeParaStart, wideRangeParaEnd)) {
+              if (applyRuleToRange(wideRange, rules.body)) {
+                applied += bodyIndices.length;
+                wideRangeApplied = true;
+                console.log('[format] 正文整体Range处理: ' + bodyIndices.length + '段 (连续性' + (continuityRatio * 100).toFixed(1) + '%)');
+              }
+            } else {
+              console.log('[format] 整体Range与表格重叠，改用分段处理');
             }
           }
         } catch (wideErr) {
           console.log('[format] 整体Range失败: ' + wideErr);
         }
+      } else {
+        console.log('[format] 正文分散度高，使用分段处理避免覆盖标题');
       }
 
       // 分段处理（未使用整体Range时）
       if (!wideRangeApplied) {
         for (var s = 0; s < segments.length; s++) {
           try {
+            // 用预计算的表格位置快速判断，不调用Tables.Count（很慢）
+            if (rangeOverlapWithTable(segments[s].start, segments[s].end)) continue;
+
             var startPara = doc.Paragraphs.Item(segments[s].start);
             var endPara = doc.Paragraphs.Item(segments[s].end);
             if (!startPara || !startPara.Range || !endPara || !endPara.Range) continue;
 
             var segRange = doc.Range(startPara.Range.Start, endPara.Range.End);
-
-            // 分段Range也检查表格（保险）
-            var segTableCount = 0;
-            try { segTableCount = segRange.Tables ? segRange.Tables.Count : 0; } catch (e) {}
-            if (segTableCount > 0) continue;  // 跳过包含表格的段
-
             if (applyRuleToRange(segRange, rules.body)) {
               applied += segments[s].end - segments[s].start + 1;
             }
           } catch (segErr) {}
         }
-        console.log('[format] 正文分段处理完成');
+        console.log('[format] 正文分段处理完成: ' + segments.length + '段');
       }
     }
 

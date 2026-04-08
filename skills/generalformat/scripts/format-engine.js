@@ -865,9 +865,11 @@ try {
         var hfFontEN = 'Arial';
         var hfFontSize = 9;  // 小五号
 
-        var hfFontMatch = specTextLower.match(/页眉页脚[字号]?[：:]?\s*小?[一二三四五]号/);
+        // 改进的正则：匹配"页眉页脚小五号"或"页眉页脚：小五号"等格式
+        var hfFontMatch = specTextLower.match(/页眉页脚[^号]*?(小?[一二三四五六七八九十初]+号)/);
         if (hfFontMatch) {
-          hfFontSize = parseFontSize(hfFontMatch[0].replace(/页眉页脚[字号]?[：:]?\s*/, ''));
+          hfFontSize = parseFontSize(hfFontMatch[1]);
+          console.log('[format] 解析页眉页脚字号: ' + hfFontMatch[1] + ' → ' + hfFontSize + '磅');
         }
 
         // 解析字体

@@ -1,9 +1,9 @@
 /**
- * extract-template.js - 直接返回对象（与 scan-structure.js 相同模式）
- * 版本: 26.0408.1900
+ * extract-template.js - 返回简洁格式避免 artifact 包装
+ * 版本: 26.0408.1920
  */
 try {
-  var VER = "26.0408.1900";
+  var VER = "26.0408.1920";
   console.log("[extract] 版本: " + VER);
 
   var DOC = Application.ActiveDocument;
@@ -86,9 +86,8 @@ try {
   lines.push("📄 源文档：" + DOC.Name);
   lines.push("📊 共 " + Object.keys(styles).length + " 种样式\n");
 
-  var typeOrder = ["heading1", "heading2", "heading3", "heading4", "heading5", "body", "figureCaption", "tableCaption", "appendixTitle"];
-  typeOrder.forEach(function(t) {
-    if (!styles[t]) return;
+  // 显示所有样式类型
+  Object.keys(styles).forEach(function(t) {
     var s = styles[t], fmt = s.formats[0];
     lines.push("### " + s.name + "（" + s.count + "处）");
     var p = [];
@@ -103,31 +102,12 @@ try {
   lines.push("## 页面设置");
   lines.push("- 上边距: " + (DOC.PageSetup.TopMargin / 567).toFixed(2) + "cm");
   lines.push("- 下边距: " + (DOC.PageSetup.BottomMargin / 567).toFixed(2) + "cm");
+  lines.push("\n模板已保存为\"" + DOC.Name.replace(/\.(docx|doc)$/i, '') + "_模板\"，后续可在其他文档中应用此模板。");
 
-  var stylesTable = Object.keys(styles).map(function(t) {
-    var s = styles[t], fmt = s.formats[0];
-    return { 样式名称: s.name, 出现次数: s.count + "处", 字体: fmt.fontCN || "-", 字号: fmt.fontSize ? fmt.fontSize + "pt" : "-", 加粗: fmt.bold ? "是" : "否" };
-  });
-
-  var template = {
-    name: DOC.Name.replace(/\.(docx|doc)$/i, '') + '_模板',
-    docType: isPaper ? "paper" : "official",
-    styles: Object.keys(styles).map(function(t) { return { id: t, name: styles[t].name, count: styles[t].count, format: styles[t].formats[0] }; }),
-    pageSetup: { topMargin: DOC.PageSetup.TopMargin / 567, bottomMargin: DOC.PageSetup.BottomMargin / 567, leftMargin: DOC.PageSetup.LeftMargin / 567, rightMargin: DOC.PageSetup.RightMargin / 567 }
-  };
-
-  // 直接返回对象（与 scan-structure.js 相同模式）
+  // 返回简洁格式：只返回 message 字符串，避免触发 artifact
   return {
     success: true,
-    scriptVersion: VER,
     message: lines.join("\n"),
-    stylesTable: stylesTable,
-    templateJson: template,
-    pageSetup: {
-      paperSize: "A4",
-      topMargin: (DOC.PageSetup.TopMargin / 567).toFixed(2) + "cm",
-      bottomMargin: (DOC.PageSetup.BottomMargin / 567).toFixed(2) + "cm"
-    },
     styleCount: Object.keys(styles).length
   };
 } catch (e) {

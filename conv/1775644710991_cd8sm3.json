@@ -1,0 +1,86 @@
+[
+  {
+    "id": "1775644711053_i10aqz3",
+    "role": "user",
+    "content": "generalcheck：校对文档中的图编号。\n\n【正文图编号】\n检查图的编号格式（图X.Y-Z），确保章节号与当前章节一致，同一章节内编号连续。\n\n【附录图编号】\n检查附录图的编号格式（图A1、图A2...），按出现顺序排列。\n\n自动开启修订模式进行修正。",
+    "timestamp": 1775644711053,
+    "commandMeta": {
+      "name": "校对图编号"
+    }
+  },
+  {
+    "id": "1775644711053_blw6juu",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775644711053,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775644713899_g063",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775644713899,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "generalcheck"
+      },
+      "output": "<skill_content name=\"generalcheck\">\n# Skill: generalcheck\n\n---\nname: generalcheck\ndescription: >\n  通用编号校对。对文档中的标题编号、图编号、表编号、公式编号进行自动校对与修正。\n  触发词：校对编号、校对标题编号、校对图编号、校对表编号、校对公式编号、校对引用。\ncompatibility:\n  runtime: WPS JS 宏 / WPS 加载项（JSAPI）\n---\n\n# 通用编号校对\n\n## ⚠️ 执行流程\n\n根据用户输入的触发词，直接执行对应 scope 的脚本：\n\n### 触发词 → 参数映射表\n\n| 触发词 | scope | figureFormat | tableFormat | formulaFormat | 执行脚本 |\n|-------|-------|--------------|-------------|---------------|---------|\n| 校对编号、校对所有编号、编号校对、校对全部编号 | `numbering` | `chapter` | `chapter` | `chapter` | scan-structure.js |\n| 校对全部编号（顺序式） | `numbering` | `simple` | `simple` | `simple` | scan-structure.js |\n| 校对标题编号、标题编号校对 | `heading` | - | - | - | scan-structure.js |\n| 校对图编号、图编号校对、校对图编号（章节式） | `figure` | `chapter` | - | - | scan-structure.js |\n| 校对图编号（顺序式）、顺序式图编号 | `figure` | `simple` | - | - | scan-structure.js |\n| 校对表编号、表编号校对、校对表编号（章节式） | `table` | - | `chapter` | - | scan-structure.js |\n| 校对表编号（顺序式）、顺序式表编号 | `table` | - | `simple` | - | scan-structure.js |\n| 校对公式编号、公式编号校对、校对公式编号（章节式） | `formula` | - | - | `chapter` | scan-structure.js |\n| 校对公式编号（顺序式）、顺序式公式编号 | `formula` | - | - | `simple` | scan-structure.js |\n| 校对引用、引用校对 | `reference` | - | - | - | scan-structure.js |\n\n---\n\n## 执行方式\n\n**⚠️ 直接调用脚本，不要做任何额外处理。**\n\n```\nexecuteFile:\n  filePath: \"skills/generalcheck/scripts/scan-structure.js\"\n  params: { \"scope\": \"<匹配的scope>\", \"figureFormat\": \"<...>\", \"tableFormat\": \"<...>\", \"formulaFormat\": \"<...>\" }\n```\n\n**参数说明**：\n- `scope`: 必需，校对范围（heading/figure/table/formula/numbering）\n- `figureFormat`: 可选，仅 scope=figure 时有效\n  - `chapter` = 章节式编号（图X.Y-Z），默认值\n  - `simple` = 顺序式编号（图1、图2...）\n- `tableFormat`: 可选，仅 scope=table 时有效\n  - `chapter` = 章节式编号（表X.Y-Z），默认值\n  - `simple` = 顺序式编号（表1、表2...）\n- `formulaFormat`: 可选，仅 scope=formula 时有效\n  - `chapter` = 章节式编号（(X.Y-Z)），默认值\n  - `simple` = 顺序式编号（(1)、(2)...）\n\n---\n\n## 规则说明\n\n脚本自动识别并修复以下编号问题：\n\n| 规则ID | 检查项 | 说明 |\n|--------|--------|------|\n| N-002 | 一级标题编号连续性 | 第一章→第三章，应为第二章 |\n| N-003 | 二级标题章节号正确 | 3.1 在第二章下，应为 2.1 |\n| N-004 | 二级标题节序号连续 | 2.1 → 2.3，应为 2.2 |\n| N-005 | 三级标题编号 | 同一节内编号连续 |\n| N-006 | 四级标题编号 | 同一条内编号连续 |\n| N-008 | 五级标题编号 | 同一四级标题内编号连续 |\n| N-007 | 附录标题编号格式 | 附录内应为 A.1、A.2 格式 |\n| G-001 | 图编号（章节式） | 图X.Y-Z 格式，同一章节内连续 |\n| G-002 | 图编号（顺序式） | 图1、图2... 全文递增 |\n| G-003 | 附录图编号 | 图A1、图A2... 按附录内顺序 |\n| T-001 | 表编号（章节式） | 表X.Y-Z 格式，同一章节内连续 |\n| T-002 | 表编号（顺序式） | 表1、表2... 全文递增 |\n| T-003 | 附录表编号 | 表A1、表A2... 按附录内顺序 |\n| F-001 | 公式编号（章节式） | (X.Y-Z) 格式，同一章节内连续 |\n| F-002 | 公式编号（顺序式） | (1)、(2)... 全文递增 |\n| F-003 | 附录公式编号 | (A1)、(A2)... 按附录内顺序 |\n\n---\n\n## 技术实现\n\n脚本使用单次遍历段落方式：\n- 记录当前章号/节号上下文\n- 识别旧格式编号并转换为规范格式\n- 自动开启修订模式，所有修改可追溯\n\n**输出格式**：\n```json\n{\n  \"success\": true,\n  \"fixed\": 50,\n  \"structure\": { \"headings\": 20, \"figures\": 10, \"tables\": 15, \"formulas\": 5 },\n  \"details\": [...]\n}\n```\n\n---\n\n## 注意事项\n\n1. **编号校对需要全局上下文**，不能分片处理\n2. **所有修复自动开启修订模式**，用户可接受或拒绝\n3. **脚本已包含扫描+修复**，返回空 fixPlan，禁止再调用 apply-numbering-fixes.js\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/generalcheck/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 3
+    }
+  },
+  {
+    "id": "tool_1775644716191_c1sk",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775644716191,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/generalcheck/scripts/scan-structure.js",
+        "params": {
+          "figureFormat": "chapter",
+          "scope": "figure"
+        }
+      },
+      "output": "$artifact:20260408-1xfi72\n{\"success\":true,\"totalFixed\":16,\"fixed\":16,\"details\":[{\"original\":\"图16 剖面图\",\"suggested\":\"图10.5-1 剖面图\"},{\"original\":\"图15 结构布置图\",\"suggested\":\"图10.1-1 结构布置图\"},\"…共16条\"],\"structure\":{\"headings\":0,\"figures\":16,\"tables\":0,\"formulas\":0},\"summary\":{\"totalIssues\":16}}",
+      "durationMs": 2317
+    }
+  },
+  {
+    "id": "tool_1775644721371_y7z6",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775644721372,
+    "toolCall": {
+      "toolName": "artifactRead",
+      "input": {
+        "id": "20260408-1xfi72",
+        "mode": "data"
+      },
+      "output": "{\n  \"success\": true,\n  \"totalFixed\": 16,\n  \"fixed\": 16,\n  \"details\": [\n    {\n      \"original\": \"图16 剖面图\",\n      \"suggested\": \"图10.5-1 剖面图\"\n    },\n    {\n      \"original\": \"图15 结构布置图\",\n      \"suggested\": \"图10.1-1 结构布置图\"\n    },\n    {\n      \"original\": \"图14 施工进度计划图\",\n      \"suggested\": \"图9.6-1 施工进度计划图\"\n    },\n    {\n      \"original\": \"图13 平面布置图\",\n      \"suggested\": \"图9.2-1 平面布置图\"\n    },\n    {\n      \"original\": \"图12 典型断面图\",\n      \"suggested\": \"图8.6-1 典型断面图\"\n    },\n    {\n      \"original\": \"图11 平面布置图\",\n      \"suggested\": \"图8.3-1 平面布置图\"\n    },\n    {\n      \"original\": \"图10 平面布置图\",\n      \"suggested\": \"图7.3-1 平面布置图\"\n    },\n    {\n      \"original\": \"图9 剖面图\",\n      \"suggested\": \"图6.3-1 剖面图\"\n    },\n    {\n      \"original\": \"图8 剖面图\",\n      \"suggested\": \"图4.4-1 剖面图\"\n    },\n    {\n      \"original\": \"图7 施工进度计划图\",\n      \"suggested\": \"图3.6-1 施工进度计划图\"\n    },\n    {\n      \"original\": \"图6 监测布置图\",\n      \"suggested\": \"图3.5-1 监测布置图\"\n    },\n    {\n      \"original\": \"图5 剖面图\",\n      \"suggested\": \"图3.3-1 剖面图\"\n    },\n    {\n      \"original\": \"图4 施工进度计划图\",\n      \"suggested\": \"图3.2-1 施工进度计划图\"\n    },\n    {\n      \"original\": \"图3 平面布置图\",\n      \"suggested\": \"图2.5-1 平面布置图\"\n    },\n    {\n      \"original\": \"图2 施工进度计划图\",\n      \"suggested\": \"图2.4-1 施工进度计划图\"\n    },\n    {\n      \"original\": \"图1 平面布置图\",\n      \"suggested\": \"图2.1-1 平面布置图\"\n    }\n  ],\n  \"structure\": {\n    \"headings\": 0,\n    \"figures\": 16,\n    \"tables\": 0,\n    \"formulas\": 0\n  },\n  \"summary\": {\n    \"totalIssues\": 16\n  }\n}",
+      "durationMs": 12
+    }
+  },
+  {
+    "id": "tool_1775644727608_kihp",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775644727608,
+    "toolCall": {
+      "toolName": "confirmEdits",
+      "input": {
+        "mode": "revision",
+        "summary": "## 图编号校对报告\n\n1. **章节式图编号修正（16处）**\n   - 图 1→图 2.1-1：平面布置图\n   - 图 2→图 2.4-1：施工进度计划图\n   - 图 3→图 2.5-1：平面布置图\n   - 图 4→图 3.2-1：施工进度计划图\n   - 图 5→图 3.3-1：剖面图\n   - 图 6→图 3.5-1：监测布置图\n   - 图 7→图 3.6-1：施工进度计划图\n   - 图 8→图 4.4-1：剖面图\n   - 图 9→图 6.3-1：剖面图\n   - 图 10→图 7.3-1：平面布置图\n   - 图 11→图 8.3-1：平面布置图\n   - 图 12→图 8.6-1：典型断面图\n   - 图 13→图 9.2-1：平面布置图\n   - 图 14→图 9.6-1：施工进度计划图\n   - 图 15→图 10.1-1：结构布置图\n   - 图 16→图 10.5-1：剖面图\n\n所有图编号已按章节式格式（图 X.Y-Z）统一修正，确保章节号与当前章节一致，同一章节内编号连续。"
+      },
+      "output": "[UserCancelled] 已拒绝本次修订。",
+      "durationMs": 110801
+    }
+  },
+  {
+    "id": "confirm_edits_note_1775644838197_nywi3k",
+    "role": "assistant",
+    "content": "已拒绝本次修订。",
+    "timestamp": 1775644838197
+  }
+]

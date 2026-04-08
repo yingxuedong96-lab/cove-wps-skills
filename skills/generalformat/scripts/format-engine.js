@@ -723,8 +723,8 @@ try {
             // 表格等宽：设置为页面宽度
             if (elementSettings.tableFullWidth) {
               try {
-                var pageWidth = 595;
-                var leftMargin = 72;
+                var pageWidth = 595;  // A4默认：210mm = 595磅
+                var leftMargin = 72;   // 默认边距：25.4mm = 72磅
                 var rightMargin = 72;
                 try {
                   var section = doc.Sections.Item(1);
@@ -732,10 +732,12 @@ try {
                     pageWidth = section.PageSetup.PageWidth;
                     leftMargin = section.PageSetup.LeftMargin;
                     rightMargin = section.PageSetup.RightMargin;
+                    console.log('[format] 页面尺寸: 宽=' + pageWidth + ' 左边距=' + leftMargin + ' 右边距=' + rightMargin);
                   }
                 } catch (e) {}
                 var usableWidth = pageWidth - leftMargin - rightMargin;
-                try { table.PreferredWidthType = 2; } catch (e1) {}
+                console.log('[format] 表格可用宽度: ' + usableWidth + '磅');
+                try { table.PreferredWidthType = 2; } catch (e1) {}  // 2 = wdPreferredWidthTypePoints
                 try { table.PreferredWidth = usableWidth; } catch (e2) {}
                 try { table.AllowAutoFit = false; } catch (e3) {}
               } catch (e) {}

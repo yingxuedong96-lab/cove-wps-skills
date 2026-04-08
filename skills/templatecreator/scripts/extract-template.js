@@ -1,25 +1,26 @@
 /**
- * extract-template.js - 让框架自动包装 success
- * 版本: 26.0408.1845
+ * extract-template.js - 直接返回对象（与 scan-structure.js 相同模式）
+ * 版本: 26.0408.1900
  */
-(function() {
-  var VER = "26.0408.1845";
+try {
+  var VER = "26.0408.1900";
   console.log("[extract] 版本: " + VER);
 
   var DOC = Application.ActiveDocument;
-  if (!DOC) return JSON.stringify({ error: "没有打开的文档" });
+  if (!DOC) return { success: false, error: "没有打开的文档" };
 
   var docTypeParam = typeof docType !== 'undefined' ? docType : '';
   if (!docTypeParam) {
-    return JSON.stringify({
+    return {
+      success: true,
       needUserInput: true,
       question: "请选择文档类型：",
       options: ["论文/技术报告", "公文"]
-    });
+    };
   }
 
   var isPaper = docTypeParam === "论文/技术报告" || docTypeParam === "paper";
-  console.log("[extract] 类型: " + docTypeParam + ", 检测到样式数: ");
+  console.log("[extract] 类型: " + docTypeParam);
 
   var paras = DOC.Paragraphs;
   var styles = {};
@@ -115,12 +116,20 @@
     pageSetup: { topMargin: DOC.PageSetup.TopMargin / 567, bottomMargin: DOC.PageSetup.BottomMargin / 567, leftMargin: DOC.PageSetup.LeftMargin / 567, rightMargin: DOC.PageSetup.RightMargin / 567 }
   };
 
-  // 返回不带 success 的 JSON，让框架自动包装成 {success: true, data: ...}
-  return JSON.stringify({
+  // 直接返回对象（与 scan-structure.js 相同模式）
+  return {
+    success: true,
     scriptVersion: VER,
     message: lines.join("\n"),
     stylesTable: stylesTable,
     templateJson: template,
-    pageSetup: { paperSize: "A4", topMargin: (DOC.PageSetup.TopMargin / 567).toFixed(2) + "cm", bottomMargin: (DOC.PageSetup.BottomMargin / 567).toFixed(2) + "cm" }
-  });
-})();
+    pageSetup: {
+      paperSize: "A4",
+      topMargin: (DOC.PageSetup.TopMargin / 567).toFixed(2) + "cm",
+      bottomMargin: (DOC.PageSetup.BottomMargin / 567).toFixed(2) + "cm"
+    },
+    styleCount: Object.keys(styles).length
+  };
+} catch (e) {
+  return { success: false, error: String(e) };
+}

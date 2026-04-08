@@ -566,9 +566,11 @@ try {
             if (typeName === 'list1' || typeName === 'list2') {
               if (para.Range.ParagraphFormat) {
                 var pf = para.Range.ParagraphFormat;
-                // 列表缩进：leftIndent设置后续行缩进，firstLineIndent设置首行缩进
-                if (rule.leftIndent !== undefined) pf.LeftIndent = rule.leftIndent;
-                if (rule.firstLineIndent !== undefined) pf.FirstLineIndent = rule.firstLineIndent;
+                // 列表悬挂缩进：整体左缩进，首行负缩进形成悬挂效果
+                if (rule.leftIndent !== undefined) {
+                  pf.LeftIndent = rule.leftIndent;
+                  pf.FirstLineIndent = -rule.leftIndent;  // 负值=首行向左突出
+                }
                 // 其他格式（字体、字号等）
                 if (para.Range.Font && (rule.fontCN || rule.fontSize)) {
                   if (rule.fontCN) para.Range.Font.NameFarEast = rule.fontCN;

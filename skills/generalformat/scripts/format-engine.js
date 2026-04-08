@@ -174,10 +174,11 @@ try {
 
   rules = filteredRules;
 
-  // 自动补全缺失的表格类型配置（在 rules 赋值后执行）
+  // 自动补全缺失的类型配置（在 rules 赋值后执行）
   if (missingTypes.length > 0) {
     for (var mi = 0; mi < missingTypes.length; mi++) {
       var missingType = missingTypes[mi];
+      // 表头
       if (missingType === 'tableHeader' && specText.indexOf('表头') !== -1) {
         var headerMatch = specText.match(/表头用([^。，]+)/);
         if (headerMatch) {
@@ -185,11 +186,20 @@ try {
           console.log('[format] 自动补全 tableHeader: ' + JSON.stringify(rules.tableHeader));
         }
       }
+      // 表格内容
       if (missingType === 'tableContent' && specText.indexOf('表格内容') !== -1) {
         var contentMatch = specText.match(/表格内容用([^。，]+)/);
         if (contentMatch) {
           rules.tableContent = parseFormatFromText(contentMatch[1]);
           console.log('[format] 自动补全 tableContent: ' + JSON.stringify(rules.tableContent));
+        }
+      }
+      // 一级标题/章标题
+      if (missingType === 'zhangTitle') {
+        var zhangMatch = specText.match(/一级标题用([^。，]+)/) || specText.match(/章标题用([^。，]+)/);
+        if (zhangMatch) {
+          rules.zhangTitle = parseFormatFromText(zhangMatch[1]);
+          console.log('[format] 自动补全 zhangTitle: ' + JSON.stringify(rules.zhangTitle));
         }
       }
     }

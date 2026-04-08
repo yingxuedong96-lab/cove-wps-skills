@@ -427,6 +427,25 @@ try {
         applied += processedCount;
         console.log('[format] 正文分段处理: ' + processedCount + '段');
       }
+
+      // ⚠️ 修复图片段落行距：固定行距会裁剪图片，改用单倍行距
+      try {
+        var inlineCount = doc.InlineShapes ? doc.InlineShapes.Count : 0;
+        var fixedImagePara = 0;
+        for (var imgIdx = 1; imgIdx <= inlineCount; imgIdx++) {
+          try {
+            var inlineShape = doc.InlineShapes.Item(imgIdx);
+            if (inlineShape && inlineShape.Range && inlineShape.Range.ParagraphFormat) {
+              // 图片段落改用单倍行距，避免图片被裁剪
+              inlineShape.Range.ParagraphFormat.LineSpacingRule = 0;  // 单倍行距
+              fixedImagePara++;
+            }
+          } catch (e) {}
+        }
+        if (fixedImagePara > 0) {
+          console.log('[format] 图片段落行距修复: ' + fixedImagePara + '个');
+        }
+      } catch (e) {}
     }
 
     // 标题、图表等：逐个处理（数量少）

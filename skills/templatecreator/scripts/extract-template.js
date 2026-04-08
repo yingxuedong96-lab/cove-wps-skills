@@ -1,6 +1,6 @@
 /**
  * extract-template.js - 使用样式规范表进行结构化提取
- * 版本: 26.0408.1114 - 修复标题级别误识别
+ * 版本: 26.0408.1125 - 添加调试日志
  *
  * 流程：
  * 1. 用户选择文档类型（公文/论文）
@@ -10,7 +10,7 @@
  */
 
 (function() {
-  const SCRIPT_VERSION = "26.0408.1114";
+  const SCRIPT_VERSION = "26.0408.1125";
   console.log("[extract-template] 脚本版本: " + SCRIPT_VERSION);
 
   const DOC = Application.ActiveDocument;

@@ -1,10 +1,10 @@
 /**
  * extract-template.js - 完整功能版本
- * 版本: 26.0408.1530 - 补充公式编号、公式说明、列表项检测，添加页眉页脚提取
+ * 版本: 26.0408.1545 - 修复标题正则表达式，恢复之前成功的版本
  */
 
 (function() {
-  const SCRIPT_VERSION = "26.0408.1530";
+  const SCRIPT_VERSION = "26.0408.1545";
   console.log("[extract-template] 脚本版本: " + SCRIPT_VERSION);
 
   const DOC = Application.ActiveDocument;
@@ -27,7 +27,7 @@
         { id: "heading4", name: "四级标题", pattern: /^\d+\.\d+\.\d+\.\d+/ },
         { id: "heading3", name: "三级标题", pattern: /^\d+\.\d+\.\d+/ },
         { id: "heading2", name: "二级标题", pattern: /^\d+\.\d+[^.\d]/ },
-        { id: "heading1", name: "一级标题", pattern: /^\d+[^.\d\s]/ },
+        { id: "heading1", name: "一级标题", pattern: /^\d+[^.\d]/ },
         { id: "chapterTitle", name: "章标题", pattern: /^第[一二三四五六七八九十\d]+章/ },
 
         // 前置部分

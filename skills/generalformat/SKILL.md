@@ -86,6 +86,8 @@ executeFile:
 | 正文、正文格式 | body | 普通段落 |
 | 图名、图标题、图号 | figureCaption | 图标题 |
 | 表名、表标题、表号 | tableCaption | 表标题 |
+| 表头、表格标题行 | tableHeader | 表格第一行（标题行） |
+| 表格内容、表内容 | tableContent | 表格数据行 |
 | 参考文献 | ref | 参考文献 |
 
 ---

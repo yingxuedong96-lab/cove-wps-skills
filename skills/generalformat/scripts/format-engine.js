@@ -1078,7 +1078,7 @@ try {
               // 注意：WPS JS API中页码通过PageNumbers对象设置
               var footers = sec.Footers;
               if (footers) {
-                // 清除现有页码（主页脚）
+                // 处理主页脚
                 var primaryFooter = footers.Item(1);  // wdHeaderFooterPrimary
                 if (primaryFooter) {
                   // 添加页码域
@@ -1089,22 +1089,11 @@ try {
                       pn.NumberStyle = pageNumStyle;
                       pn.Add(pageNumAlign);
                     }
-                  } catch (e) {}
-
-                  // 设置页码字体（如果指定了页眉页脚字体）
-                  var hfFontSize = 9;
-                  var hfFontCN = '宋体';
-                  var hfFontEN = 'Arial';
-
-                  var hfFontMatch = specTextLower.match(/页眉页脚[字号]?[：:]?\s*小?[一二三四五]号/);
-                  if (hfFontMatch) {
-                    hfFontSize = parseFontSize(hfFontMatch[0].replace(/页眉页脚[字号]?[：:]?\s*/, ''));
+                  } catch (e) {
+                    console.log('[format] 节' + si + '页码添加失败: ' + e);
                   }
-                  var cnFontMatch = specTextLower.match(/中文字体[为是]\s*([宋黑楷仿][体])/);
-                  if (cnFontMatch) hfFontCN = cnFontMatch[1];
-                  var enFontMatch = specTextLower.match(/西文字体[为是]\s*([A-Za-z\s]+)/);
-                  if (enFontMatch) hfFontEN = enFontMatch[1].trim();
 
+                  // 设置页码字体（使用前面解析好的字号）
                   try {
                     if (primaryFooter.Range && primaryFooter.Range.Font) {
                       primaryFooter.Range.Font.NameFarEast = hfFontCN;

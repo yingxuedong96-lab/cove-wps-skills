@@ -59,9 +59,7 @@ try {
     figureCaption: ['图名', '图片名', '图标题', '图号', '图片标题', '插图名', 'figure'],
     ref: ['参考文献', '引用文献', 'reference'],
     tableHeader: ['表头', '表格表头', '表格标题行'],
-    tableContent: ['表格内容', '表内容', '表格正文', '表格数据'],
-    list1: ['列表一级', '列表一', '一级列表', '一级缩进'],
-    list2: ['列表二级', '列表二', '二级列表', '二级缩进']
+    tableContent: ['表格内容', '表内容', '表格正文', '表格数据']
   };
 
   var specText = configData.specText || '';
@@ -98,9 +96,7 @@ try {
     'headingFour': 'heading4',
     'content': 'body',
     'figure': 'figureCaption',
-    'table': 'tableCaption',
-    'listLevel1': 'list1',
-    'listLevel2': 'list2'
+    'table': 'tableCaption'
   };
 
   // 转换规则中的错误类型名
@@ -180,17 +176,6 @@ try {
     if (rule.firstLineIndent !== undefined && rule.firstLineIndent < 0) {
       rule.leftIndent = -rule.firstLineIndent;  // 后续行缩进 = 首行负缩进的绝对值
       console.log('[format] 悬挂缩进: LeftIndent=' + rule.leftIndent + '磅, FirstLineIndent=' + rule.firstLineIndent + '磅');
-    }
-    // ⚠️ 列表缩进特殊处理：使用字符单位实现悬挂缩进
-    if ((key === 'list1' || key === 'list2') && rule.leftIndent !== undefined) {
-      // 保存原始字符单位的缩进值（不转换为磅）
-      rule.leftIndentChars = rule.leftIndent;  // 原始值如 4 或 6
-      // 同时设置磅值作为备用（某些WPS版本可能不支持字符单位API）
-      rule.leftIndent = rule.leftIndent * 12;  // 4字符=48磅, 6字符=72磅
-      // 悬挂缩进：首行不缩进（负缩进），让编号突出在左边
-      rule.firstLineIndentChars = -rule.leftIndentChars;  // 字符单位悬挂缩进
-      rule.firstLineIndent = -rule.leftIndent;  // 磅值悬挂缩进
-      console.log('[format] 列表' + key + '悬挂缩进: LeftIndent=' + rule.leftIndentChars + '字符(' + rule.leftIndent + '磅), FirstLineIndent=' + rule.firstLineIndentChars + '字符(' + rule.firstLineIndent + '磅)');
     }
   }
 
@@ -305,23 +290,6 @@ try {
       }
     }
     if (inRef) return 'ref';
-
-    // 列表项检测（在标题检测之前）
-    // 格式：a) xxx 或 1) xxx 或 (1) xxx
-    var listItemMatch = text.match(/^[a-z][）)]\s*[\u4e00-\u9fa5]/i);
-    if (listItemMatch) return 'list1';  // 字母编号列表
-    var listItemNumMatch = text.match(/^[（(]?\d+[）)]\s*[\u4e00-\u9fa5]/);
-    if (listItemNumMatch) {
-      // 排除标题格式：(1) 这种格式如果后面紧跟书名号或标准编号，可能是引用列表
-      if (text.match(/^[（(]\d+[）)]\s*[《(A-Z]/)) return 'body';
-      return 'list2';  // 数字编号列表
-    }
-
-    // 特殊列表项检测：(1)《书名》或 (1)标准编号 格式 → 正文，不是标题
-    var specialListMatch = text.match(/^[（(](\d+)[）)]\s*[《(A-Z]/);
-    if (specialListMatch) {
-      return 'body';
-    }
 
     for (var i = 0; i < compiled.tableCaption.length; i++) {
       if (compiled.tableCaption[i].test(text)) return 'tableCaption';
@@ -547,7 +515,7 @@ try {
       'heading5': 5      // 五级大纲
     };
 
-    var singleTypes = ['docTitle', 'zhangTitle', 'appendixTitle', 'heading2', 'heading3', 'heading4', 'heading5', 'tableCaption', 'figureCaption', 'ref', 'list1', 'list2'];
+    var singleTypes = ['docTitle', 'zhangTitle', 'appendixTitle', 'heading2', 'heading3', 'heading4', 'heading5', 'tableCaption', 'figureCaption', 'ref'];
     for (var t = 0; t < singleTypes.length; t++) {
       var typeName = singleTypes[t];
       var indices = typeIndices[typeName] || [];
@@ -561,44 +529,14 @@ try {
         try {
           var para = doc.Paragraphs.Item(indices[i]);
           if (para && para.Range) {
-            // 列表类型需要特殊处理缩进（使用字符单位API实现悬挂缩进）
-            if (typeName === 'list1' || typeName === 'list2') {
-              if (para.Range.ParagraphFormat) {
-                var pf = para.Range.ParagraphFormat;
-                // 尝试使用字符单位API（WPS支持）
-                try {
-                  if (rule.leftIndentChars !== undefined) {
-                    pf.CharacterUnitLeftIndent = rule.leftIndentChars;  // 字符单位左缩进
-                    pf.CharacterUnitFirstLineIndent = rule.firstLineIndentChars;  // 字符单位悬挂缩进（负值）
-                    console.log('[format] 列表缩进(字符单位): LeftIndent=' + rule.leftIndentChars + '字符, FirstLineIndent=' + rule.firstLineIndentChars + '字符');
-                  } else {
-                    // 备用：使用磅值
-                    pf.LeftIndent = rule.leftIndent;
-                    pf.FirstLineIndent = rule.firstLineIndent;
-                  }
-                } catch (e) {
-                  // 字符单位API失败时，使用磅值
-                  console.log('[format] 字符单位API失败，使用磅值: ' + e);
-                  pf.LeftIndent = rule.leftIndent;
-                  pf.FirstLineIndent = rule.firstLineIndent;
-                }
-                // 其他格式（字体、字号等）
-                if (para.Range.Font && (rule.fontCN || rule.fontSize)) {
-                  if (rule.fontCN) para.Range.Font.NameFarEast = rule.fontCN;
-                  if (rule.fontSize) para.Range.Font.Size = rule.fontSize;
-                }
-                applied++;
-              }
-            } else {
-              if (applyRuleToRange(para.Range, rule)) {
-                applied++;
-              }
-              // 设置大纲级别（用于导航窗格和目录）
-              if (outlineLevel && para.Range.ParagraphFormat) {
-                try {
-                  para.Range.ParagraphFormat.OutlineLevel = outlineLevel;
-                } catch (e) {}
-              }
+            if (applyRuleToRange(para.Range, rule)) {
+              applied++;
+            }
+            // 设置大纲级别（用于导航窗格和目录）
+            if (outlineLevel && para.Range.ParagraphFormat) {
+              try {
+                para.Range.ParagraphFormat.OutlineLevel = outlineLevel;
+              } catch (e) {}
             }
           }
         } catch (e) { errors++; }

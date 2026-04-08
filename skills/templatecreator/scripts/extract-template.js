@@ -436,15 +436,16 @@ try {
 
   // 如果文件保存失败，在返回中包含 JSON 内容
   if (!fileSaved) {
-    saveResult = "\n\n⚠️ 文件保存失败，模板 JSON 内容如下（可手动保存）：";
+    saveResult = "\n\n⚠️ Mac 环境无法直接保存文件，模板 JSON 数据已返回，请查看下方或手动保存。";
   }
 
+  // 返回结果：message 显示样式详情，data 包含完整 JSON（避免 artifact 包装）
   return {
     success: true,
     message: lines.join("\n") + saveResult,
     styleCount: Object.keys(styles).length,
-    templateFile: fileSaved ? jsonFile : "",
-    templateJson: fileSaved ? "" : jsonContent  // 未保存时返回完整 JSON
+    templateFile: jsonFile,
+    templateJson: jsonContent  // 返回完整 JSON，供 UI 或 Python 端保存
   };
 } catch (e) {
   return { success: false, error: String(e) };

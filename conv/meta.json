@@ -1,6 +1,17 @@
 {
   "conversations": [
     {
+      "id": "1775650029451_tpdzva",
+      "title": "如果有关联文档，从消息中找到关联文档的路径，执行 scrip",
+      "createdAt": 1775650029451,
+      "updatedAt": 1775650029451,
+      "messageCount": 0,
+      "pinned": false,
+      "skillName": "templatecreator",
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/模版生成/测试文档_无格式.docx",
+      "documentName": "测试文档_无格式.docx"
+    },
+    {
       "id": "1775649273698_npdgv2",
       "title": "如果有关联文档，从消息中找到关联文档的路径，执行 scrip",
       "createdAt": 1775649273698,

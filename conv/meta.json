@@ -1,6 +1,27 @@
 {
   "conversations": [
     {
+      "id": "1775625074227_vdu69v",
+      "title": "提取样式",
+      "createdAt": 1775625074227,
+      "updatedAt": 1775625086534,
+      "messageCount": 7,
+      "pinned": false,
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/模版生成/样式提取.docx",
+      "documentName": "样式提取.docx"
+    },
+    {
+      "id": "1775625032796_5h7xun",
+      "title": "generalformat：排版正文。\n\n正文用宋体小四号两",
+      "createdAt": 1775625032796,
+      "updatedAt": 1775625059203,
+      "messageCount": 6,
+      "pinned": false,
+      "skillName": "generalformat",
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/模版生成/样式提取.docx",
+      "documentName": "样式提取.docx"
+    },
+    {
       "id": "1775624839381_mznjdw",
       "title": "generalformat：排版正文。\n\n正文用宋体小四号两",
       "createdAt": 1775624839381,

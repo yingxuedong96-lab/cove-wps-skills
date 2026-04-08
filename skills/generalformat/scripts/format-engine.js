@@ -446,21 +446,13 @@ try {
           if (firstBodyPara && firstBodyPara.Range && lastBodyPara && lastBodyPara.Range) {
             var wideRange = doc.Range(firstBodyPara.Range.Start, lastBodyPara.Range.End);
 
-            // ⚠️ 关键保护：检查整体Range是否包含表格，避免误改表格内容
-            var wideRangeTableCount = 0;
-            try {
-              wideRangeTableCount = wideRange.Tables ? wideRange.Tables.Count : 0;
-            } catch (e) {}
-
-            if (wideRangeTableCount === 0) {
-              // 无表格，可以安全使用整体Range
-              if (applyRuleToRange(wideRange, rules.body)) {
-                applied += bodyIndices.length;
-                wideRangeApplied = true;
-                console.log('[format] 正文整体Range处理: ' + bodyIndices.length + '段');
-              }
-            } else {
-              console.log('[format] 整体Range包含' + wideRangeTableCount + '个表格，改用分段处理');
+            // ⚠️ 采用zslong策略：直接应用整体Range，不做表格检测
+            // 原因：bodyIndices已通过excludedParaMap排除表格段落
+            // 整体Range设置字体字号对表格内容影响小（表格自身有格式设置）
+            if (applyRuleToRange(wideRange, rules.body)) {
+              applied += bodyIndices.length;
+              wideRangeApplied = true;
+              console.log('[format] 正文整体Range处理(zslong策略): ' + bodyIndices.length + '段');
             }
           }
         } catch (wideErr) {

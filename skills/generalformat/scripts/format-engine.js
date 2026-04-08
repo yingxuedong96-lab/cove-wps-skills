@@ -664,6 +664,21 @@ try {
         var tableCount = doc.Tables ? doc.Tables.Count : 0;
         var tablesProcessed = 0;
 
+        // 预计算页面可用宽度（只计算一次）
+        var usableWidth = 445;  // 默认值
+        if (elementSettings.tableFullWidth) {
+          try {
+            var section = doc.Sections.Item(1);
+            if (section && section.PageSetup) {
+              var pageWidth = section.PageSetup.PageWidth;
+              var leftMargin = section.PageSetup.LeftMargin;
+              var rightMargin = section.PageSetup.RightMargin;
+              usableWidth = pageWidth - leftMargin - rightMargin;
+              console.log('[format] 页面尺寸: 宽=' + pageWidth + ' 左边距=' + leftMargin + ' 右边距=' + rightMargin + ' 可用=' + usableWidth + '磅');
+            }
+          } catch (e) {}
+        }
+
         // ========================================
         // 高效表格字体设置：使用临时样式批量应用
         // ========================================
@@ -723,23 +738,20 @@ try {
             // 表格等宽：设置为页面宽度
             if (elementSettings.tableFullWidth) {
               try {
-                var pageWidth = 595;  // A4默认：210mm = 595磅
-                var leftMargin = 72;   // 默认边距：25.4mm = 72磅
-                var rightMargin = 72;
-                try {
-                  var section = doc.Sections.Item(1);
-                  if (section && section.PageSetup) {
-                    pageWidth = section.PageSetup.PageWidth;
-                    leftMargin = section.PageSetup.LeftMargin;
-                    rightMargin = section.PageSetup.RightMargin;
-                    console.log('[format] 页面尺寸: 宽=' + pageWidth + ' 左边距=' + leftMargin + ' 右边距=' + rightMargin);
-                  }
-                } catch (e) {}
-                var usableWidth = pageWidth - leftMargin - rightMargin;
-                console.log('[format] 表格可用宽度: ' + usableWidth + '磅');
-                try { table.PreferredWidthType = 3; } catch (e1) {}  // 3 = wdPreferredWidthPoints（磅值）
+                // 清除表格自动调整
+                try { table.AllowAutoFit = false; } catch (e0) {}
+                // 设置宽度类型为磅值
+                try { table.PreferredWidthType = 3; } catch (e1) {}
+                // 设置宽度
                 try { table.PreferredWidth = usableWidth; } catch (e2) {}
-                try { table.AllowAutoFit = false; } catch (e3) {}
+                // 尝试设置所有列为自动宽度
+                try {
+                  if (table.Columns && table.Columns.Count > 0) {
+                    for (var colIdx = 1; colIdx <= table.Columns.Count; colIdx++) {
+                      try { table.Columns.Item(colIdx).PreferredWidthType = 1; } catch (e) {} // 1 = wdPreferredWidthAuto
+                    }
+                  }
+                } catch (e3) {}
               } catch (e) {}
             }
 

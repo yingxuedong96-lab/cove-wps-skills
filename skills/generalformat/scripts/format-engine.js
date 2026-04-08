@@ -29,7 +29,7 @@ try {
   // 解析中文字号
   function parseFontSize(sizeText) {
     if (!sizeText) return 0;
-    var s = sizeText.replace(/\s/g, '');
+    var s = sizeText.replace(/\s/g, '').replace(/号$/, '');  // 去掉末尾的'号'
     if (FONT_SIZE_MAP[s]) return FONT_SIZE_MAP[s];
     // 尝试直接数字
     var num = parseFloat(s);
@@ -1081,6 +1081,13 @@ try {
                 // 处理主页脚
                 var primaryFooter = footers.Item(1);  // wdHeaderFooterPrimary
                 if (primaryFooter) {
+                  // 先清除现有页脚内容（避免"第 页 共 页"冲突）
+                  try {
+                    if (primaryFooter.Range) {
+                      primaryFooter.Range.Delete();
+                    }
+                  } catch (e) {}
+
                   // 添加页码域
                   try {
                     var pn = primaryFooter.PageNumbers;

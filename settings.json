@@ -1,5 +1,5 @@
 {
-  "modelName": "custom/qwen3.5-plus",
+  "modelName": "custom/qwen3-max",
   "enableThinking": false,
   "maxRetries": 2,
   "snapshotPolicy": "before_task",

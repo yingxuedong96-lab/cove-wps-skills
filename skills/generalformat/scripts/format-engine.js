@@ -419,8 +419,8 @@ try {
 
       console.log('[format] 正文分段数: ' + segments.length + ', 总段落: ' + bodyIndices.length);
 
-      // 策略选择：分段>80 或 超快模式 → 尝试整体Range
-      var tryWideRange = segments.length > 80 || useUltraFastMode;
+      // 策略选择：分段>30 或 超快模式 → 尝试整体Range
+      var tryWideRange = segments.length > 30 || useUltraFastMode;
       var wideRangeApplied = false;
 
       if (tryWideRange) {
@@ -444,7 +444,7 @@ try {
                 console.log('[format] 正文整体Range处理: ' + bodyIndices.length + '段');
               }
             } else {
-              console.log('[format] 整体Range包含' + wideRangeTableCount + '个表格，改用分段处理');
+              console.log('[format] 整体Range包含' + wideRangeTableCount + '个表格，尝试批量分段');
             }
           }
         } catch (wideErr) {
@@ -454,25 +454,57 @@ try {
 
       // 分段处理（未使用整体Range时）
       if (!wideRangeApplied) {
-        for (var s = 0; s < segments.length; s++) {
+        // ⚠️ 优化：批量合并分段，减少Range操作次数
+        // 把连续的segments合并成chunks，每个chunk最多包含50个segment
+        var CHUNK_SIZE = 50;
+        var processedCount = 0;
+
+        for (var chunkStart = 0; chunkStart < segments.length; chunkStart += CHUNK_SIZE) {
+          var chunkEnd = Math.min(chunkStart + CHUNK_SIZE, segments.length);
+          var chunkParaStart = segments[chunkStart].start;
+          var chunkParaEnd = segments[chunkEnd - 1].end;
+
           try {
-            var startPara = doc.Paragraphs.Item(segments[s].start);
-            var endPara = doc.Paragraphs.Item(segments[s].end);
+            var startPara = doc.Paragraphs.Item(chunkParaStart);
+            var endPara = doc.Paragraphs.Item(chunkParaEnd);
             if (!startPara || !startPara.Range || !endPara || !endPara.Range) continue;
 
-            var segRange = doc.Range(startPara.Range.Start, endPara.Range.End);
+            var chunkRange = doc.Range(startPara.Range.Start, endPara.Range.End);
 
-            // 分段Range也检查表格（保险）
-            var segTableCount = 0;
-            try { segTableCount = segRange.Tables ? segRange.Tables.Count : 0; } catch (e) {}
-            if (segTableCount > 0) continue;  // 跳过包含表格的段
+            // chunkRange检查表格（如果包含表格，再逐个segment处理这个chunk）
+            var chunkTableCount = 0;
+            try { chunkTableCount = chunkRange.Tables ? chunkRange.Tables.Count : 0; } catch (e) {}
 
-            if (applyRuleToRange(segRange, rules.body)) {
-              applied += segments[s].end - segments[s].start + 1;
+            if (chunkTableCount === 0) {
+              // 无表格，批量处理整个chunk
+              if (applyRuleToRange(chunkRange, rules.body)) {
+                for (var s = chunkStart; s < chunkEnd; s++) {
+                  processedCount += segments[s].end - segments[s].start + 1;
+                }
+              }
+            } else {
+              // chunk包含表格，逐个segment处理（但这只是这个chunk内的少量segment）
+              for (var s = chunkStart; s < chunkEnd; s++) {
+                try {
+                  var segStartPara = doc.Paragraphs.Item(segments[s].start);
+                  var segEndPara = doc.Paragraphs.Item(segments[s].end);
+                  if (!segStartPara || !segStartPara.Range || !segEndPara || !segEndPara.Range) continue;
+
+                  var segRange = doc.Range(segStartPara.Range.Start, segEndPara.Range.End);
+                  var segTableCount = 0;
+                  try { segTableCount = segRange.Tables ? segRange.Tables.Count : 0; } catch (e) {}
+                  if (segTableCount > 0) continue;  // 跳过包含表格的段
+
+                  if (applyRuleToRange(segRange, rules.body)) {
+                    processedCount += segments[s].end - segments[s].start + 1;
+                  }
+                } catch (segErr) {}
+              }
             }
-          } catch (segErr) {}
+          } catch (chunkErr) {}
         }
-        console.log('[format] 正文分段处理完成');
+        applied += processedCount;
+        console.log('[format] 正文批量分段处理完成: ' + processedCount + '段, 分段数=' + segments.length);
       }
     }
 

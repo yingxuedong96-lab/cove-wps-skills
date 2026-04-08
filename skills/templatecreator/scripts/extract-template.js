@@ -1,15 +1,16 @@
 /**
  * extract-template.js - 完整样式提取（符合样式元素规范表）
- * 版本: 26.0410.1005
+ * 版本: 26.0410.1006
  * 支持元素: 论文报告26种 + 公文20种
  * 支持参数: 45个（字体7 + 段落5 + 间距4 + 大纲3 + 表格10 + 页面9 + 其他7）
  * 更新:
- *   - 修复页面边距单位问题
- *   - 格式合并：相同格式只保留一个典型值
- *   - 改进类型检测：区分正文、图名、表名、列表项
+ *   - 新增公式编号检测
+ *   - 新增封面副标题/单位/日期检测
+ *   - 修复附录标题误识别问题（上下文感知）
+ *   - 补充缺失的元素检测
  */
 try {
-  var VER = "26.0410.1005";
+  var VER = "26.0410.1006";
   console.log("[extract] 版本: " + VER);
 
   var DOC = Application.ActiveDocument;
@@ -86,6 +87,25 @@ try {
     abstract: "摘要", keyword: "关键词", unknown: "未识别样式"
   };
 
+  // 元素检测模式说明（供参考）
+  var DETECT_PATTERNS = {
+    // 论文报告
+    chapterTitle: "第X章",
+    heading1: "1 XXX", heading2: "1.1 XXX", heading3: "1.1.1 XXX",
+    heading4: "1.1.1.1 XXX", heading5: "1.1.1.1.1 XXX 或 (1)/(a)/①",
+    appendixTitle: "附录 A", appendixSection: "A.1 XXX",
+    figureCaption: "图 1-1", tableCaption: "表 1-1",
+    formulaCaption: "(1) 或 (3.2.1-1)",
+    referenceTitle: "参考文献", reference: "[1] XXX",
+    tocTitle: "目录", abstract: "摘要", keyword: "关键词",
+    formulaNote: "式中", note: "注",
+    coverDate: "2024年1月1日",
+    // 公文
+    docTitle: "关于...的通知", heading1: "一、", heading2: "（一）", heading3: "1.",
+    attachment: "附件", signDate: "2024年1月1日",
+    copySender: "抄送", issuerDept: "印发机关", issueDate: "印发日期"
+  };
+
   // ============================================================
   // 二、工具函数
   // ============================================================
@@ -119,29 +139,67 @@ try {
   // ============================================================
   // 三、元素检测（基于样式元素规范表的正则模式）
   // ============================================================
-  function detectStyle(text, isPaper, fmt) {
+
+  // 上下文状态：用于检测附录相关内容
+  var lastAppendixTitle = false;  // 上一段是否是附录标题
+
+  function detectStyle(text, isPaper, fmt, paraIndex) {
     if (isPaper) {
       // 论文报告检测（优先级从高到低）
+
+      // 1. 章标题
       if (/^第[一二三四五六七八九十百零\d]+章/.test(text)) return "chapterTitle";
+
+      // 2. 标题编号（按层级从深到浅检测）
       if (/^\d+\.\d+\.\d+\.\d+\.\d+/.test(text)) return "heading5";
       if (/^\d+\.\d+\.\d+\.\d+/.test(text)) return "heading4";
       if (/^\d+\.\d+\.\d+[^.\d]/.test(text)) return "heading3";
       if (/^\d+\.\d+[^.\d]/.test(text)) return "heading2";
       if (/^\d+\s+[^\d\.\s]/.test(text)) return "heading1";
-      if (/^附\s*录\s*[A-Z０-９]/.test(text)) return "appendixTitle";
+
+      // 3. 附录相关
+      if (/^附\s*录\s*[A-Z０-９０-９]/.test(text)) {
+        lastAppendixTitle = true;
+        return "appendixTitle";
+      }
       if (/^[A-Z]\.\d+/.test(text)) return "appendixSection";
+
+      // 4. 图表公式
       if (/^图\s*\d+/.test(text)) return "figureCaption";
       if (/^表\s*\d+/.test(text)) return "tableCaption";
+      if (/^\([\d.-]+\)$/.test(text)) return "formulaCaption";  // 公式编号如(1)、(3.2.1-1)
+
+      // 5. 参考文献
       if (/^参考文[献獻]/.test(text)) return "referenceTitle";
       if (/^\[\d+\]/.test(text)) return "reference";
+
+      // 6. 目录
       if (/^目\s*录$|^目次$/.test(text)) return "tocTitle";
+
+      // 7. 摘要关键词
       if (/^摘\s*要|^Abstract/i.test(text)) return "abstract";
       if (/^关键词|^关键字|^Key\s*words/i.test(text)) return "keyword";
-      if (/^式中|^注\s*\d*/.test(text)) return "formulaNote";
-      // 五级标题的其他形式
+
+      // 8. 公式说明和注释
+      if (/^式中/.test(text)) return "formulaNote";
+      if (/^注\s*\d*|^注\s*：/.test(text)) return "note";
+
+      // 9. 封面元素
+      if (/^\d{4}年\d{1,2}月\d{1,2}日$/.test(text)) return "coverDate";
+      if (paraIndex <= 5 && /\d{4}年\d{1,2}月\d{1,2}日/.test(text)) return "coverDate";
+
+      // 10. 五级标题的其他形式 -> 列表项
       if (/^[\(（]\d+[\)）]/.test(text)) return "listItem";
       if (/^[\(（][a-z][\)）]/.test(text)) return "listItem";
       if (/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮]/.test(text)) return "listItem";
+      if (/^[a-z][\)）\.]/.test(text)) return "listItem";
+
+      // 11. 上下文感知：附录标题后的标题段落
+      if (lastAppendixTitle && fmt && fmt.bold && fmt.fontSize >= 14) {
+        lastAppendixTitle = false;  // 重置状态
+        return "appendixTitle";  // 作为附录标题的一部分
+      }
+
     } else {
       // 公文检测
       if (/^关于|通知$|决定$|意见$|办法$|规定$|批复$|请示$|报告$/.test(text)) return "docTitle";
@@ -155,11 +213,20 @@ try {
       if (/^印发日期/.test(text)) return "issueDate";
       if (/^图\s*\d+/.test(text)) return "figureCaption";
       if (/^表\s*\d+/.test(text)) return "tableCaption";
+
+      // 公文列表项
+      if (/^[\(（]\d+[\)）]/.test(text)) return "listItem";
+      if (/^[a-z][\)）\.]/.test(text)) return "listItem";
     }
 
     // 基于格式的智能推断
     // 悬挂缩进（首行缩进为负）通常是列表项
     if (fmt && fmt.firstLineIndent < 0) return "listItem";
+
+    // 重置附录标题状态（如果检测失败）
+    if (isPaper && !/^附\s*录/.test(text)) {
+      lastAppendixTitle = false;
+    }
 
     return null;
   }
@@ -210,7 +277,7 @@ try {
     if (!text) continue;
 
     var fmt = extractFormat(para);
-    var type = detectStyle(text, isPaper, fmt);
+    var type = detectStyle(text, isPaper, fmt, i);  // 传入段落索引
 
     // 智能推断（基于格式特征）
     if (!type) {

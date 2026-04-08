@@ -742,23 +742,31 @@ try {
                 var headerRow = table.Rows.Item(1);
                 if (applyRuleToTableRow(headerRow, rules.tableHeader)) {
                   applied++;
+                  console.log('[format] 表格' + tblIdx + '表头: ' + JSON.stringify(rules.tableHeader));
                 }
-              } catch (e) {}
+              } catch (e) {
+                console.log('[format] 表格' + tblIdx + '表头失败: ' + e);
+              }
             }
 
             // 表格内容格式（第2-N行）
             if (rules.tableContent && table.Rows && table.Rows.Count > 1) {
               try {
                 var rowCount = table.Rows.Count;
+                var contentApplied = 0;
                 for (var r = 2; r <= rowCount; r++) {
                   try {
                     var contentRow = table.Rows.Item(r);
                     if (applyRuleToTableRow(contentRow, rules.tableContent)) {
                       applied++;
+                      contentApplied++;
                     }
                   } catch (e) {}
                 }
-              } catch (e) {}
+                console.log('[format] 表格' + tblIdx + '内容: ' + contentApplied + '行, ' + JSON.stringify(rules.tableContent));
+              } catch (e) {
+                console.log('[format] 表格' + tblIdx + '内容失败: ' + e);
+              }
             }
 
             tablesProcessed++;

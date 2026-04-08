@@ -187,36 +187,36 @@ try {
   var maxParaCount = Math.min(paraCount, logicalParas.length);
   var useUltraFastMode = paraCount > 6000;
 
-  // ⚠️ 预排除表格和图片段落（与zslong完全相同的方式）
-  var excludedParaMap = {};
-
+  // ⚠️ 预收集表格Range范围（用于快速排除表格段落）
+  var tableRanges = [];  // 记录所有表格的Range范围
   try {
     var tableCount = doc.Tables ? doc.Tables.Count : 0;
     for (var tblIdx = 1; tblIdx <= tableCount; tblIdx++) {
       try {
         var table = doc.Tables.Item(tblIdx);
-        if (!table || !table.Range || !table.Range.Paragraphs) continue;
-        for (var tp = 1; tp <= table.Range.Paragraphs.Count; tp++) {
-          try {
-            var tablePara = table.Range.Paragraphs.Item(tp);
-            if (tablePara && tablePara.Index) excludedParaMap[tablePara.Index] = 'table';
-          } catch (e) {}
+        if (table && table.Range) {
+          tableRanges.push({ start: table.Range.Start, end: table.Range.End });
         }
       } catch (e) {}
     }
   } catch (e) {}
 
-  try {
-    var inlineCount = doc.InlineShapes ? doc.InlineShapes.Count : 0;
-    for (var inIdx = 1; inIdx <= inlineCount; inIdx++) {
-      try {
-        var inlineShape = doc.InlineShapes.Item(inIdx);
-        if (!inlineShape || !inlineShape.Range || !inlineShape.Range.Paragraphs) continue;
-        var imagePara = inlineShape.Range.Paragraphs.Item(1);
-        if (imagePara && imagePara.Index) excludedParaMap[imagePara.Index] = 'image';
-      } catch (e) {}
-    }
-  } catch (e) {}
+  // 检查段落是否在表格内（辅助函数）
+  function isInTable(paraIndex) {
+    try {
+      var para = doc.Paragraphs.Item(paraIndex);
+      if (!para || !para.Range) return false;
+      var paraStart = para.Range.Start;
+      for (var tr = 0; tr < tableRanges.length; tr++) {
+        if (paraStart >= tableRanges[tr].start && paraStart <= tableRanges[tr].end) {
+          return true;
+        }
+      }
+      return false;
+    } catch (e) { return false; }
+  }
+
+  var excludedParaMap = {};
 
   console.log('[format] 排除段落: ' + Object.keys(excludedParaMap).length + ' (表格/图片), 段落数: ' + paraCount);
 
@@ -297,6 +297,7 @@ try {
   // 分类所有段落
   var classifications = [];
   var typeIndices = {};  // 按类型存储段落索引
+  var excludedCount = 0;
 
   // 只初始化用户规则中定义的类型
   for (var t in rules) {
@@ -308,8 +309,9 @@ try {
     var type = classify(logicalParas[i]);
     classifications.push(type);
 
-    // 跳过表格/图片段落（除非是标题类型）
-    if (excludedParaMap[paraIndex] && type !== 'zhangTitle' && type !== 'heading2' && type !== 'heading3' && type !== 'heading4' && type !== 'docTitle') {
+    // 跳过表格段落（用 isInTable 检查，除非是标题类型）
+    if (isInTable(paraIndex) && type !== 'zhangTitle' && type !== 'heading2' && type !== 'heading3' && type !== 'heading4' && type !== 'docTitle') {
+      excludedCount++;
       continue;
     }
 
@@ -318,6 +320,8 @@ try {
       typeIndices[type].push(paraIndex);
     }
   }
+
+  console.log('[format] 表格段落排除: ' + excludedCount + ', 表格数: ' + tableRanges.length);
 
   // 处理文档标题（docTitle）：如果用户定义了 docTitle 规则，将第一个非空段落标记为 docTitle
   if (typeIndices['docTitle']) {

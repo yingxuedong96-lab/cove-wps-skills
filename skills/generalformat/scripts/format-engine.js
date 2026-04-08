@@ -49,7 +49,6 @@ try {
   var TYPE_KEYWORDS = {
     docTitle: ['主标题', '文档标题', '文章标题', '报告标题', '封面标题'],
     zhangTitle: ['章标题', '一级标题', '章节标题', '标题一', 'Heading 1', '章名', 'chapterTitle'],
-    appendixTitle: ['附录标题', '附录名', '附录'],
     heading2: ['二级标题', '标题二', 'Heading 2', 'headingTwo'],
     heading3: ['三级标题', '标题三', 'Heading 3'],
     heading4: ['四级标题', '标题四', 'Heading 4'],
@@ -188,9 +187,8 @@ try {
   var maxParaCount = Math.min(paraCount, logicalParas.length);
   var useUltraFastMode = paraCount > 6000;
 
-  // ⚠️ 预排除表格和图片段落，同时记录表格位置范围
+  // ⚠️ 预排除表格和图片段落（与zslong完全相同的方式）
   var excludedParaMap = {};
-  var tableRanges = [];  // 记录表格的段落范围 [{start: N, end: M}, ...]
 
   try {
     var tableCount = doc.Tables ? doc.Tables.Count : 0;
@@ -198,12 +196,6 @@ try {
       try {
         var table = doc.Tables.Item(tblIdx);
         if (!table || !table.Range || !table.Range.Paragraphs) continue;
-
-        // 记录表格的段落范围
-        var tblStartIdx = table.Range.Paragraphs.Item(1).Index;
-        var tblEndIdx = table.Range.Paragraphs.Item(table.Range.Paragraphs.Count).Index;
-        tableRanges.push({ start: tblStartIdx, end: tblEndIdx });
-
         for (var tp = 1; tp <= table.Range.Paragraphs.Count; tp++) {
           try {
             var tablePara = table.Range.Paragraphs.Item(tp);
@@ -226,27 +218,13 @@ try {
     }
   } catch (e) {}
 
-  console.log('[format] 排除段落: ' + Object.keys(excludedParaMap).length + ' (表格/图片), 表格范围: ' + tableRanges.length + '个, 段落数: ' + paraCount);
-
-  // 快速判断段落范围是否与表格重叠
-  function rangeOverlapWithTable(start, end) {
-    for (var t = 0; t < tableRanges.length; t++) {
-      if (start <= tableRanges[t].end && end >= tableRanges[t].start) {
-        return true;
-      }
-    }
-    return false;
-  }
+  console.log('[format] 排除段落: ' + Object.keys(excludedParaMap).length + ' (表格/图片), 段落数: ' + paraCount);
 
   // 默认正则 + 用户正则
   var allPatterns = {
-    // 一级标题/章标题
     zhangTitle: ['^第[一二三四五六七八九十百零]+章', '^第\\s*[一二三四五六七八九十百零]+章', '^第\\d{1,3}章', '^\\d{1,3}\\s+[\\u4e00-\\u9fff]', '^[一二三四五六七八九十]+、'],
-    // 附录标题：单独类型
-    appendixTitle: ['^附录[一二三四五六七八九十A-Za-z]\\s'],
-    heading2: ['^\\d+\\.\\d+\\s', '^[（(][一二三四五六七八九十]+[）)]\\s*[\\u4e00-\\u9fff]'],
-    // 三级标题：(1) 格式，但排除列表项（以书名号开头的是列表项，不是标题）
-    heading3: ['^\\d+\\.\\d+\\.\\d+\\s'],
+    heading2: ['^\\d+\\.\\d+\\s', '^[（(][一二三四五六七八九十]+[）)]'],
+    heading3: ['^\\d+\\.\\d+\\.\\d+\\s', '^[（(]\\d+[）)]'],
     heading4: ['^\\d+\\.\\d+\\.\\d+\\.\\d+\\s', '^[（(][一二三四五六七八九十]+[）)][（(]\\d+[）)]'],
     heading5: ['^\\d+\\.\\d+\\.\\d+\\.\\d+\\.\\d+\\s'],
     tableCaption: ['^表\\s*\\d+', '^表\\s*[\\d\\.\\-]+'],
@@ -289,22 +267,11 @@ try {
     }
     if (inRef) return 'ref';
 
-    // 列表项检测：(1)《书名》或 (1)标准编号 格式 → 正文，不是标题
-    var listMatch = text.match(/^[（(](\d+)[）)]\s*[《(A-Z]/);
-    if (listMatch) {
-      // (1)《...》 或 (1)GB... 或 (1)DL... 等是列表项
-      return 'body';
-    }
-
     for (var i = 0; i < compiled.tableCaption.length; i++) {
       if (compiled.tableCaption[i].test(text)) return 'tableCaption';
     }
     for (var i = 0; i < compiled.figureCaption.length; i++) {
       if (compiled.figureCaption[i].test(text)) return 'figureCaption';
-    }
-    // 附录标题检测（在zhangTitle之前）
-    for (var i = 0; compiled.appendixTitle && i < compiled.appendixTitle.length; i++) {
-      if (compiled.appendixTitle[i].test(text)) return 'appendixTitle';
     }
     for (var i = 0; compiled.zhangTitle && i < compiled.zhangTitle.length; i++) {
       if (compiled.zhangTitle[i].test(text)) return 'zhangTitle';
@@ -452,60 +419,60 @@ try {
 
       console.log('[format] 正文分段数: ' + segments.length + ', 总段落: ' + bodyIndices.length);
 
-      // ⚠️ 策略选择：只有正文高度连续时才用整体Range
-      // 连续性判断：分段数/正文数比例 < 0.1 表示正文高度连续（大部分正文段落连在一起）
-      // 比例 > 0.1 表示正文和标题严重穿插，整体Range会覆盖标题，必须分段处理
-      var continuityRatio = segments.length / bodyIndices.length;
-      var useWideRange = continuityRatio < 0.1 && segments.length > 50;
+      // 策略选择：分段>80 或 超快模式 → 尝试整体Range
+      var tryWideRange = segments.length > 80 || useUltraFastMode;
       var wideRangeApplied = false;
 
-      console.log('[format] 正文连续性: ' + (continuityRatio * 100).toFixed(1) + '% (分段/正文比例)');
-
-      if (useWideRange) {
+      if (tryWideRange) {
         try {
           var firstBodyPara = doc.Paragraphs.Item(bodyIndices[0]);
           var lastBodyPara = doc.Paragraphs.Item(bodyIndices[bodyIndices.length - 1]);
           if (firstBodyPara && firstBodyPara.Range && lastBodyPara && lastBodyPara.Range) {
             var wideRange = doc.Range(firstBodyPara.Range.Start, lastBodyPara.Range.End);
 
-            // 检查整体Range是否与表格重叠（用预计算的tableRanges）
-            var wideRangeParaStart = bodyIndices[0];
-            var wideRangeParaEnd = bodyIndices[bodyIndices.length - 1];
-            if (!rangeOverlapWithTable(wideRangeParaStart, wideRangeParaEnd)) {
+            // ⚠️ 关键保护：检查整体Range是否包含表格，避免误改表格内容
+            var wideRangeTableCount = 0;
+            try {
+              wideRangeTableCount = wideRange.Tables ? wideRange.Tables.Count : 0;
+            } catch (e) {}
+
+            if (wideRangeTableCount === 0) {
+              // 无表格，可以安全使用整体Range
               if (applyRuleToRange(wideRange, rules.body)) {
                 applied += bodyIndices.length;
                 wideRangeApplied = true;
-                console.log('[format] 正文整体Range处理: ' + bodyIndices.length + '段 (连续性' + (continuityRatio * 100).toFixed(1) + '%)');
+                console.log('[format] 正文整体Range处理: ' + bodyIndices.length + '段');
               }
             } else {
-              console.log('[format] 整体Range与表格重叠，改用分段处理');
+              console.log('[format] 整体Range包含' + wideRangeTableCount + '个表格，改用分段处理');
             }
           }
         } catch (wideErr) {
           console.log('[format] 整体Range失败: ' + wideErr);
         }
-      } else {
-        console.log('[format] 正文分散度高，使用分段处理避免覆盖标题');
       }
 
       // 分段处理（未使用整体Range时）
       if (!wideRangeApplied) {
         for (var s = 0; s < segments.length; s++) {
           try {
-            // 用预计算的表格位置快速判断，不调用Tables.Count（很慢）
-            if (rangeOverlapWithTable(segments[s].start, segments[s].end)) continue;
-
             var startPara = doc.Paragraphs.Item(segments[s].start);
             var endPara = doc.Paragraphs.Item(segments[s].end);
             if (!startPara || !startPara.Range || !endPara || !endPara.Range) continue;
 
             var segRange = doc.Range(startPara.Range.Start, endPara.Range.End);
+
+            // 分段Range也检查表格（保险）
+            var segTableCount = 0;
+            try { segTableCount = segRange.Tables ? segRange.Tables.Count : 0; } catch (e) {}
+            if (segTableCount > 0) continue;  // 跳过包含表格的段
+
             if (applyRuleToRange(segRange, rules.body)) {
               applied += segments[s].end - segments[s].start + 1;
             }
           } catch (segErr) {}
         }
-        console.log('[format] 正文分段处理完成: ' + segments.length + '段');
+        console.log('[format] 正文分段处理完成');
       }
     }
 
@@ -520,7 +487,7 @@ try {
       'heading5': 5      // 五级大纲
     };
 
-    var singleTypes = ['docTitle', 'zhangTitle', 'appendixTitle', 'heading2', 'heading3', 'heading4', 'heading5', 'tableCaption', 'figureCaption', 'ref'];
+    var singleTypes = ['docTitle', 'zhangTitle', 'heading2', 'heading3', 'heading4', 'heading5', 'tableCaption', 'figureCaption', 'ref'];
     for (var t = 0; t < singleTypes.length; t++) {
       var typeName = singleTypes[t];
       var indices = typeIndices[typeName] || [];
@@ -630,7 +597,7 @@ try {
                 // 尝试多种方式设置表格宽度
                 try {
                   // 方法1: PreferredWidth
-                  table.PreferredWidthType = 2;  // wdPreferredWidthPoints = 磅值
+                  table.PreferredWidthType = 3;  // 3 = wdPreferredWidthPoints（磅值）
                   table.PreferredWidth = usableWidth;
                 } catch (e1) {}
 

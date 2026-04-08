@@ -1,0 +1,19 @@
+[
+  {
+    "id": "1775649194302_x6oc4ei",
+    "role": "user",
+    "content": "如果有关联文档，从消息中找到关联文档的路径，执行 scripts/copy-from-linked.js 并传入 sourceDocPath 参数。如果没有关联文档，提示用户先关联文档。",
+    "timestamp": 1775649194302,
+    "commandMeta": {
+      "name": "样式复制"
+    },
+    "taskId": "task_1775649194305_lta2na"
+  },
+  {
+    "id": "1775649194302_lhjwnuz",
+    "role": "assistant",
+    "content": "当前未检测到关联文档，请先在消息中关联需要处理的文档。",
+    "timestamp": 1775649194302,
+    "streaming": false
+  }
+]

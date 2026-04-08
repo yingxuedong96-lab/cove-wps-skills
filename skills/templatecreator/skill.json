@@ -5,10 +5,10 @@
     "SKILL.md",
     "scripts/extract-template.js",
     "scripts/apply-template.js",
-    "scripts/copy-from-linked.js"
+    "scripts/copy-style.js"
   ],
   "name": "templatecreator",
   "snapshot": "before_task",
   "source": "server",
-  "version": "26.0410.1012"
+  "version": "26.0410.1013"
 }

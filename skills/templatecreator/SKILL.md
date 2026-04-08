@@ -10,12 +10,12 @@ description: >
 
 ## 使用方式
 
-执行 `scripts/copy-from-linked.js`：
+执行 `scripts/copy-style.js`：
 
 **有关联文档时**（从消息中提取路径）：
 ```
 executeFile:
-  filePath: skills/templatecreator/scripts/copy-from-linked.js
+  filePath: skills/templatecreator/scripts/copy-style.js
   params:
     sourceDocPath: "/完整路径/源文档.docx"
 ```
@@ -29,7 +29,7 @@ executeFile:
 **无关联文档时**：
 ```
 executeFile:
-  filePath: skills/templatecreator/scripts/copy-from-linked.js
+  filePath: skills/templatecreator/scripts/copy-style.js
   params: {}
 ```
 从当前文档提取样式。

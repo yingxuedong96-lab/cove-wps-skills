@@ -170,12 +170,15 @@ try {
   }
   if (missingTypes.length > 0) {
     console.log('[format] ⚠️ 规范提到但配置缺失的类型: ' + missingTypes.join(', '));
+  }
 
-    // 自动补全缺失的表格类型配置
+  rules = filteredRules;
+
+  // 自动补全缺失的表格类型配置（在 rules 赋值后执行）
+  if (missingTypes.length > 0) {
     for (var mi = 0; mi < missingTypes.length; mi++) {
       var missingType = missingTypes[mi];
       if (missingType === 'tableHeader' && specText.indexOf('表头') !== -1) {
-        // 从 specText 提取表头格式
         var headerMatch = specText.match(/表头用([^。，]+)/);
         if (headerMatch) {
           rules.tableHeader = parseFormatFromText(headerMatch[1]);
@@ -183,7 +186,6 @@ try {
         }
       }
       if (missingType === 'tableContent' && specText.indexOf('表格内容') !== -1) {
-        // 从 specText 提取表格内容格式
         var contentMatch = specText.match(/表格内容用([^。，]+)/);
         if (contentMatch) {
           rules.tableContent = parseFormatFromText(contentMatch[1]);
@@ -192,8 +194,6 @@ try {
       }
     }
   }
-
-  rules = filteredRules;
 
   // 修正编号正则
   for (var key in patterns) {

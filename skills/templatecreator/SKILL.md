@@ -81,18 +81,23 @@ executeFile:
 
 用户请求："应用模板"、"用刚才提取的样式格式化这个文档"
 
-#### 单步执行
+#### ⚠️ 重要：必须传递 templateJson 参数
+
+apply-template.js 需要接收 templateJson 参数。agent 必须：
+
+1. **从上下文获取**：如果用户刚才提取过模板，templateJson 应该在上下文中
+2. **从 artifact 获取**：读取最近包含 templateJson 的 artifact 文件
+
+#### 执行方式
 
 ```
 executeFile:
   filePath: skills/templatecreator/scripts/apply-template.js
-  params: {}
+  params:
+    templateJson: {...从上下文或artifact获取的模板数据...}
 ```
 
-脚本会：
-1. 自动读取最近提取的模板数据（从上下文或artifact）
-2. 检测当前文档段落类型
-3. 应用对应样式格式
+**如果无法获取 templateJson**，返回提示用户先执行「提取模板」。
 
 ---
 

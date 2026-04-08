@@ -388,9 +388,10 @@ try {
   var classifications = [];
   var typeIndices = {};  // 按类型存储段落索引
 
-  // 只初始化用户规则中定义的类型
-  for (var t in rules) {
-    if (rules[t]) typeIndices[t] = [];
+  // 初始化所有可能需要的类型（确保标题等被记录，后续可覆盖回来）
+  var allTypes = ['body', 'docTitle', 'zhangTitle', 'appendixTitle', 'heading2', 'heading3', 'heading4', 'heading5', 'tableCaption', 'figureCaption', 'ref'];
+  for (var t = 0; t < allTypes.length; t++) {
+    typeIndices[allTypes[t]] = [];
   }
 
   for (var i = 0; i < maxParaCount; i++) {
@@ -491,13 +492,15 @@ try {
     // 正文批量处理：用连续 Range 一次设置
     var bodyIndices = typeIndices['body'] || [];
     if (bodyIndices.length > 0 && rules.body) {
-      // ⚠️ 长文档优化：根据分段数选择策略
+      // ⚠️ 分段策略：合并相邻段落为大块，减少Range操作次数
       var segments = [];
       var segStart = bodyIndices[0];
       var segEnd = bodyIndices[0];
+      var MAX_SEGMENT_SIZE = 50;  // 每段最多50个段落，减少Range操作
 
       for (var i = 1; i < bodyIndices.length; i++) {
-        if (bodyIndices[i] === segEnd + 1) {
+        // 连续且不超过大小限制
+        if (bodyIndices[i] === segEnd + 1 && (segEnd - segStart + 1) < MAX_SEGMENT_SIZE) {
           segEnd = bodyIndices[i];
         } else {
           segments.push({ start: segStart, end: segEnd });
@@ -509,54 +512,23 @@ try {
 
       console.log('[format] 正文分段数: ' + segments.length + ', 总段落: ' + bodyIndices.length);
 
-      // 直接用整体Range，标题后续会被单独覆盖
-      var wideRangeApplied = false;
+      // 分段处理
+      for (var s = 0; s < segments.length; s++) {
+        try {
+          // 跳过与表格重叠的分段
+          if (rangeOverlapWithTable(segments[s].start, segments[s].end)) continue;
 
-      console.log('[format] 正文连续性: ' + (segments.length / bodyIndices.length * 100).toFixed(1) + '% (分段/正文比例)');
+          var startPara = doc.Paragraphs.Item(segments[s].start);
+          var endPara = doc.Paragraphs.Item(segments[s].end);
+          if (!startPara || !startPara.Range || !endPara || !endPara.Range) continue;
 
-      // 始终尝试整体Range（分段数>500时才检查连续性）
-      try {
-        var firstBodyPara = doc.Paragraphs.Item(bodyIndices[0]);
-        var lastBodyPara = doc.Paragraphs.Item(bodyIndices[bodyIndices.length - 1]);
-        if (firstBodyPara && firstBodyPara.Range && lastBodyPara && lastBodyPara.Range) {
-          var wideRange = doc.Range(firstBodyPara.Range.Start, lastBodyPara.Range.End);
-
-          // 检查整体Range是否与表格重叠
-          var wideRangeParaStart = bodyIndices[0];
-          var wideRangeParaEnd = bodyIndices[bodyIndices.length - 1];
-          if (!rangeOverlapWithTable(wideRangeParaStart, wideRangeParaEnd)) {
-            if (applyRuleToRange(wideRange, rules.body)) {
-              applied += bodyIndices.length;
-              wideRangeApplied = true;
-              console.log('[format] 正文整体Range处理: ' + bodyIndices.length + '段');
-            }
-          } else {
-            console.log('[format] 整体Range与表格重叠，改用分段处理');
+          var segRange = doc.Range(startPara.Range.Start, endPara.Range.End);
+          if (applyRuleToRange(segRange, rules.body)) {
+            applied += segments[s].end - segments[s].start + 1;
           }
-        }
-      } catch (wideErr) {
-        console.log('[format] 整体Range失败: ' + wideErr);
+        } catch (segErr) {}
       }
-
-      // 分段处理（仅当整体Range失败时，且限制分段数）
-      if (!wideRangeApplied && segments.length <= 100) {
-        for (var s = 0; s < segments.length; s++) {
-          try {
-            // 用预计算的表格位置快速判断，不调用Tables.Count（很慢）
-            if (rangeOverlapWithTable(segments[s].start, segments[s].end)) continue;
-
-            var startPara = doc.Paragraphs.Item(segments[s].start);
-            var endPara = doc.Paragraphs.Item(segments[s].end);
-            if (!startPara || !startPara.Range || !endPara || !endPara.Range) continue;
-
-            var segRange = doc.Range(startPara.Range.Start, endPara.Range.End);
-            if (applyRuleToRange(segRange, rules.body)) {
-              applied += segments[s].end - segments[s].start + 1;
-            }
-          } catch (segErr) {}
-        }
-        console.log('[format] 正文分段处理完成: ' + segments.length + '段');
-      }
+      console.log('[format] 正文处理完成');
     }
 
     // 标题、图表等：逐个处理（数量少）

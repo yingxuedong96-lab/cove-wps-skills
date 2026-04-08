@@ -664,46 +664,27 @@ try {
         var tableCount = doc.Tables ? doc.Tables.Count : 0;
         var tablesProcessed = 0;
 
-        // 辅助函数：对单个单元格应用格式（确保覆盖）
-        function applyRuleToCell(cell, rule) {
-          if (!cell || !rule) return false;
+        // 辅助函数：对表格行应用格式（使用整行Range，快速）
+        function applyRuleToTableRow(row, rule) {
+          if (!row || !rule) return false;
           try {
-            if (cell.Range && cell.Range.Font) {
-              var f = cell.Range.Font;
+            // 使用整行Range快速设置
+            if (row.Range && row.Range.Font) {
+              var f = row.Range.Font;
               if (rule.fontCN || fontDefaults.fontCN) f.NameFarEast = rule.fontCN || fontDefaults.fontCN;
               if (rule.fontEN || fontDefaults.fontEN) f.Name = rule.fontEN || fontDefaults.fontEN;
               if (rule.fontSize !== undefined) f.Size = rule.fontSize;
-              // 显式设置 Bold：规则没说加粗就不加粗，清除可能存在的加粗
+              // 强制清除加粗（除非规则明确要求）
               f.Bold = (rule.bold === true) ? -1 : 0;
             }
-            if (cell.Range && cell.Range.ParagraphFormat) {
-              var pf = cell.Range.ParagraphFormat;
+            if (row.Range && row.Range.ParagraphFormat) {
+              var pf = row.Range.ParagraphFormat;
               if (rule.alignment !== undefined) pf.Alignment = rule.alignment;
               // 清除首行缩进（表格内不需要）
-              if (rule.alignment !== undefined) pf.FirstLineIndent = 0;
+              pf.FirstLineIndent = 0;
             }
             return true;
           } catch (e) { return false; }
-        }
-
-        // 辅助函数：对表格行逐单元格应用格式
-        function applyRuleToTableRow(row, rule) {
-          if (!row || !rule) return false;
-          var appliedCount = 0;
-          try {
-            var cells = row.Cells;
-            if (cells && cells.Count > 0) {
-              for (var c = 1; c <= cells.Count; c++) {
-                try {
-                  var cell = cells.Item(c);
-                  if (applyRuleToCell(cell, rule)) {
-                    appliedCount++;
-                  }
-                } catch (e) {}
-              }
-            }
-          } catch (e) {}
-          return appliedCount > 0;
         }
 
         for (var tblIdx = 1; tblIdx <= tableCount; tblIdx++) {

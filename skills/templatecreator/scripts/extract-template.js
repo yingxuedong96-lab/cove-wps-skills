@@ -1,18 +1,17 @@
 /**
- * extract-template.js - 返回 JSON 字符串格式
- * 版本: 26.0408.1715
+ * extract-template.js - 让框架自动包装 success
+ * 版本: 26.0408.1845
  */
 (function() {
-  var VER = "26.0408.1715";
+  var VER = "26.0408.1845";
   console.log("[extract] 版本: " + VER);
 
   var DOC = Application.ActiveDocument;
-  if (!DOC) return JSON.stringify({ success: false, error: "没有打开的文档" });
+  if (!DOC) return JSON.stringify({ error: "没有打开的文档" });
 
   var docTypeParam = typeof docType !== 'undefined' ? docType : '';
   if (!docTypeParam) {
     return JSON.stringify({
-      success: true,
       needUserInput: true,
       question: "请选择文档类型：",
       options: ["论文/技术报告", "公文"]
@@ -116,9 +115,8 @@
     pageSetup: { topMargin: DOC.PageSetup.TopMargin / 567, bottomMargin: DOC.PageSetup.BottomMargin / 567, leftMargin: DOC.PageSetup.LeftMargin / 567, rightMargin: DOC.PageSetup.RightMargin / 567 }
   };
 
-  // 返回 JSON 字符串，UI框架会解析并包装
+  // 返回不带 success 的 JSON，让框架自动包装成 {success: true, data: ...}
   return JSON.stringify({
-    success: true,
     scriptVersion: VER,
     message: lines.join("\n"),
     stylesTable: stylesTable,

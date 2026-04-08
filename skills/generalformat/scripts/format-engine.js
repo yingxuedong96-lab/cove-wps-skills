@@ -181,17 +181,16 @@ try {
       rule.leftIndent = -rule.firstLineIndent;  // 后续行缩进 = 首行负缩进的绝对值
       console.log('[format] 悬挂缩进: LeftIndent=' + rule.leftIndent + '磅, FirstLineIndent=' + rule.firstLineIndent + '磅');
     }
-    // ⚠️ 列表缩进特殊处理：如果设置了leftIndent但没有firstLineIndent，自动添加悬挂缩进
+    // ⚠️ 列表缩进特殊处理：使用字符单位实现悬挂缩进
     if ((key === 'list1' || key === 'list2') && rule.leftIndent !== undefined) {
-      // leftIndent字符数→磅值
-      if (rule.leftIndent > 0 && rule.leftIndent < 20) {
-        rule.leftIndent = rule.leftIndent * 12;
-      }
-      // 自动设置悬挂缩进（首行不缩进，让编号在左边）
-      if (rule.firstLineIndent === undefined || rule.firstLineIndent === 0) {
-        rule.firstLineIndent = -rule.leftIndent;
-        console.log('[format] 列表' + key + '悬挂缩进: LeftIndent=' + rule.leftIndent + '磅, FirstLineIndent=' + rule.firstLineIndent + '磅');
-      }
+      // 保存原始字符单位的缩进值（不转换为磅）
+      rule.leftIndentChars = rule.leftIndent;  // 原始值如 4 或 6
+      // 同时设置磅值作为备用（某些WPS版本可能不支持字符单位API）
+      rule.leftIndent = rule.leftIndent * 12;  // 4字符=48磅, 6字符=72磅
+      // 悬挂缩进：首行不缩进（负缩进），让编号突出在左边
+      rule.firstLineIndentChars = -rule.leftIndentChars;  // 字符单位悬挂缩进
+      rule.firstLineIndent = -rule.leftIndent;  // 磅值悬挂缩进
+      console.log('[format] 列表' + key + '悬挂缩进: LeftIndent=' + rule.leftIndentChars + '字符(' + rule.leftIndent + '磅), FirstLineIndent=' + rule.firstLineIndentChars + '字符(' + rule.firstLineIndent + '磅)');
     }
   }
 
@@ -562,14 +561,26 @@ try {
         try {
           var para = doc.Paragraphs.Item(indices[i]);
           if (para && para.Range) {
-            // 列表类型需要特殊处理缩进（悬挂缩进）
+            // 列表类型需要特殊处理缩进（使用字符单位API实现悬挂缩进）
             if (typeName === 'list1' || typeName === 'list2') {
               if (para.Range.ParagraphFormat) {
                 var pf = para.Range.ParagraphFormat;
-                // 列表悬挂缩进：整体左缩进，首行负缩进形成悬挂效果
-                if (rule.leftIndent !== undefined) {
+                // 尝试使用字符单位API（WPS支持）
+                try {
+                  if (rule.leftIndentChars !== undefined) {
+                    pf.CharacterUnitLeftIndent = rule.leftIndentChars;  // 字符单位左缩进
+                    pf.CharacterUnitFirstLineIndent = rule.firstLineIndentChars;  // 字符单位悬挂缩进（负值）
+                    console.log('[format] 列表缩进(字符单位): LeftIndent=' + rule.leftIndentChars + '字符, FirstLineIndent=' + rule.firstLineIndentChars + '字符');
+                  } else {
+                    // 备用：使用磅值
+                    pf.LeftIndent = rule.leftIndent;
+                    pf.FirstLineIndent = rule.firstLineIndent;
+                  }
+                } catch (e) {
+                  // 字符单位API失败时，使用磅值
+                  console.log('[format] 字符单位API失败，使用磅值: ' + e);
                   pf.LeftIndent = rule.leftIndent;
-                  pf.FirstLineIndent = -rule.leftIndent;  // 负值=首行向左突出
+                  pf.FirstLineIndent = rule.firstLineIndent;
                 }
                 // 其他格式（字体、字号等）
                 if (para.Range.Font && (rule.fontCN || rule.fontSize)) {

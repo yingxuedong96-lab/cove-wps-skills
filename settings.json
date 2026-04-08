@@ -1,11 +1,10 @@
 {
-  "modelName": "custom/qwen3-max",
+  "modelName": "custom/qwen3.5-plus",
   "enableThinking": false,
   "maxRetries": 2,
   "snapshotPolicy": "before_task",
   "maxSnapshots": 20,
   "language": "zh",
-  "uiFontSize": 14,
   "providerConfigs": {
     "alibaba": {
       "id": "alibaba",

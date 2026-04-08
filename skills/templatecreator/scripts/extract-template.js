@@ -1,22 +1,22 @@
 /**
- * extract-template.js - 返回对象格式（与generalcheck一致）
- * 版本: 26.0408.1640
+ * extract-template.js - 返回 JSON 字符串格式
+ * 版本: 26.0408.1715
  */
 (function() {
-  var VER = "26.0408.1640";
+  var VER = "26.0408.1715";
   console.log("[extract] 版本: " + VER);
 
   var DOC = Application.ActiveDocument;
-  if (!DOC) return { success: false, error: "没有打开的文档" };
+  if (!DOC) return JSON.stringify({ success: false, error: "没有打开的文档" });
 
   var docTypeParam = typeof docType !== 'undefined' ? docType : '';
   if (!docTypeParam) {
-    return {
+    return JSON.stringify({
       success: true,
       needUserInput: true,
       question: "请选择文档类型：",
       options: ["论文/技术报告", "公文"]
-    };
+    });
   }
 
   var isPaper = docTypeParam === "论文/技术报告" || docTypeParam === "paper";
@@ -116,14 +116,13 @@
     pageSetup: { topMargin: DOC.PageSetup.TopMargin / 567, bottomMargin: DOC.PageSetup.BottomMargin / 567, leftMargin: DOC.PageSetup.LeftMargin / 567, rightMargin: DOC.PageSetup.RightMargin / 567 }
   };
 
-  // 关键：直接返回对象，不是JSON字符串！
-  return {
+  // 返回 JSON 字符串，UI框架会解析并包装
+  return JSON.stringify({
     success: true,
     scriptVersion: VER,
     message: lines.join("\n"),
     stylesTable: stylesTable,
     templateJson: template,
-    template: template,
     pageSetup: { paperSize: "A4", topMargin: (DOC.PageSetup.TopMargin / 567).toFixed(2) + "cm", bottomMargin: (DOC.PageSetup.BottomMargin / 567).toFixed(2) + "cm" }
-  };
+  });
 })();

@@ -57,7 +57,9 @@ try {
     body: ['正文', '正文格式', '段落格式', '正文内容', '文本内容', 'content'],
     tableCaption: ['表名', '表格名', '表标题', '表号', '表格标题', 'table'],
     figureCaption: ['图名', '图片名', '图标题', '图号', '图片标题', '插图名', 'figure'],
-    ref: ['参考文献', '引用文献', 'reference']
+    ref: ['参考文献', '引用文献', 'reference'],
+    tableHeader: ['表头', '表格表头', '表格标题行'],
+    tableContent: ['表格内容', '表内容', '表格正文', '表格数据']
   };
 
   var specText = configData.specText || '';
@@ -587,7 +589,7 @@ try {
     }
 
     // ========================================
-    // 表格处理（等宽、跨页重复表头）
+    // 表格处理（等宽、跨页重复表头、表头格式、表格内容格式）
     // ========================================
     // 从 specText 自动识别表格规则
     if (specTextLower.indexOf('表格等宽') !== -1 || specTextLower.indexOf('与页面等宽') !== -1 || elementSettings.tableFullWidth) {
@@ -599,10 +601,32 @@ try {
       console.log('[format] 启用跨页重复表头');
     }
 
-    if (elementSettings.tableFullWidth || elementSettings.tableHeadingRepeat) {
+    // 检查是否有表格内部格式规则
+    var hasTableFormat = rules.tableHeader || rules.tableContent;
+
+    if (elementSettings.tableFullWidth || elementSettings.tableHeadingRepeat || hasTableFormat) {
       try {
         var tableCount = doc.Tables ? doc.Tables.Count : 0;
         var tablesProcessed = 0;
+
+        // 辅助函数：对表格行应用格式规则
+        function applyRuleToTableRow(row, rule) {
+          if (!row || !rule) return false;
+          try {
+            if (row.Range && row.Range.Font) {
+              var f = row.Range.Font;
+              if (rule.fontCN || fontDefaults.fontCN) f.NameFarEast = rule.fontCN || fontDefaults.fontCN;
+              if (rule.fontEN || fontDefaults.fontEN) f.Name = rule.fontEN || fontDefaults.fontEN;
+              if (rule.fontSize !== undefined) f.Size = rule.fontSize;
+              if (rule.bold !== undefined) f.Bold = rule.bold ? -1 : 0;
+            }
+            if (row.Range && row.Range.ParagraphFormat) {
+              var pf = row.Range.ParagraphFormat;
+              if (rule.alignment !== undefined) pf.Alignment = rule.alignment;
+            }
+            return true;
+          } catch (e) { return false; }
+        }
 
         for (var tblIdx = 1; tblIdx <= tableCount; tblIdx++) {
           try {
@@ -663,6 +687,31 @@ try {
               try {
                 if (table.Rows && table.Rows.Count > 0) {
                   table.Rows.Item(1).HeadingFormat = true;
+                }
+              } catch (e) {}
+            }
+
+            // 表头格式（第一行）
+            if (rules.tableHeader && table.Rows && table.Rows.Count > 0) {
+              try {
+                var headerRow = table.Rows.Item(1);
+                if (applyRuleToTableRow(headerRow, rules.tableHeader)) {
+                  applied++;
+                }
+              } catch (e) {}
+            }
+
+            // 表格内容格式（第2-N行）
+            if (rules.tableContent && table.Rows && table.Rows.Count > 1) {
+              try {
+                var rowCount = table.Rows.Count;
+                for (var r = 2; r <= rowCount; r++) {
+                  try {
+                    var contentRow = table.Rows.Item(r);
+                    if (applyRuleToTableRow(contentRow, rules.tableContent)) {
+                      applied++;
+                    }
+                  } catch (e) {}
                 }
               } catch (e) {}
             }

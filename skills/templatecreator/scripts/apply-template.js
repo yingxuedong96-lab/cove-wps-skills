@@ -1,20 +1,62 @@
 /**
  * apply-template.js - 将样式模板应用到当前文档
- * 版本: 26.0410.1008
+ * 版本: 26.0410.1010
  * 参数:
- *   - templateJson: 直接传入模板JSON字符串（从artifact获取）
+ *   - templateJson: 直接传入模板JSON字符串（可选）
+ *   - 如果没有参数，自动从 latest-template.json 读取
  */
 try {
-  var VER = "26.0410.1008";
+  var VER = "26.0410.1010";
   console.log("[apply] 版本: " + VER);
 
   var DOC = Application.ActiveDocument;
   if (!DOC) return { success: false, error: "没有打开的文档" };
 
-  // 获取参数（直接作为脚本变量传入）
+  // 模板保存目录和固定文件名
+  var templateDir = "/Users/cassia/Desktop/dyx/wpsjs/模版生成/";
+  var latestTemplateFile = templateDir + "latest-template.json";
+
+  // 获取参数
   var templateJsonStr = typeof templateJson !== 'undefined' ? templateJson : null;
+
+  // 如果没有参数，尝试从固定文件读取
   if (!templateJsonStr) {
-    return { success: false, error: "缺少 templateJson 参数，请先执行「提取模板」" };
+    console.log("[apply] 尝试从固定文件读取: " + latestTemplateFile);
+
+    // 使用 Application.LoadFile 读取
+    if (typeof Application.LoadFile !== 'undefined') {
+      try {
+        var fileContent = Application.LoadFile(latestTemplateFile);
+        if (fileContent) {
+          templateJsonStr = fileContent;
+          console.log("[apply] 成功读取模板文件");
+        }
+      } catch (e) {
+        console.log("[apply] LoadFile 失败: " + String(e));
+      }
+    }
+
+    // 如果 LoadFile 不可用或失败，尝试 Node.js fs（部分环境可能支持）
+    if (!templateJsonStr && typeof require !== 'undefined') {
+      try {
+        var fs = require('fs');
+        if (fs.existsSync(latestTemplateFile)) {
+          templateJsonStr = fs.readFileSync(latestTemplateFile, 'utf8');
+          console.log("[apply] fs.readFileSync 成功");
+        }
+      } catch (e) {
+        console.log("[apply] fs 读取失败: " + String(e));
+      }
+    }
+  }
+
+  // 如果还是没获取到模板数据
+  if (!templateJsonStr) {
+    return {
+      success: false,
+      error: "未找到模板数据",
+      message: "请先在源文档执行「提取模板」。\n\n正确流程：\n1. 打开有格式的源文档\n2. 点击「提取模板」\n3. 切换到目标文档\n4. 点击「应用模板」"
+    };
   }
 
   // 解析模板数据
@@ -40,13 +82,12 @@ try {
   }
 
   // ============================================================
-  // 检测段落类型（与提取脚本保持一致）
+  // 检测段落类型
   // ============================================================
   var lastAppendixTitle = false;
 
   function detectType(text, isPaper, fmt) {
     if (isPaper) {
-      // 论文报告检测
       if (/^第[一二三四五六七八九十百零\d]+章/.test(text)) return "chapterTitle";
       if (/^\d+\.\d+\.\d+\.\d+\.\d+/.test(text)) return "heading5";
       if (/^\d+\.\d+\.\d+\.\d+/.test(text)) return "heading4";
@@ -73,13 +114,11 @@ try {
       if (/^[\(（][a-z][\)）]/.test(text)) return "listItem";
       if (/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮]/.test(text)) return "listItem";
       if (/^[a-z][\)）\.]/.test(text)) return "listItem";
-      // 上下文感知
       if (lastAppendixTitle && fmt && fmt.bold && fmt.fontSize >= 14) {
         lastAppendixTitle = false;
         return "appendixTitle";
       }
     } else {
-      // 公文检测
       if (/^关于|通知$|决定$|意见$|办法$|规定$|批复$|请示$|报告$/.test(text)) return "docTitle";
       if (/^[一二三四五六七八九十]+、/.test(text)) return "heading1";
       if (/^[\(（][一二三四五六七八九十]+[\)）]/.test(text)) return "heading2";
@@ -95,13 +134,8 @@ try {
       if (/^[a-z][\)）\.]/.test(text)) return "listItem";
     }
 
-    // 基于格式的推断
     if (fmt && fmt.firstLineIndent < 0) return "listItem";
-
-    // 重置附录状态
-    if (isPaper && !/^附\s*录/.test(text)) {
-      lastAppendixTitle = false;
-    }
+    if (isPaper && !/^附\s*录/.test(text)) lastAppendixTitle = false;
 
     return "body";
   }
@@ -114,7 +148,6 @@ try {
       var range = para.Range;
       var paraFormat = para.Format;
 
-      // 字体
       if (fmt.fontCN) range.Font.NameFarEast = fmt.fontCN;
       if (fmt.fontEN) range.Font.NameAscii = fmt.fontEN;
       if (fmt.fontSize) range.Font.Size = fmt.fontSize;
@@ -122,13 +155,11 @@ try {
       if (fmt.italic !== undefined) range.Font.Italic = fmt.italic;
       if (fmt.underline !== undefined) range.Font.Underline = fmt.underline;
 
-      // 段落格式
       if (fmt.alignment !== undefined) paraFormat.Alignment = fmt.alignment;
       if (fmt.firstLineIndent) paraFormat.FirstLineIndent = fmt.firstLineIndent;
       if (fmt.leftIndent) paraFormat.LeftIndent = fmt.leftIndent;
       if (fmt.rightIndent) paraFormat.RightIndent = fmt.rightIndent;
 
-      // 间距
       if (fmt.spaceBefore) paraFormat.SpaceBefore = fmt.spaceBefore;
       if (fmt.spaceAfter) paraFormat.SpaceAfter = fmt.spaceAfter;
       if (fmt.lineSpacing) paraFormat.LineSpacing = fmt.lineSpacing;
@@ -146,27 +177,22 @@ try {
   var paras = DOC.Paragraphs;
   var appliedCounts = {};
 
-  // 初始化计数
   for (var t in styles) {
     appliedCounts[t] = 0;
   }
 
-  // 统计总段落数
   var totalParas = 0;
   for (var i = 1; i <= paras.Count; i++) {
     var text = clean(paras.Item(i).Range.Text);
     if (text) totalParas++;
   }
-
   console.log("[apply] 文档总段落: " + totalParas);
 
-  // 遍历段落应用样式
   for (var i = 1; i <= paras.Count; i++) {
     var para = paras.Item(i);
     var text = clean(para.Range.Text);
     if (!text) continue;
 
-    // 获取当前格式（用于智能检测）
     var rng = para.Range;
     var currentFmt = {
       bold: rng.Font.Bold ? true : false,
@@ -174,23 +200,18 @@ try {
       firstLineIndent: para.Format.FirstLineIndent || 0
     };
 
-    // 检测类型
     var type = detectType(text, isPaper, currentFmt);
 
-    // 查找对应的样式定义
     if (styles[type] && styles[type].format) {
       applyFormat(para, styles[type].format);
       appliedCounts[type]++;
     }
   }
 
-  // ============================================================
   // 应用页面设置
-  // ============================================================
   if (template.pageSetup) {
     var ps = DOC.PageSetup;
     try {
-      // 边距转换：cm -> pt (1cm ≈ 28.35pt)
       if (template.pageSetup.topMargin) {
         var topCm = parseFloat(template.pageSetup.topMargin);
         if (topCm > 0) ps.TopMargin = topCm * 28.35;
@@ -213,9 +234,7 @@ try {
     }
   }
 
-  // ============================================================
   // 统计并返回
-  // ============================================================
   var totalApplied = 0;
   var detailLines = [];
   var styleNames = {

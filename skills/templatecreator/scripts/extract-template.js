@@ -1,6 +1,6 @@
 /**
  * extract-template.js - 完整样式提取（符合样式元素规范表）
- * 版本: 26.0410.1006
+ * 版本: 26.0410.1010
  * 支持元素: 论文报告26种 + 公文20种
  * 支持参数: 45个（字体7 + 段落5 + 间距4 + 大纲3 + 表格10 + 页面9 + 其他7）
  * 更新:
@@ -534,28 +534,43 @@ try {
 
   var jsonContent = JSON.stringify(templateData, null, 2);
 
-  // 尝试保存文件（使用 WPS 文档 API）
+  // 尝试保存文件
   var saveResult = "";
   var fileSaved = false;
+
+  // 固定文件名（供应用模板时读取）
+  var latestTemplateFile = templateDir + "latest-template.json";
 
   try {
     // 方案1: 用 WPS 创建临时文档保存 JSON
     var jsonDoc = Application.Documents.Add();
     jsonDoc.Range(0, 0).Text = jsonContent;
-    jsonDoc.SaveAs2(jsonFile.replace('.json', '.txt'), 7);  // 7 = txt 格式
-    jsonDoc.Close(false);  // 关闭不保存
+
+    // 保存到文档名对应的文件
+    jsonDoc.SaveAs2(jsonFile.replace('.json', '.txt'), 7);
+
+    // 额外保存到固定文件名
+    try {
+      jsonDoc.SaveAs2(latestTemplateFile, 7);
+      console.log("[extract] 固定模板保存成功: " + latestTemplateFile);
+    } catch(e) {
+      console.log("[extract] 固定模板保存失败: " + String(e));
+    }
+
+    jsonDoc.Close(false);
     fileSaved = true;
     saveResult = "\n\n📁 模板已保存到：\n" + jsonFile.replace('.json', '.txt');
     console.log("[extract] WPS保存成功: " + jsonFile.replace('.json', '.txt'));
   } catch(e1) {
     console.log("[extract] WPS保存失败: " + String(e1));
 
-    // 方案2: 尝试 Node.js fs 模块（部分环境可能支持）
+    // 方案2: 尝试 Node.js fs 模块
     try {
       if (typeof require !== 'undefined') {
         var fs = require('fs');
         try { fs.mkdirSync(templateDir, { recursive: true }); } catch(e) {}
         fs.writeFileSync(jsonFile, jsonContent, 'utf8');
+        fs.writeFileSync(latestTemplateFile, jsonContent, 'utf8');  // 额外保存固定文件
         fileSaved = true;
         saveResult = "\n\n📁 模板已保存到：\n" + jsonFile;
       }

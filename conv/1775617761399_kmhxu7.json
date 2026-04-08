@@ -1,0 +1,615 @@
+[
+  {
+    "id": "1775617761442_k60tpgs",
+    "role": "user",
+    "content": "generalcheck：校对文档中的图编号。检查图的编号格式（图X.Y-Z），确保章节号与当前章节一致，同一章节内编号连续，自动开启修订模式进行修正。",
+    "timestamp": 1775617761442,
+    "commandMeta": {
+      "name": "校对图编号"
+    }
+  },
+  {
+    "id": "1775617761442_qzjbulc",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775617761442,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775617766451_8oxr",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775617766451,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "generalcheck"
+      },
+      "output": "<skill_content name=\"generalcheck\">\n# Skill: generalcheck\n\n---\nname: generalcheck\ndescription: >\n  通用编号校对。对文档中的标题编号、图编号、表编号、公式编号进行自动校对与修正。\n  触发词：校对编号、校对标题编号、校对图编号、校对表编号、校对公式编号、校对引用。\ncompatibility:\n  runtime: WPS JS 宏 / WPS 加载项（JSAPI）\n---\n\n# 通用编号校对\n\n## ⚠️ 执行流程\n\n根据用户输入的触发词，直接执行对应 scope 的脚本：\n\n### 触发词 → scope 映射表\n\n| 触发词 | scope | 执行脚本 |\n|-------|-------|---------|\n| 校对编号、校对所有编号、编号校对 | `numbering` | scan-structure.js |\n| 校对标题编号、标题编号校对 | `heading` | scan-structure.js |\n| 校对图编号、图编号校对 | `figure` | scan-structure.js |\n| 校对表编号、表编号校对 | `table` | scan-structure.js |\n| 校对公式编号、公式编号校对 | `formula` | scan-structure.js |\n| 校对引用、引用校对 | `reference` | scan-structure.js |\n\n---\n\n## 执行方式\n\n**⚠️ 直接调用脚本，不要做任何额外处理。**\n\n```\nexecuteFile:\n  filePath: \"skills/generalcheck/scripts/scan-structure.js\"\n  params: { \"scope\": \"<匹配的scope>\" }\n```\n\n---\n\n## 规则说明\n\n脚本自动识别并修复以下编号问题：\n\n| 规则ID | 检查项 | 说明 |\n|--------|--------|------|\n| N-002 | 一级标题编号连续性 | 第一章→第三章，应为第二章 |\n| N-003 | 二级标题章节号正确 | 3.1 在第二章下，应为 2.1 |\n| N-004 | 二级标题节序号连续 | 2.1 → 2.3，应为 2.2 |\n| N-005 | 三级标题编号 | 同一节内编号连续 |\n| N-006 | 四级标题编号 | 同一条内编号连续 |\n| N-008 | 五级标题编号 | 同一四级标题内编号连续 |\n| N-007 | 附录标题编号格式 | 附录内应为 A1、A2 格式 |\n| G-001 | 图编号连续性 | 图2-1 → 图2-3，应为 图2-2 |\n| T-001 | 表编号连续性 | 表1-1 → 表1-3，应为 表1-2 |\n| E-001 | 公式编号连续性 | (2-1) → (2-3)，应为 (2-2) |\n\n---\n\n## 技术实现\n\n脚本使用单次遍历段落方式：\n- 记录当前章号/节号上下文\n- 识别旧格式编号并转换为规范格式\n- 自动开启修订模式，所有修改可追溯\n\n**输出格式**：\n```json\n{\n  \"success\": true,\n  \"fixed\": 50,\n  \"structure\": { \"headings\": 20, \"figures\": 10, \"tables\": 15, \"formulas\": 5 },\n  \"details\": [...]\n}\n```\n\n---\n\n## 注意事项\n\n1. **编号校对需要全局上下文**，不能分片处理\n2. **所有修复自动开启修订模式**，用户可接受或拒绝\n3. **脚本已包含扫描+修复**，返回空 fixPlan，禁止再调用 apply-numbering-fixes.js\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/generalcheck/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 5
+    }
+  },
+  {
+    "id": "tool_1775617767950_5pj5",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775617767950,
+    "toolCall": {
+      "toolName": "executeFile",
+      "input": {
+        "filePath": "skills/generalcheck/scripts/scan-structure.js",
+        "params": {
+          "scope": "figure"
+        }
+      },
+      "output": "$artifact:20260408-jgg3zj\n{\"success\":true,\"totalFixed\":38,\"fixed\":38,\"details\":[{\"original\":\"图38 监测布置图\",\"suggested\":\"图20.5-1 监测布置图\"},{\"original\":\"图37 典型断面图\",\"suggested\":\"图19.3-1 典型断面图\"},\"…共38条\"],\"structure\":{\"headings\":0,\"figures\":38},\"summary\":{\"totalIssues\":38}}",
+      "durationMs": 4320
+    }
+  },
+  {
+    "id": "tool_1775617774213_vuod",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775617774213,
+    "toolCall": {
+      "toolName": "artifactRead",
+      "input": {
+        "id": "20260408-jgg3zj",
+        "mode": "data"
+      },
+      "output": "{\n  \"success\": true,\n  \"totalFixed\": 38,\n  \"fixed\": 38,\n  \"details\": [\n    {\n      \"original\": \"图38 监测布置图\",\n      \"suggested\": \"图20.5-1 监测布置图\"\n    },\n    {\n      \"original\": \"图37 典型断面图\",\n      \"suggested\": \"图19.3-1 典型断面图\"\n    },\n    {\n      \"original\": \"图36 平面布置图\",\n      \"suggested\": \"图18.5-1 平面布置图\"\n    },\n    {\n      \"original\": \"图35 剖面图\",\n      \"suggested\": \"图18.1-1 剖面图\"\n    },\n    {\n      \"original\": \"图34 施工进度计划图\",\n      \"suggested\": \"图17.3-1 施工进度计划图\"\n    },\n    {\n      \"original\": \"图33 平面布置图\",\n      \"suggested\": \"图17.2-1 平面布置图\"\n    },\n    {\n      \"original\": \"图32 监测布置图\",\n      \"suggested\": \"图17.1-1 监测布置图\"\n    },\n    {\n      \"original\": \"图31 平面布置图\",\n      \"suggested\": \"图16.3-1 平面布置图\"\n    },\n    {\n      \"original\": \"图30 平面布置图\",\n      \"suggested\": \"图16.2-1 平面布置图\"\n    },\n    {\n      \"original\": \"图29 典型断面图\",\n      \"suggested\": \"图15.6-1 典型断面图\"\n    },\n    {\n      \"original\": \"图28 施工进度计划图\",\n      \"suggested\": \"图15.5-1 施工进度计划图\"\n    },\n    {\n      \"original\": \"图27 剖面图\",\n      \"suggested\": \"图15.2-1 剖面图\"\n    },\n    {\n      \"original\": \"图26 结构布置图\",\n      \"suggested\": \"图14.5-1 结构布置图\"\n    },\n    {\n      \"original\": \"图25 平面布置图\",\n      \"suggested\": \"图14.4-1 平面布置图\"\n    },\n    {\n      \"original\": \"图24 典型断面图\",\n      \"suggested\": \"图14.3-1 典型断面图\"\n    },\n    {\n      \"original\": \"图23 施工进度计划图\",\n      \"suggested\": \"图13.6-1 施工进度计划图\"\n    },\n    {\n      \"original\": \"图22 剖面图\",\n      \"suggested\": \"图13.5-1 剖面图\"\n    },\n    {\n      \"original\": \"图21 平面布置图\",\n      \"suggested\": \"图13.4-1 平面布置图\"\n    },\n    {\n      \"original\": \"图20 剖面图\",\n      \"suggested\": \"图13.3-1 剖面图\"\n    },\n    {\n      \"original\": \"图20 施工进度计划图\",\n      \"suggested\": \"图11.4-1 施工进度计划图\"\n    },\n    {\n      \"original\": \"图18 平面布置图\",\n      \"suggested\": \"图11.2-1 平面布置图\"\n    },\n    {\n      \"original\": \"图17 典型断面图\",\n      \"suggested\": \"图11.1-1 典型断面图\"\n    },\n    {\n      \"original\": \"图16 剖面图\",\n      \"suggested\": \"图10.5-1 剖面图\"\n    },\n    {\n      \"original\": \"图15 结构布置图\",\n      \"suggested\": \"图10.1-1 结构布置图\"\n    },\n    {\n      \"original\": \"图14 施工进度计划图\",\n      \"suggested\": \"图9.6-1 施工进度计划图\"\n    },\n    {\n      \"original\": \"图13 平面布置图\",\n      \"suggested\": \"图9.2-1 平面布置图\"\n    },\n    {\n      \"original\": \"图12 典型断面图\",\n      \"suggested\": \"图8.6-1 典型断面图\"\n    },\n    {\n      \"original\": \"图11 平面布置图\",\n      \"suggested\": \"图8.3-1 平面布置图\"\n    },\n    {\n      \"original\": \"图10 平面布置图\",\n      \"suggested\": \"图7.3-1 平面布置图\"\n    },\n    {\n      \"original\": \"图9 剖面图\",\n      \"suggested\": \"图6.3-1 剖面图\"\n    },\n    {\n      \"original\": \"图8 剖面图\",\n      \"suggested\": \"图4.4-1 剖面图\"\n    },\n    {\n      \"original\": \"图7 施工进度计划图\",\n      \"suggested\": \"图3.6-1 施工进度计划图\"\n    },\n    {\n      \"original\": \"图6 监测布置图\",\n      \"suggested\": \"图3.5-1 监测布置图\"\n    },\n    {\n      \"original\": \"图5 剖面图\",\n      \"suggested\": \"图3.3-1 剖面图\"\n    },\n    {\n      \"original\": \"图4 施工进度计划图\",\n      \"suggested\": \"图3.2-1 施工进度计划图\"\n    },\n    {\n      \"original\": \"图3 平面布置图\",\n      \"suggested\": \"图2.5-1 平面布置图\"\n    },\n    {\n      \"original\": \"图2 施工进度计划图\",\n      \"suggested\": \"图2.4-1 施工进度计划图\"\n    },\n    {\n      \"original\": \"图1 平面布置图\",\n      \"suggested\": \"图2.1-1 平面布置图\"\n    }\n  ],\n  \"structure\": {\n    \"headings\": 0,\n    \"figures\": 38\n  },\n  \"summary\": {\n    \"totalIssues\": 38\n  }\n}",
+      "durationMs": 5
+    }
+  },
+  {
+    "id": "1775617776019_5jd6zgh",
+    "role": "assistant",
+    "content": "图编号校对完成，共修正 **38 处** 编号问题。所有修改已自动以修订模式写入文档。\n\n## 修改摘要\n\n1. **图编号格式修正（38 处）**\n   - 将旧格式“图 X\"统一修正为规范格式“图 X.Y-Z\"\n   - 确保章节号与当前章节一致\n   - 确保同一章节内编号连续\n\n具体修改示例：\n- 图 1→图 2.1-1、图 2→图 2.4-1、图 3→图 2.5-1\n- 图 4→图 3.2-1、图 5→图 3.3-1、图 6→图 3.5-1\n- 图 7→图 3.6-1、图 8→图 4.4-1、图 9→图 6.3-1\n- ……（共 38 处）\n\n",
+    "timestamp": 1775617776019,
+    "streaming": true
+  },
+  {
+    "id": "tool_1775617785481_wddg",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775617785481,
+    "toolCall": {
+      "toolName": "confirmEdits",
+      "input": {
+        "mode": "revision",
+        "summary": "1. **图编号格式修正（38 处）**\n   - 图 1→图 2.1-1\n   - 图 2→图 2.4-1\n   - 图 3→图 2.5-1\n   - 图 4→图 3.2-1\n   - 图 5→图 3.3-1\n   - 图 6→图 3.5-1\n   - 图 7→图 3.6-1\n   - 图 8→图 4.4-1\n   - 图 9→图 6.3-1\n   - 图 10→图 7.3-1\n   - 图 11→图 8.3-1\n   - 图 12→图 8.6-1\n   - 图 13→图 9.2-1\n   - 图 14→图 9.6-1\n   - 图 15→图 10.1-1\n   - 图 16→图 10.5-1\n   - 图 17→图 11.1-1\n   - 图 18→图 11.2-1\n   - 图 20→图 11.4-1\n   - 图 20→图 13.3-1\n   - 图 21→图 13.4-1\n   - 图 22→图 13.5-1\n   - 图 23→图 13.6-1\n   - 图 24→图 14.3-1\n   - 图 25→图 14.4-1\n   - 图 26→图 14.5-1\n   - 图 27→图 15.2-1\n   - 图 28→图 15.5-1\n   - 图 29→图 15.6-1\n   - 图 30→图 16.2-1\n   - 图 31→图 16.3-1\n   - 图 32→图 17.1-1\n   - 图 33→图 17.2-1\n   - 图 34→图 17.3-1\n   - 图 35→图 18.1-1\n   - 图 36→图 18.5-1\n   - 图 37→图 19.3-1\n   - 图 38→图 20.5-1",
+        "reportSnapshot": {
+          "revisionItems": [
+            {
+              "kind": "replace",
+              "deleteIndex": 2,
+              "insertIndex": 1,
+              "oldText": "图1 平面布置图",
+              "newText": "图2.1-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 4,
+              "insertIndex": 3,
+              "oldText": "图2 施工进度计划图",
+              "newText": "图2.4-1 施工进度计划图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 6,
+              "insertIndex": 5,
+              "oldText": "图3 平面布置图",
+              "newText": "图2.5-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 8,
+              "insertIndex": 7,
+              "oldText": "图4 施工进度计划图",
+              "newText": "图3.2-1 施工进度计划图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 10,
+              "insertIndex": 9,
+              "oldText": "图5 剖面图",
+              "newText": "图3.3-1 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 12,
+              "insertIndex": 11,
+              "oldText": "图6 监测布置图",
+              "newText": "图3.5-1 监测布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 14,
+              "insertIndex": 13,
+              "oldText": "图7 施工进度计划图",
+              "newText": "图3.6-1 施工进度计划图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 16,
+              "insertIndex": 15,
+              "oldText": "图8 剖面图",
+              "newText": "图4.4-1 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 18,
+              "insertIndex": 17,
+              "oldText": "图9 剖面图",
+              "newText": "图6.3-1 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 20,
+              "insertIndex": 19,
+              "oldText": "图10 平面布置图",
+              "newText": "图7.3-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 22,
+              "insertIndex": 21,
+              "oldText": "图11 平面布置图",
+              "newText": "图8.3-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 24,
+              "insertIndex": 23,
+              "oldText": "图12 典型断面图",
+              "newText": "图8.6-1 典型断面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 26,
+              "insertIndex": 25,
+              "oldText": "图13 平面布置图",
+              "newText": "图9.2-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 28,
+              "insertIndex": 27,
+              "oldText": "图14 施工进度计划图",
+              "newText": "图9.6-1 施工进度计划图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 30,
+              "insertIndex": 29,
+              "oldText": "图15 结构布置图",
+              "newText": "图10.1-1 结构布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 32,
+              "insertIndex": 31,
+              "oldText": "图16 剖面图",
+              "newText": "图10.5-1 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 34,
+              "insertIndex": 33,
+              "oldText": "图17 典型断面图",
+              "newText": "图11.1-1 典型断面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 36,
+              "insertIndex": 35,
+              "oldText": "图18 平面布置图",
+              "newText": "图11.2-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 38,
+              "insertIndex": 37,
+              "oldText": "图20 施工进度计划图",
+              "newText": "图11.4-1 施工进度计划图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 40,
+              "insertIndex": 39,
+              "oldText": "图20 剖面图",
+              "newText": "图13.3-1 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 42,
+              "insertIndex": 41,
+              "oldText": "图21 平面布置图",
+              "newText": "图13.4-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 44,
+              "insertIndex": 43,
+              "oldText": "图22 剖面图",
+              "newText": "图13.5-1 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 46,
+              "insertIndex": 45,
+              "oldText": "图23 施工进度计划图",
+              "newText": "图13.6-1 施工进度计划图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 48,
+              "insertIndex": 47,
+              "oldText": "图24 典型断面图",
+              "newText": "图14.3-1 典型断面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 50,
+              "insertIndex": 49,
+              "oldText": "图25 平面布置图",
+              "newText": "图14.4-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 52,
+              "insertIndex": 51,
+              "oldText": "图26 结构布置图",
+              "newText": "图14.5-1 结构布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 54,
+              "insertIndex": 53,
+              "oldText": "图27 剖面图",
+              "newText": "图15.2-1 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 56,
+              "insertIndex": 55,
+              "oldText": "图28 施工进度计划图",
+              "newText": "图15.5-1 施工进度计划图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 58,
+              "insertIndex": 57,
+              "oldText": "图29 典型断面图",
+              "newText": "图15.6-1 典型断面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 60,
+              "insertIndex": 59,
+              "oldText": "图30 平面布置图",
+              "newText": "图16.2-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 32,
+              "insertIndex": 31,
+              "oldText": "图16 剖面图",
+              "newText": "图10.5-1 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 34,
+              "insertIndex": 33,
+              "oldText": "图17 典型断面图",
+              "newText": "图11.1-1 典型断面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 36,
+              "insertIndex": 35,
+              "oldText": "图18 平面布置图",
+              "newText": "图11.2-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 38,
+              "insertIndex": 37,
+              "oldText": "图20 施工进度计划图",
+              "newText": "图11.4-1 施工进度计划图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 40,
+              "insertIndex": 39,
+              "oldText": "图20 剖面图",
+              "newText": "图13.3-1 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 42,
+              "insertIndex": 41,
+              "oldText": "图21 平面布置图",
+              "newText": "图13.4-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 44,
+              "insertIndex": 43,
+              "oldText": "图22 剖面图",
+              "newText": "图13.5-1 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 46,
+              "insertIndex": 45,
+              "oldText": "图23 施工进度计划图",
+              "newText": "图13.6-1 施工进度计划图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 48,
+              "insertIndex": 47,
+              "oldText": "图24 典型断面图",
+              "newText": "图14.3-1 典型断面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 50,
+              "insertIndex": 49,
+              "oldText": "图25 平面布置图",
+              "newText": "图14.4-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 52,
+              "insertIndex": 51,
+              "oldText": "图26 结构布置图",
+              "newText": "图14.5-1 结构布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 54,
+              "insertIndex": 53,
+              "oldText": "图27 剖面图",
+              "newText": "图15.2-1 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 56,
+              "insertIndex": 55,
+              "oldText": "图28 施工进度计划图",
+              "newText": "图15.5-1 施工进度计划图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 58,
+              "insertIndex": 57,
+              "oldText": "图29 典型断面图",
+              "newText": "图15.6-1 典型断面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 60,
+              "insertIndex": 59,
+              "oldText": "图30 平面布置图",
+              "newText": "图16.2-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 62,
+              "insertIndex": 61,
+              "oldText": "图31 平面布置图",
+              "newText": "图16.3-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 64,
+              "insertIndex": 63,
+              "oldText": "图32 监测布置图",
+              "newText": "图17.1-1 监测布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 66,
+              "insertIndex": 65,
+              "oldText": "图33 平面布置图",
+              "newText": "图17.2-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 68,
+              "insertIndex": 67,
+              "oldText": "图34 施工进度计划图",
+              "newText": "图17.3-1 施工进度计划图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 70,
+              "insertIndex": 69,
+              "oldText": "图35 剖面图",
+              "newText": "图18.1-1 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 72,
+              "insertIndex": 71,
+              "oldText": "图36 平面布置图",
+              "newText": "图18.5-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 74,
+              "insertIndex": 73,
+              "oldText": "图37 典型断面图",
+              "newText": "图19.3-1 典型断面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 76,
+              "insertIndex": 75,
+              "oldText": "图38 监测布置图",
+              "newText": "图20.5-1 监测布置图"
+            },
+            {
+              "kind": "delete",
+              "index": 54,
+              "text": "图27 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 56,
+              "insertIndex": 55,
+              "oldText": "图28 施工进度计划图",
+              "newText": "图15.5-1 施工进度计划图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 58,
+              "insertIndex": 57,
+              "oldText": "图29 典型断面图",
+              "newText": "图15.6-1 典型断面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 60,
+              "insertIndex": 59,
+              "oldText": "图30 平面布置图",
+              "newText": "图16.2-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 62,
+              "insertIndex": 61,
+              "oldText": "图31 平面布置图",
+              "newText": "图16.3-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 64,
+              "insertIndex": 63,
+              "oldText": "图32 监测布置图",
+              "newText": "图17.1-1 监测布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 66,
+              "insertIndex": 65,
+              "oldText": "图33 平面布置图",
+              "newText": "图17.2-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 68,
+              "insertIndex": 67,
+              "oldText": "图34 施工进度计划图",
+              "newText": "图17.3-1 施工进度计划图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 70,
+              "insertIndex": 69,
+              "oldText": "图35 剖面图",
+              "newText": "图18.1-1 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 72,
+              "insertIndex": 71,
+              "oldText": "图36 平面布置图",
+              "newText": "图18.5-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 74,
+              "insertIndex": 73,
+              "oldText": "图37 典型断面图",
+              "newText": "图19.3-1 典型断面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 76,
+              "insertIndex": 75,
+              "oldText": "图38 监测布置图",
+              "newText": "图20.5-1 监测布置图"
+            },
+            {
+              "kind": "delete",
+              "index": 66,
+              "text": "图33 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 68,
+              "insertIndex": 67,
+              "oldText": "图34 施工进度计划图",
+              "newText": "图17.3-1 施工进度计划图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 70,
+              "insertIndex": 69,
+              "oldText": "图35 剖面图",
+              "newText": "图18.1-1 剖面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 72,
+              "insertIndex": 71,
+              "oldText": "图36 平面布置图",
+              "newText": "图18.5-1 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 74,
+              "insertIndex": 73,
+              "oldText": "图37 典型断面图",
+              "newText": "图19.3-1 典型断面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 76,
+              "insertIndex": 75,
+              "oldText": "图38 监测布置图",
+              "newText": "图20.5-1 监测布置图"
+            },
+            {
+              "kind": "delete",
+              "index": 72,
+              "text": "图36 平面布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 74,
+              "insertIndex": 73,
+              "oldText": "图37 典型断面图",
+              "newText": "图19.3-1 典型断面图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 76,
+              "insertIndex": 75,
+              "oldText": "图38 监测布置图",
+              "newText": "图20.5-1 监测布置图"
+            },
+            {
+              "kind": "replace",
+              "deleteIndex": 76,
+              "insertIndex": 75,
+              "oldText": "图38 监测布置图",
+              "newText": "图20.5-1 监测布置图"
+            },
+            {
+              "kind": "delete",
+              "index": 76,
+              "text": "图38 监测布置图"
+            }
+          ],
+          "revisionTotal": 76
+        }
+      },
+      "executing": true,
+      "codeStreaming": false
+    }
+  }
+]

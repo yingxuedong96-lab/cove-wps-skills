@@ -664,23 +664,45 @@ try {
         var tableCount = doc.Tables ? doc.Tables.Count : 0;
         var tablesProcessed = 0;
 
-        // 辅助函数：对表格行应用格式规则
-        function applyRuleToTableRow(row, rule) {
-          if (!row || !rule) return false;
+        // 辅助函数：对单个单元格应用格式（确保覆盖）
+        function applyRuleToCell(cell, rule) {
+          if (!cell || !rule) return false;
           try {
-            if (row.Range && row.Range.Font) {
-              var f = row.Range.Font;
+            if (cell.Range && cell.Range.Font) {
+              var f = cell.Range.Font;
               if (rule.fontCN || fontDefaults.fontCN) f.NameFarEast = rule.fontCN || fontDefaults.fontCN;
               if (rule.fontEN || fontDefaults.fontEN) f.Name = rule.fontEN || fontDefaults.fontEN;
               if (rule.fontSize !== undefined) f.Size = rule.fontSize;
               if (rule.bold !== undefined) f.Bold = rule.bold ? -1 : 0;
             }
-            if (row.Range && row.Range.ParagraphFormat) {
-              var pf = row.Range.ParagraphFormat;
+            if (cell.Range && cell.Range.ParagraphFormat) {
+              var pf = cell.Range.ParagraphFormat;
               if (rule.alignment !== undefined) pf.Alignment = rule.alignment;
+              // 清除首行缩进（表格内不需要）
+              if (rule.alignment !== undefined) pf.FirstLineIndent = 0;
             }
             return true;
           } catch (e) { return false; }
+        }
+
+        // 辅助函数：对表格行逐单元格应用格式
+        function applyRuleToTableRow(row, rule) {
+          if (!row || !rule) return false;
+          var appliedCount = 0;
+          try {
+            var cells = row.Cells;
+            if (cells && cells.Count > 0) {
+              for (var c = 1; c <= cells.Count; c++) {
+                try {
+                  var cell = cells.Item(c);
+                  if (applyRuleToCell(cell, rule)) {
+                    appliedCount++;
+                  }
+                } catch (e) {}
+              }
+            }
+          } catch (e) {}
+          return appliedCount > 0;
         }
 
         for (var tblIdx = 1; tblIdx <= tableCount; tblIdx++) {

@@ -6,10 +6,11 @@
     "scripts/style-spec-table.js",
     "scripts/extract-template.js",
     "scripts/apply-template.js",
-    "scripts/list-templates.js"
+    "scripts/list-templates.js",
+    "scripts/save-template.js"
   ],
   "name": "templatecreator",
   "snapshot": "before_task",
   "source": "server",
-  "version": "26.0410.1003"
+  "version": "26.0410.1004"
 }

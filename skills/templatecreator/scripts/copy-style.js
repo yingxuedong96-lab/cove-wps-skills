@@ -32,11 +32,13 @@ try {
 
   function detectType(text, isPaper, fmt) {
     if (isPaper) {
+      // 按层级从深到浅检测
       if (/^第[一二三四五六七八九十百零\d]+章/.test(text)) return "chapterTitle";
       if (/^\d+\.\d+\.\d+\.\d+\.\d+/.test(text)) return "heading5";
       if (/^\d+\.\d+\.\d+\.\d+/.test(text)) return "heading4";
       if (/^\d+\.\d+\.\d+[^.\d]/.test(text)) return "heading3";
       if (/^\d+\.\d+[^.\d]/.test(text)) return "heading2";
+      // 一级标题：必须以数字开头，后跟空格和文字
       if (/^\d+\s+[^\d\.\s]/.test(text)) return "heading1";
       if (/^附\s*录\s*[A-Z０-９]/.test(text)) return "appendixTitle";
       if (/^[A-Z]\.\d+/.test(text)) return "appendixSection";
@@ -45,6 +47,7 @@ try {
       if (/^[\(（]\d+[\)）]/.test(text)) return "listItem";
       if (/^[\(（][a-z][\)）]/.test(text)) return "listItem";
       if (/^[①②③④⑤⑥⑦⑧⑨⑩]/.test(text)) return "listItem";
+      if (/^[a-z][\)）\.]/.test(text)) return "listItem";
     } else {
       if (/^关于|通知$|决定$|意见$|办法$|规定$/.test(text)) return "docTitle";
       if (/^[一二三四五六七八九十]+、/.test(text)) return "heading1";
@@ -53,8 +56,8 @@ try {
       if (/^图\s*\d+/.test(text)) return "figureCaption";
       if (/^表\s*\d+/.test(text)) return "tableCaption";
     }
-    if (fmt && fmt.firstLineIndent < 0) return "listItem";
-    return "body";
+    // 无法确定类型，返回null让调用方根据格式判断
+    return null;
   }
 
   function extractFormat(para) {
@@ -167,6 +170,9 @@ try {
       };
 
       var type = detectType(text, isPaper, currentFmt);
+
+      // 如果检测失败，默认为正文
+      if (!type) type = "body";
 
       if (styles[type] && styles[type].format) {
         applyFormat(para, styles[type].format);

@@ -1,10 +1,20 @@
 {
   "conversations": [
     {
+      "id": "1775624490878_kyufhv",
+      "title": "提取样式",
+      "createdAt": 1775624490878,
+      "updatedAt": 1775624520995,
+      "messageCount": 7,
+      "pinned": false,
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/模版生成/样式提取.docx",
+      "documentName": "样式提取.docx"
+    },
+    {
       "id": "1775624338377_j2y4hg",
       "title": "generalformat：排版标题。\n\n主标题用黑体二号居",
       "createdAt": 1775624338377,
-      "updatedAt": 1775624338377,
+      "updatedAt": 1775624471341,
       "messageCount": 0,
       "pinned": false,
       "skillName": "generalformat",

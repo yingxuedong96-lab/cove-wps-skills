@@ -49,6 +49,7 @@ try {
   var TYPE_KEYWORDS = {
     docTitle: ['主标题', '文档标题', '文章标题', '报告标题', '封面标题'],
     zhangTitle: ['章标题', '一级标题', '章节标题', '标题一', 'Heading 1', '章名', 'chapterTitle'],
+    appendixTitle: ['附录标题', '附录名', '附录'],
     heading2: ['二级标题', '标题二', 'Heading 2', 'headingTwo'],
     heading3: ['三级标题', '标题三', 'Heading 3'],
     heading4: ['四级标题', '标题四', 'Heading 4'],
@@ -502,7 +503,7 @@ try {
       'heading5': 5      // 五级大纲
     };
 
-    var singleTypes = ['docTitle', 'zhangTitle', 'heading2', 'heading3', 'heading4', 'heading5', 'tableCaption', 'figureCaption', 'ref'];
+    var singleTypes = ['docTitle', 'zhangTitle', 'appendixTitle', 'heading2', 'heading3', 'heading4', 'heading5', 'tableCaption', 'figureCaption', 'ref'];
     for (var t = 0; t < singleTypes.length; t++) {
       var typeName = singleTypes[t];
       var indices = typeIndices[typeName] || [];

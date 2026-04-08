@@ -1,15 +1,15 @@
 /**
  * extract-template.js - 完整样式提取（符合样式元素规范表）
- * 版本: 26.0410.1004
+ * 版本: 26.0410.1005
  * 支持元素: 论文报告26种 + 公文20种
  * 支持参数: 45个（字体7 + 段落5 + 间距4 + 大纲3 + 表格10 + 页面9 + 其他7）
  * 更新:
- *   - 自动检测文档类型（不再弹出选择框）
- *   - 尝试 WPS 文档 API 保存为 txt 文件
- *   - templateJson 字段供 Python 端提取保存
+ *   - 修复页面边距单位问题
+ *   - 格式合并：相同格式只保留一个典型值
+ *   - 改进类型检测：区分正文、图名、表名、列表项
  */
 try {
-  var VER = "26.0410.1004";
+  var VER = "26.0410.1005";
   console.log("[extract] 版本: " + VER);
 
   var DOC = Application.ActiveDocument;
@@ -47,10 +47,8 @@ try {
 
   // 确定类型：得分高者胜，默认论文报告
   if (docTypeParam) {
-    // 用户指定类型
     var isPaper = docTypeParam === "论文/技术报告" || docTypeParam === "paper";
   } else {
-    // 自动判断
     isPaper = paperScore >= govScore;
   }
 
@@ -109,12 +107,21 @@ try {
     return pt.toFixed(1) + "pt";
   }
 
+  // 格式签名：用于比较两个格式是否相同
+  function formatSignature(fmt) {
+    return [
+      fmt.fontCN, fmt.fontSize, fmt.bold ? 'B' : '',
+      fmt.alignment, fmt.firstLineIndent, fmt.leftIndent,
+      fmt.spaceBefore, fmt.spaceAfter, fmt.lineSpacing, fmt.lineSpacingRule
+    ].join('|');
+  }
+
   // ============================================================
   // 三、元素检测（基于样式元素规范表的正则模式）
   // ============================================================
-  function detectStyle(text, isPaper) {
+  function detectStyle(text, isPaper, fmt) {
     if (isPaper) {
-      // 论文报告检测
+      // 论文报告检测（优先级从高到低）
       if (/^第[一二三四五六七八九十百零\d]+章/.test(text)) return "chapterTitle";
       if (/^\d+\.\d+\.\d+\.\d+\.\d+/.test(text)) return "heading5";
       if (/^\d+\.\d+\.\d+\.\d+/.test(text)) return "heading4";
@@ -132,9 +139,9 @@ try {
       if (/^关键词|^关键字|^Key\s*words/i.test(text)) return "keyword";
       if (/^式中|^注\s*\d*/.test(text)) return "formulaNote";
       // 五级标题的其他形式
-      if (/^[\(（]\d+[\)）]/.test(text)) return "heading5";
-      if (/^[\(（][a-z][\)）]/.test(text)) return "heading5";
-      if (/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮]/.test(text)) return "heading5";
+      if (/^[\(（]\d+[\)）]/.test(text)) return "listItem";
+      if (/^[\(（][a-z][\)）]/.test(text)) return "listItem";
+      if (/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮]/.test(text)) return "listItem";
     } else {
       // 公文检测
       if (/^关于|通知$|决定$|意见$|办法$|规定$|批复$|请示$|报告$/.test(text)) return "docTitle";
@@ -149,9 +156,11 @@ try {
       if (/^图\s*\d+/.test(text)) return "figureCaption";
       if (/^表\s*\d+/.test(text)) return "tableCaption";
     }
-    // 列表项
-    if (/^[a-zA-Z][\)）\.]/.test(text)) return "listItem";
-    if (/^\d+[\)）]/.test(text)) return "listItem";
+
+    // 基于格式的智能推断
+    // 悬挂缩进（首行缩进为负）通常是列表项
+    if (fmt && fmt.firstLineIndent < 0) return "listItem";
+
     return null;
   }
 
@@ -193,6 +202,7 @@ try {
   // ============================================================
   var paras = DOC.Paragraphs;
   var styles = {};
+  var formatIndex = {};  // 用于格式去重
 
   for (var i = 1; i <= paras.Count; i++) {
     var para = paras.Item(i);
@@ -200,9 +210,9 @@ try {
     if (!text) continue;
 
     var fmt = extractFormat(para);
-    var type = detectStyle(text, isPaper);
+    var type = detectStyle(text, isPaper, fmt);
 
-    // 智能推断
+    // 智能推断（基于格式特征）
     if (!type) {
       if (fmt.bold && fmt.fontSize >= 20) type = isPaper ? "coverTitle" : "docTitle";
       else if (fmt.bold && fmt.fontSize >= 16) type = "heading1";
@@ -217,14 +227,45 @@ try {
         name: STYLE_NAMES[type] || type,
         count: 0,
         formats: [],
+        formatSignatures: {},  // 用于去重
         samples: []
       };
     }
     styles[type].count++;
-    styles[type].formats.push(fmt);
+
+    // 格式去重：只保留不同的格式
+    var sig = formatSignature(fmt);
+    if (!styles[type].formatSignatures[sig]) {
+      styles[type].formatSignatures[sig] = { fmt: fmt, count: 1 };
+      styles[type].formats.push(fmt);
+    } else {
+      styles[type].formatSignatures[sig].count++;
+    }
+
     if (styles[type].samples.length < 3) {
       styles[type].samples.push(text.substring(0, 50));
     }
+  }
+
+  // 为每种样式选择最主要的格式（出现次数最多的）
+  for (var t in styles) {
+    if (styles[t].formats.length > 1) {
+      // 找出出现最多的格式
+      var mainFmt = null;
+      var maxCount = 0;
+      for (var sig in styles[t].formatSignatures) {
+        if (styles[t].formatSignatures[sig].count > maxCount) {
+          maxCount = styles[t].formatSignatures[sig].count;
+          mainFmt = styles[t].formatSignatures[sig].fmt;
+        }
+      }
+      // 只保留主要格式
+      if (mainFmt) {
+        styles[t].formats = [mainFmt];
+      }
+    }
+    // 清理临时数据
+    delete styles[t].formatSignatures;
   }
 
   console.log("[extract] 样式数: " + Object.keys(styles).length);
@@ -315,15 +356,33 @@ try {
     lines.push("");
   });
 
-  // 页面设置
+  // 页面设置（修复单位问题）
   lines.push("## 页面设置");
   lines.push("纸张: " + (DOC.PageSetup.PaperSize === 1 ? "A4" : "自定义"));
   lines.push("方向: " + (DOC.PageSetup.Orientation === 1 ? "横向" : "纵向"));
-  lines.push("上边距: " + (DOC.PageSetup.TopMargin / 567).toFixed(2) + "cm | 下边距: " + (DOC.PageSetup.BottomMargin / 567).toFixed(2) + "cm");
-  lines.push("左边距: " + (DOC.PageSetup.LeftMargin / 567).toFixed(2) + "cm | 右边距: " + (DOC.PageSetup.RightMargin / 567).toFixed(2) + "cm");
-  lines.push("页眉边距: " + (DOC.PageSetup.HeaderDistance / 567).toFixed(2) + "cm | 页脚边距: " + (DOC.PageSetup.FooterDistance / 567).toFixed(2) + "cm");
-  if (DOC.PageSetup.Gutter > 0) {
-    lines.push("装订线: " + (DOC.PageSetup.Gutter / 567).toFixed(2) + "cm");
+
+  // 尝试多种方式获取页面边距（单位：磅）
+  var ps = DOC.PageSetup;
+  var topM = ps.TopMargin, bottomM = ps.BottomMargin, leftM = ps.LeftMargin, rightM = ps.RightMargin;
+  var headerD = ps.HeaderDistance, footerD = ps.FooterDistance;
+
+  // 检测单位：如果值很小（<100），可能是厘米或英寸，需要转换
+  // WPS API 通常返回磅值，但某些情况下可能返回其他单位
+  // 2.54cm ≈ 72pt，如果值约72，说明是磅值
+  // 如果值约2.54，说明是厘米
+
+  function toCm(val) {
+    // 如果值 < 10，假设是厘米
+    if (val < 10) return val.toFixed(2);
+    // 否则假设是磅值，转换为厘米 (1pt = 2.54/72 cm)
+    return (val * 2.54 / 72).toFixed(2);
+  }
+
+  lines.push("上边距: " + toCm(topM) + "cm | 下边距: " + toCm(bottomM) + "cm");
+  lines.push("左边距: " + toCm(leftM) + "cm | 右边距: " + toCm(rightM) + "cm");
+  lines.push("页眉边距: " + toCm(headerD) + "cm | 页脚边距: " + toCm(footerD) + "cm");
+  if (ps.Gutter > 0) {
+    lines.push("装订线: " + toCm(ps.Gutter) + "cm");
   }
 
   // 页眉页脚
@@ -359,50 +418,49 @@ try {
     pageSetup: {
       paperSize: DOC.PageSetup.PaperSize === 1 ? "A4" : "自定义",
       orientation: DOC.PageSetup.Orientation === 1 ? "横向" : "纵向",
-      topMargin: (DOC.PageSetup.TopMargin / 567).toFixed(2),
-      bottomMargin: (DOC.PageSetup.BottomMargin / 567).toFixed(2),
-      leftMargin: (DOC.PageSetup.LeftMargin / 567).toFixed(2),
-      rightMargin: (DOC.PageSetup.RightMargin / 567).toFixed(2),
-      headerDistance: (DOC.PageSetup.HeaderDistance / 567).toFixed(2),
-      footerDistance: (DOC.PageSetup.FooterDistance / 567).toFixed(2),
-      gutter: DOC.PageSetup.Gutter > 0 ? (DOC.PageSetup.Gutter / 567).toFixed(2) : "0"
+      topMargin: toCm(topM),
+      bottomMargin: toCm(bottomM),
+      leftMargin: toCm(leftM),
+      rightMargin: toCm(rightM),
+      headerDistance: toCm(headerD),
+      footerDistance: toCm(footerD),
+      gutter: ps.Gutter > 0 ? toCm(ps.Gutter) : "0"
     },
     styles: {}
   };
 
-  // 保存每种样式的完整参数
+  // 保存每种样式的完整参数（只保留主要格式）
   sortedTypes.forEach(function(t) {
     var s = styles[t];
+    var fmt = s.formats[0];  // 只取主要格式
     templateData.styles[t] = {
       id: t,
       name: STYLE_NAMES[t] || t,
       count: s.count,
-      formats: s.formats.map(function(f) {
-        return {
-          // 字体参数
-          fontCN: f.fontCN,
-          fontEN: f.fontEN,
-          fontSize: f.fontSize,
-          fontSizeName: f.fontSizeName,
-          bold: f.bold,
-          italic: f.italic,
-          underline: f.underline,
-          color: f.color,
-          // 段落参数
-          alignment: f.alignment,
-          alignmentName: alignMap[f.alignment] || "",
-          firstLineIndent: f.firstLineIndent,
-          firstLineIndentChars: f.characterUnitFirstLine || (f.firstLineIndent / 10.5),
-          leftIndent: f.leftIndent,
-          rightIndent: f.rightIndent,
-          // 间距参数
-          spaceBefore: f.spaceBefore,
-          spaceAfter: f.spaceAfter,
-          lineSpacing: f.lineSpacing,
-          lineSpacingRule: f.lineSpacingRule,
-          lineSpacingRuleName: lineRuleMap[f.lineSpacingRule] || ""
-        };
-      }),
+      format: {
+        // 字体参数
+        fontCN: fmt.fontCN,
+        fontEN: fmt.fontEN,
+        fontSize: fmt.fontSize,
+        fontSizeName: fmt.fontSizeName,
+        bold: fmt.bold,
+        italic: fmt.italic,
+        underline: fmt.underline,
+        color: fmt.color,
+        // 段落参数
+        alignment: fmt.alignment,
+        alignmentName: alignMap[fmt.alignment] || "",
+        firstLineIndent: fmt.firstLineIndent,
+        firstLineIndentChars: fmt.characterUnitFirstLine || (fmt.firstLineIndent / 10.5),
+        leftIndent: fmt.leftIndent,
+        rightIndent: fmt.rightIndent,
+        // 间距参数
+        spaceBefore: fmt.spaceBefore,
+        spaceAfter: fmt.spaceAfter,
+        lineSpacing: fmt.lineSpacing,
+        lineSpacingRule: fmt.lineSpacingRule,
+        lineSpacingRuleName: lineRuleMap[fmt.lineSpacingRule] || ""
+      },
       samples: s.samples
     };
   });

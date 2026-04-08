@@ -1,11 +1,12 @@
 /**
  * extract-template.js - 完整样式提取（符合样式元素规范表）
- * 版本: 26.0410.1000
+ * 版本: 26.0410.1001
  * 支持元素: 论文报告26种 + 公文20种
  * 支持参数: 45个（字体7 + 段落5 + 间距4 + 大纲3 + 表格10 + 页面9 + 其他7）
+ * 更新: 修复缩进和行距单位显示（首行缩进用字符单位，行距根据LineSpacingRule解释）
  */
 try {
-  var VER = "26.0410.1000";
+  var VER = "26.0410.1001";
   console.log("[extract] 版本: " + VER);
 
   var DOC = Application.ActiveDocument;
@@ -235,30 +236,43 @@ try {
     if (fmt.alignment !== undefined && alignMap[fmt.alignment]) {
       paraParts.push("对齐: " + alignMap[fmt.alignment]);
     }
-    if (parseFloat(fmt.firstLineIndent) > 0) {
-      paraParts.push("首行缩进: " + fmt.firstLineIndent + "字符");
-    }
-    if (parseFloat(fmt.hangingIndent) > 0) {
-      paraParts.push("悬挂缩进: " + fmt.hangingIndent + "字符");
+    // 首行缩进：优先用字符单位，否则用磅值转字符（约10.5pt/字符）
+    var indentChar = fmt.characterUnitFirstLine || 0;
+    if (indentChar > 0) {
+      paraParts.push("首行缩进: " + indentChar.toFixed(1) + "字符");
+    } else if (parseFloat(fmt.firstLineIndent) > 0) {
+      // WPS返回磅值，转换为字符单位（小四约10.5pt）
+      indentChar = fmt.firstLineIndent / 10.5;
+      paraParts.push("首行缩进: " + indentChar.toFixed(1) + "字符(" + fmt.firstLineIndent.toFixed(1) + "pt)");
     }
     if (parseFloat(fmt.leftIndent) > 0) {
-      paraParts.push("左缩进: " + fmt.leftIndent + "字符");
+      paraParts.push("左缩进: " + (fmt.leftIndent / 10.5).toFixed(1) + "字符");
     }
     if (parseFloat(fmt.rightIndent) > 0) {
-      paraParts.push("右缩进: " + fmt.rightIndent + "字符");
+      paraParts.push("右缩进: " + (fmt.rightIndent / 10.5).toFixed(1) + "字符");
     }
     if (paraParts.length > 0) lines.push("段落: " + paraParts.join(" | "));
 
     // 间距参数
     var spaceParts = [];
     if (parseFloat(fmt.spaceBefore) > 0) {
-      spaceParts.push("段前: " + fmt.spaceBefore + "pt");
+      spaceParts.push("段前: " + fmt.spaceBefore.toFixed(1) + "pt");
     }
     if (parseFloat(fmt.spaceAfter) > 0) {
-      spaceParts.push("段后: " + fmt.spaceAfter + "pt");
+      spaceParts.push("段后: " + fmt.spaceAfter.toFixed(1) + "pt");
     }
-    if (parseFloat(fmt.lineSpacing) > 0) {
-      spaceParts.push("行距: " + fmt.lineSpacing + "pt");
+    // 行距：根据LineSpacingRule解释
+    if (fmt.lineSpacingRule !== undefined && lineRuleMap[fmt.lineSpacingRule]) {
+      var spacingDisplay = lineRuleMap[fmt.lineSpacingRule];
+      if (fmt.lineSpacingRule === 4) {
+        // 固定值，lineSpacing是磅值
+        spacingDisplay = "固定值" + fmt.lineSpacing.toFixed(1) + "pt";
+      } else if (fmt.lineSpacing > 0 && fmt.lineSpacing !== 1) {
+        spacingDisplay += "(" + fmt.lineSpacing.toFixed(2) + "倍)";
+      }
+      spaceParts.push("行距: " + spacingDisplay);
+    } else if (parseFloat(fmt.lineSpacing) > 0) {
+      spaceParts.push("行距: " + fmt.lineSpacing.toFixed(1) + "pt");
     }
     if (spaceParts.length > 0) lines.push("间距: " + spaceParts.join(" | "));
 

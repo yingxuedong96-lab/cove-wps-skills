@@ -1,7 +1,5 @@
 {
-  "name": "templatecreator",
   "description": "样式模板提取与应用。从文档提取字体、字号、缩进、行距等具体参数，展示完整的样式详情。触发词：提取模板、应用模板、样式模板。注意：输出必须包含每种样式的具体参数值（字体、字号、缩进等），禁止简化。",
-  "version": "26.0408.0010",
   "files": [
     "skill.json",
     "SKILL.md",
@@ -10,6 +8,8 @@
     "scripts/apply-template.js",
     "scripts/list-templates.js"
   ],
+  "name": "templatecreator",
   "snapshot": "before_task",
-  "source": "server"
+  "source": "server",
+  "version": "26.0408.0011"
 }

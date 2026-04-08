@@ -1,0 +1,16 @@
+[
+  {
+    "id": "1775614691772_1uanecw",
+    "role": "user",
+    "content": "按照公文给我排版当前文档，使用Re d",
+    "timestamp": 1775614691772,
+    "taskId": "task_1775614691780_syinrs"
+  },
+  {
+    "id": "1775614691772_ps50wby",
+    "role": "assistant",
+    "content": "",
+    "timestamp": 1775614691772,
+    "streaming": false
+  }
+]

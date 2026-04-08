@@ -1,6 +1,48 @@
 {
   "conversations": [
     {
+      "id": "1775616410730_g05ffy",
+      "title": "提取样式",
+      "createdAt": 1775616410730,
+      "updatedAt": 1775616436680,
+      "messageCount": 7,
+      "pinned": false,
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/模版生成/样式提取.docx",
+      "documentName": "样式提取.docx"
+    },
+    {
+      "id": "1775614802017_lidj3q",
+      "title": "请对当前文档进行企业公文格式排版。",
+      "createdAt": 1775614802017,
+      "updatedAt": 1775614802017,
+      "messageCount": 0,
+      "pinned": false,
+      "skillName": "GWformat",
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/Demo资源包/排版/1. 集团公文排版/公文待排版.docx",
+      "documentName": "公文待排版.docx"
+    },
+    {
+      "id": "1775614691619_pozrd0",
+      "title": "按照公文给我排版当前文档，使用Re d",
+      "createdAt": 1775614691619,
+      "updatedAt": 1775614694105,
+      "messageCount": 2,
+      "pinned": false,
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/Demo资源包/排版/1. 集团公文排版/公文待排版.docx",
+      "documentName": "公文待排版.docx"
+    },
+    {
+      "id": "1775613327413_e2xvea",
+      "title": "请对当前文档进行企业公文格式排版。",
+      "createdAt": 1775613327413,
+      "updatedAt": 1775613467920,
+      "messageCount": 6,
+      "pinned": false,
+      "skillName": "GWformat",
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/Demo资源包/排版/1. 集团公文排版/公文待排版.docx",
+      "documentName": "公文待排版.docx"
+    },
+    {
       "id": "1775577968751_pexvq1",
       "title": "提取样式",
       "createdAt": 1775577968751,

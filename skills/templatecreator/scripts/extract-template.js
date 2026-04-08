@@ -43,7 +43,7 @@
         { id: "tableCaption", name: "表名", detectPattern: "^表\\s*\\d+", detectHint: "'表'开头" },
 
         // 附录/参考文献
-        { id: "appendixTitle", name: "附录标题", detectPattern: "^附录\\s*[A-Z]?", detectHint: "'附录'或'附录A'" },
+        { id: "appendixTitle", name: "附录标题", detectPattern: "^附\\s*录\\s*[A-Z]?", detectHint: "'附录'或'附录A'或'附 录 A'" },
         { id: "appendixSection", name: "附录节题", detectPattern: "^[A-Z]\\.\\d+\\s", detectHint: "如'A.1 详细说明'" },
         { id: "referenceTitle", name: "参考文献标题", detectPattern: "^参考文献", detectHint: "'参考文献'" },
         { id: "reference", name: "参考文献条目", detectPattern: "^\\[\\d+\\]", detectHint: "如'[1]'" },
@@ -113,16 +113,26 @@
     return parts.filter(p => p).join("") || "未知格式";
   }
 
-  // 按模式检测标签类型
+  // 按模式检测标签类型（精确匹配，优先匹配最长的模式）
   function detectByPattern(text, spec) {
+    // 先检查是否匹配任何模式，记录所有匹配
+    const matches = [];
     for (const tag of spec.tags) {
       if (tag.detectPattern && tag.detectPattern !== "default") {
         try {
-          if (new RegExp(tag.detectPattern).test(text)) {
-            return { tagId: tag.id, tagName: tag.name, method: "pattern", confidence: "high" };
+          const regex = new RegExp(tag.detectPattern);
+          if (regex.test(text)) {
+            matches.push({ tagId: tag.id, tagName: tag.name, pattern: tag.detectPattern });
           }
         } catch (e) {}
       }
+    }
+
+    // 如果有多个匹配，选择最具体的那个（优先选择模式长的）
+    if (matches.length > 0) {
+      // 按模式长度降序排序，选择最长的模式
+      matches.sort((a, b) => (b.pattern?.length || 0) - (a.pattern?.length || 0));
+      return { tagId: matches[0].tagId, tagName: matches[0].tagName, method: "pattern", confidence: "high" };
     }
     return null;
   }

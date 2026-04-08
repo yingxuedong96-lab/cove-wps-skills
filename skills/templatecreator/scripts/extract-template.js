@@ -1,6 +1,6 @@
 /**
  * extract-template.js - 使用样式规范表进行结构化提取
- * 版本: 26.0408.1230 - 添加段落文本调试日志
+ * 版本: 26.0408.1400 - 修复正则表达式匹配问题（去掉末尾空格要求）
  *
  * 流程：
  * 1. 用户选择文档类型（公文/论文）
@@ -10,7 +10,7 @@
  */
 
 (function() {
-  const SCRIPT_VERSION = "26.0408.1230";
+  const SCRIPT_VERSION = "26.0408.1400";
   console.log("[extract-template] 脚本版本: " + SCRIPT_VERSION);
 
   const DOC = Application.ActiveDocument;
@@ -20,16 +20,18 @@
 
   // 样式规范表 - 完整版，与样式元素规范表.md保持一致
   // 注意：检测顺序很重要，长的模式要放在前面（如五级标题在四级标题前面）
+  // 修复：去掉末尾空格要求，改为匹配编号后紧跟非数字或字符串结束
   const STYLE_SPEC = {
     paper: {
       name: "论文报告样式",
       tags: [
         // 标题类（按层级从深到浅排列，确保长编号先匹配）
-        { id: "heading5", name: "五级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+\\.\\d+\\.\\d+\\s", detectHint: "如'1.1.1.1.1'" },
-        { id: "heading4", name: "四级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+\\.\\d+\\s", detectHint: "如'1.1.1.1'" },
-        { id: "heading3", name: "三级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+\\s", detectHint: "如'1.1.1'" },
-        { id: "heading2", name: "二级标题", detectPattern: "^\\d+\\.\\d+\\s", detectHint: "如'1.1 背景'" },
-        { id: "heading1", name: "一级标题", detectPattern: "^\\d+\\s+[^\d\\.]", detectHint: "如'1 范围'（数字后直接跟汉字）" },
+        // 使用 [^\d\.] 确保编号后不是数字或点号，避免误匹配
+        { id: "heading5", name: "五级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+\\.\\d+\\.\\d+[\\s：:]", detectHint: "如'1.1.1.1.1'" },
+        { id: "heading4", name: "四级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+\\.\\d+[\\s：:]", detectHint: "如'1.1.1.1'" },
+        { id: "heading3", name: "三级标题", detectPattern: "^\\d+\\.\\d+\\.\\d+[\\s：:]", detectHint: "如'1.1.1'" },
+        { id: "heading2", name: "二级标题", detectPattern: "^\\d+\\.\\d+[\\s：:]", detectHint: "如'1.1 背景'" },
+        { id: "heading1", name: "一级标题", detectPattern: "^\\d+[\\s：:]+[^\\d\\.]", detectHint: "如'1 范围'（数字后直接跟汉字）" },
         { id: "chapterTitle", name: "章标题", detectPattern: "^第[一二三四五六七八九十\\d]+章", detectHint: "如'第一章 范围'" },
 
         // 标题/前置部分
@@ -40,7 +42,7 @@
 
         // 正文类
         { id: "body", name: "正文", detectPattern: "default", detectHint: "默认类型" },
-        { id: "listItem", name: "列表项", detectPattern: "^\\s*[a-z]\\)|^\\s*\\d+\\)|^[①②③④⑤⑥⑦⑧⑨⑩]", detectHint: "如'a)'、'1)'、'①'" },
+        { id: "listItem", name: "列表项", detectPattern: "^\\s*[a-z]\\)|^\\s*[a-z][\\.\\s]|^\\s*\\d+\\)|^[①②③④⑤⑥⑦⑧⑨⑩]", detectHint: "如'a)'、'a.'、'a)'、'1)'、'①'" },
 
         // 图表公式
         { id: "figureCaption", name: "图名", detectPattern: "^图\\s*\\d+", detectHint: "'图'开头" },
@@ -48,7 +50,7 @@
 
         // 附录/参考文献
         { id: "appendixTitle", name: "附录标题", detectPattern: "^附\\s*录\\s*[A-Z]?", detectHint: "'附录'或'附录A'或'附 录 A'" },
-        { id: "appendixSection", name: "附录节题", detectPattern: "^[A-Z]\\.\\d+\\s", detectHint: "如'A.1 详细说明'" },
+        { id: "appendixSection", name: "附录节题", detectPattern: "^[A-Z]\\.(\\d+\\.)*\\d+[\\s：:]", detectHint: "如'A.1'或'A.1.1'" },
         { id: "referenceTitle", name: "参考文献标题", detectPattern: "^参考文献", detectHint: "'参考文献'" },
         { id: "reference", name: "参考文献条目", detectPattern: "^\\[\\d+\\]", detectHint: "如'[1]'" },
 

@@ -752,7 +752,9 @@ try {
             if (rules.tableContent && table.Range) {
               try {
                 if (tableContentStyleName) {
-                  // 使用样式批量应用（最快）
+                  // 先清除直接格式，再应用样式
+                  try { table.Range.Font.Reset(); } catch (e1) {}
+                  try { table.Range.ParagraphFormat.Reset(); } catch (e2) {}
                   table.Range.Style = tableContentStyleName;
                   applied++;
                 } else if (table.Range.ParagraphFormat) {
@@ -772,6 +774,9 @@ try {
                 var headerRow = table.Rows.Item(1);
                 if (headerRow.Range) {
                   if (tableHeaderStyleName) {
+                    // 先清除直接格式，再应用样式
+                    try { headerRow.Range.Font.Reset(); } catch (e1) {}
+                    try { headerRow.Range.ParagraphFormat.Reset(); } catch (e2) {}
                     headerRow.Range.Style = tableHeaderStyleName;
                     applied++;
                   } else if (headerRow.Range.ParagraphFormat && rules.tableHeader.alignment !== undefined) {

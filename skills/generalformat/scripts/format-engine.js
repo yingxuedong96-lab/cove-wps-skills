@@ -673,7 +673,8 @@ try {
               if (rule.fontCN || fontDefaults.fontCN) f.NameFarEast = rule.fontCN || fontDefaults.fontCN;
               if (rule.fontEN || fontDefaults.fontEN) f.Name = rule.fontEN || fontDefaults.fontEN;
               if (rule.fontSize !== undefined) f.Size = rule.fontSize;
-              if (rule.bold !== undefined) f.Bold = rule.bold ? -1 : 0;
+              // 显式设置 Bold：规则没说加粗就不加粗，清除可能存在的加粗
+              f.Bold = (rule.bold === true) ? -1 : 0;
             }
             if (cell.Range && cell.Range.ParagraphFormat) {
               var pf = cell.Range.ParagraphFormat;

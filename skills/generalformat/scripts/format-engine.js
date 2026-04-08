@@ -59,7 +59,9 @@ try {
     figureCaption: ['图名', '图片名', '图标题', '图号', '图片标题', '插图名', 'figure'],
     ref: ['参考文献', '引用文献', 'reference'],
     tableHeader: ['表头', '表格表头', '表格标题行'],
-    tableContent: ['表格内容', '表内容', '表格正文', '表格数据']
+    tableContent: ['表格内容', '表内容', '表格正文', '表格数据'],
+    list1: ['列表一级', '列表一', '一级列表', '一级缩进'],
+    list2: ['列表二级', '列表二', '二级列表', '二级缩进']
   };
 
   var specText = configData.specText || '';
@@ -177,6 +179,18 @@ try {
       rule.leftIndent = -rule.firstLineIndent;  // 后续行缩进 = 首行负缩进的绝对值
       console.log('[format] 悬挂缩进: LeftIndent=' + rule.leftIndent + '磅, FirstLineIndent=' + rule.firstLineIndent + '磅');
     }
+    // ⚠️ 列表缩进特殊处理：如果设置了leftIndent但没有firstLineIndent，自动添加悬挂缩进
+    if ((key === 'list1' || key === 'list2') && rule.leftIndent !== undefined) {
+      // leftIndent字符数→磅值
+      if (rule.leftIndent > 0 && rule.leftIndent < 20) {
+        rule.leftIndent = rule.leftIndent * 12;
+      }
+      // 自动设置悬挂缩进（首行不缩进，让编号在左边）
+      if (rule.firstLineIndent === undefined || rule.firstLineIndent === 0) {
+        rule.firstLineIndent = -rule.leftIndent;
+        console.log('[format] 列表' + key + '悬挂缩进: LeftIndent=' + rule.leftIndent + '磅, FirstLineIndent=' + rule.firstLineIndent + '磅');
+      }
+    }
   }
 
   console.log('[format] 配置解析完成');
@@ -291,10 +305,20 @@ try {
     }
     if (inRef) return 'ref';
 
-    // 列表项检测：(1)《书名》或 (1)标准编号 格式 → 正文，不是标题
-    var listMatch = text.match(/^[（(](\d+)[）)]\s*[《(A-Z]/);
-    if (listMatch) {
-      // (1)《...》 或 (1)GB... 或 (1)DL... 等是列表项
+    // 列表项检测（在标题检测之前）
+    // 格式：a) xxx 或 1) xxx 或 (1) xxx
+    var listItemMatch = text.match(/^[a-z][）)]\s*[\u4e00-\u9fa5]/i);
+    if (listItemMatch) return 'list1';  // 字母编号列表
+    var listItemNumMatch = text.match(/^[（(]?\d+[）)]\s*[\u4e00-\u9fa5]/);
+    if (listItemNumMatch) {
+      // 排除标题格式：(1) 这种格式如果后面紧跟书名号或标准编号，可能是引用列表
+      if (text.match(/^[（(]\d+[）)]\s*[《(A-Z]/)) return 'body';
+      return 'list2';  // 数字编号列表
+    }
+
+    // 特殊列表项检测：(1)《书名》或 (1)标准编号 格式 → 正文，不是标题
+    var specialListMatch = text.match(/^[（(](\d+)[）)]\s*[《(A-Z]/);
+    if (specialListMatch) {
       return 'body';
     }
 
@@ -522,7 +546,7 @@ try {
       'heading5': 5      // 五级大纲
     };
 
-    var singleTypes = ['docTitle', 'zhangTitle', 'appendixTitle', 'heading2', 'heading3', 'heading4', 'heading5', 'tableCaption', 'figureCaption', 'ref'];
+    var singleTypes = ['docTitle', 'zhangTitle', 'appendixTitle', 'heading2', 'heading3', 'heading4', 'heading5', 'tableCaption', 'figureCaption', 'ref', 'list1', 'list2'];
     for (var t = 0; t < singleTypes.length; t++) {
       var typeName = singleTypes[t];
       var indices = typeIndices[typeName] || [];
@@ -536,14 +560,30 @@ try {
         try {
           var para = doc.Paragraphs.Item(indices[i]);
           if (para && para.Range) {
-            if (applyRuleToRange(para.Range, rule)) {
-              applied++;
-            }
-            // 设置大纲级别（用于导航窗格和目录）
-            if (outlineLevel && para.Range.ParagraphFormat) {
-              try {
-                para.Range.ParagraphFormat.OutlineLevel = outlineLevel;
-              } catch (e) {}
+            // 列表类型需要特殊处理缩进（悬挂缩进）
+            if (typeName === 'list1' || typeName === 'list2') {
+              if (para.Range.ParagraphFormat) {
+                var pf = para.Range.ParagraphFormat;
+                // 列表缩进：leftIndent设置后续行缩进，firstLineIndent设置首行缩进
+                if (rule.leftIndent !== undefined) pf.LeftIndent = rule.leftIndent;
+                if (rule.firstLineIndent !== undefined) pf.FirstLineIndent = rule.firstLineIndent;
+                // 其他格式（字体、字号等）
+                if (para.Range.Font && (rule.fontCN || rule.fontSize)) {
+                  if (rule.fontCN) para.Range.Font.NameFarEast = rule.fontCN;
+                  if (rule.fontSize) para.Range.Font.Size = rule.fontSize;
+                }
+                applied++;
+              }
+            } else {
+              if (applyRuleToRange(para.Range, rule)) {
+                applied++;
+              }
+              // 设置大纲级别（用于导航窗格和目录）
+              if (outlineLevel && para.Range.ParagraphFormat) {
+                try {
+                  para.Range.ParagraphFormat.OutlineLevel = outlineLevel;
+                } catch (e) {}
+              }
             }
           }
         } catch (e) { errors++; }

@@ -509,14 +509,12 @@ try {
 
       console.log('[format] 正文分段数: ' + segments.length + ', 总段落: ' + bodyIndices.length);
 
-      // ⚠️ 策略选择：只有正文高度连续时才用整体Range
-      // 连续性判断：分段数/正文数比例 < 0.1 表示正文高度连续（大部分正文段落连在一起）
-      // 比例 > 0.1 表示正文和标题严重穿插，整体Range会覆盖标题，必须分段处理
-      var continuityRatio = segments.length / bodyIndices.length;
-      var useWideRange = continuityRatio < 0.1 && segments.length > 50;
+      // ⚠️ 策略优化：优先使用整体Range，标题后续会被单独覆盖
+      // 只有当分段数超过500时才考虑分段（避免超长循环）
+      var useWideRange = segments.length > 500 ? (segments.length / bodyIndices.length < 0.05) : true;
       var wideRangeApplied = false;
 
-      console.log('[format] 正文连续性: ' + (continuityRatio * 100).toFixed(1) + '% (分段/正文比例)');
+      console.log('[format] 正文连续性: ' + (segments.length / bodyIndices.length * 100).toFixed(1) + '% (分段/正文比例)');
 
       if (useWideRange) {
         try {
@@ -542,7 +540,7 @@ try {
           console.log('[format] 整体Range失败: ' + wideErr);
         }
       } else {
-        console.log('[format] 正文分散度高，使用分段处理避免覆盖标题');
+        console.log('[format] 正文分散度高，使用整体Range（标题后续覆盖）');
       }
 
       // 分段处理（未使用整体Range时）

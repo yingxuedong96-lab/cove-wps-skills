@@ -34,7 +34,7 @@
     "role": "assistant",
     "content": "我将根据您的需求生成表格排版配置并执行。\n\n",
     "timestamp": 1775640082256,
-    "streaming": true
+    "streaming": false
   },
   {
     "id": "tool_1775640082738_jim4",
@@ -81,11 +81,16 @@
       "toolName": "confirmEdits",
       "input": {
         "mode": "format",
-        "summary": "## 格式修改报告\n\n1. **表格排版（60处）**\n   - 表头：统一为黑体五号居中\n   - 表格内容：统一为宋体五号靠左对齐\n   - 表格宽度：调整至与页面等宽\n   - 跨页设置：启用跨页重复表头",
-        "reportSnapshot": {}
+        "summary": "## 格式修改报告\n\n1. **表格排版（60处）**\n   - 表头：统一为黑体五号居中\n   - 表格内容：统一为宋体五号靠左对齐\n   - 表格宽度：调整至与页面等宽\n   - 跨页设置：启用跨页重复表头"
       },
-      "executing": true,
-      "codeStreaming": false
+      "output": "[UserCancelled] 已取消本次格式调整。",
+      "durationMs": 82767
     }
+  },
+  {
+    "id": "confirm_edits_note_1775640212800_ie58kp",
+    "role": "assistant",
+    "content": "已取消本次格式调整。",
+    "timestamp": 1775640212800
   }
 ]

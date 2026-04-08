@@ -746,29 +746,9 @@ try {
               } catch (e) {}
             }
 
-            // 表头格式（第一行）
-            if (rules.tableHeader && table.Rows && table.Rows.Count > 0) {
-              try {
-                var headerRow = table.Rows.Item(1);
-                applyRuleToTableRow(headerRow, rules.tableHeader);
-                applied++;
-              } catch (e) {}
-            }
-
-            // 表格内容格式（一次性设置整个表格，再覆盖表头）
+            // 表格内容格式（只设置对齐和缩进，不设置字体 - 字体设置太慢）
             if (rules.tableContent) {
               try {
-                // 先设置整个表格
-                if (table.Range && table.Range.Font) {
-                  var tf = table.Range.Font;
-                  if (rules.tableContent.fontCN || fontDefaults.fontCN) {
-                    tf.NameFarEast = rules.tableContent.fontCN || fontDefaults.fontCN;
-                  }
-                  if (rules.tableContent.fontSize !== undefined) {
-                    tf.Size = rules.tableContent.fontSize;
-                  }
-                  tf.Bold = (rules.tableContent.bold === true) ? -1 : 0;
-                }
                 if (table.Range && table.Range.ParagraphFormat) {
                   var tpf = table.Range.ParagraphFormat;
                   if (rules.tableContent.alignment !== undefined) {
@@ -777,14 +757,19 @@ try {
                   tpf.FirstLineIndent = 0;
                 }
                 applied++;
+              } catch (e) {}
+            }
 
-                // 重新设置表头（覆盖整体设置）
-                if (rules.tableHeader && table.Rows && table.Rows.Count > 0) {
-                  try {
-                    var headerRow2 = table.Rows.Item(1);
-                    applyRuleToTableRow(headerRow2, rules.tableHeader);
-                  } catch (e) {}
+            // 表头格式（第一行）- 在内容之后设置，覆盖对齐
+            if (rules.tableHeader && table.Rows && table.Rows.Count > 0) {
+              try {
+                var headerRow = table.Rows.Item(1);
+                if (headerRow.Range && headerRow.Range.ParagraphFormat) {
+                  if (rules.tableHeader.alignment !== undefined) {
+                    headerRow.Range.ParagraphFormat.Alignment = rules.tableHeader.alignment;
+                  }
                 }
+                applied++;
               } catch (e) {}
             }
 

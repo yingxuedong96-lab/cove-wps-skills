@@ -746,9 +746,14 @@ try {
               } catch (e) {}
             }
 
-            // 表格内容格式（只设置对齐和缩进，不设置字体 - 字体设置太慢）
+            // 表格内容格式（优化版：检查后再设置）
             if (rules.tableContent) {
               try {
+                // 检查是否需要设置字体（避免不必要的操作）
+                var needSetFont = rules.tableContent.fontCN && fontDefaults.fontCN;
+                var targetFont = rules.tableContent.fontCN || fontDefaults.fontCN;
+
+                // 快速设置对齐和缩进（这些操作很快）
                 if (table.Range && table.Range.ParagraphFormat) {
                   var tpf = table.Range.ParagraphFormat;
                   if (rules.tableContent.alignment !== undefined) {
@@ -756,17 +761,47 @@ try {
                   }
                   tpf.FirstLineIndent = 0;
                 }
+
+                // 字体设置：只设置一次，避免重复
+                if (needSetFont && table.Range) {
+                  try {
+                    var tr = table.Range;
+                    // 一次性设置所有字体属性，减少 API 调用
+                    tr.SetRange(tr.Start, tr.End);
+                    if (tr.Font) {
+                      // 批量设置，比分开设置更快
+                      tr.Font.Name = targetFont;  // 西文字体
+                      tr.Font.NameFarEast = targetFont;  // 中文字体
+                      if (rules.tableContent.fontSize !== undefined) {
+                        tr.Font.Size = rules.tableContent.fontSize;
+                      }
+                      tr.Font.Bold = 0;
+                    }
+                  } catch (fontErr) {
+                    // 字体设置失败不影响其他操作
+                  }
+                }
                 applied++;
               } catch (e) {}
             }
 
-            // 表头格式（第一行）- 在内容之后设置，覆盖对齐
+            // 表头格式（第一行）
             if (rules.tableHeader && table.Rows && table.Rows.Count > 0) {
               try {
                 var headerRow = table.Rows.Item(1);
-                if (headerRow.Range && headerRow.Range.ParagraphFormat) {
-                  if (rules.tableHeader.alignment !== undefined) {
+                if (headerRow.Range) {
+                  // 对齐
+                  if (headerRow.Range.ParagraphFormat && rules.tableHeader.alignment !== undefined) {
                     headerRow.Range.ParagraphFormat.Alignment = rules.tableHeader.alignment;
+                  }
+                  // 字体
+                  if (headerRow.Range.Font && rules.tableHeader.fontCN) {
+                    headerRow.Range.Font.Name = rules.tableHeader.fontCN;
+                    headerRow.Range.Font.NameFarEast = rules.tableHeader.fontCN;
+                    if (rules.tableHeader.fontSize !== undefined) {
+                      headerRow.Range.Font.Size = rules.tableHeader.fontSize;
+                    }
+                    headerRow.Range.Font.Bold = (rules.tableHeader.bold === true) ? -1 : 0;
                   }
                 }
                 applied++;

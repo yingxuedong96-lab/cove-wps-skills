@@ -140,17 +140,17 @@ try {
       underline: rng.Font.Underline ? true : false,
       color: rng.Font.Color ? rng.Font.Color : 0,
 
-      // 段落格式（5个）
+      // 段落格式（WPS返回磅值）
       alignment: fmt.Alignment,
-      firstLineIndent: fmt.FirstLineIndent ? (fmt.FirstLineIndent / 240).toFixed(1) : "0",
-      leftIndent: fmt.LeftIndent ? (fmt.LeftIndent / 240).toFixed(1) : "0",
-      rightIndent: fmt.RightIndent ? (fmt.RightIndent / 240).toFixed(1) : "0",
-      hangingIndent: fmt.CharacterUnitFirstLineIndent < 0 ? Math.abs(fmt.CharacterUnitFirstLineIndent).toFixed(1) : "0",
+      firstLineIndent: fmt.FirstLineIndent || 0,
+      leftIndent: fmt.LeftIndent || 0,
+      rightIndent: fmt.RightIndent || 0,
+      characterUnitFirstLine: fmt.CharacterUnitFirstLineIndent || 0,
 
-      // 间距（4个）
-      spaceBefore: fmt.SpaceBefore ? (fmt.SpaceBefore / 20).toFixed(1) : "0",
-      spaceAfter: fmt.SpaceAfter ? (fmt.SpaceAfter / 20).toFixed(1) : "0",
-      lineSpacing: fmt.LineSpacing ? (fmt.LineSpacing / 20).toFixed(1) : "0",
+      // 间距（WPS返回磅值）
+      spaceBefore: fmt.SpaceBefore || 0,
+      spaceAfter: fmt.SpaceAfter || 0,
+      lineSpacing: fmt.LineSpacing || 0,
       lineSpacingRule: fmt.LineSpacingRule
     };
   }

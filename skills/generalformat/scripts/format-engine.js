@@ -98,7 +98,9 @@ try {
     'headingFour': 'heading4',
     'content': 'body',
     'figure': 'figureCaption',
-    'table': 'tableCaption'
+    'table': 'tableCaption',
+    'listLevel1': 'list1',
+    'listLevel2': 'list2'
   };
 
   // 转换规则中的错误类型名

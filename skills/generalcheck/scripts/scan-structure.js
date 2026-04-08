@@ -1,8 +1,9 @@
 /**
  * scan-structure.js
- * 校对标题编号和图编号
- * scope: heading（标题）, figure（图）, numbering（全部）
+ * 校对标题编号、图编号、表编号
+ * scope: heading（标题）, figure（图）, table（表）, numbering（全部）
  * figureFormat: chapter（图X.Y-Z）, simple（图1、图2...）
+ * tableFormat: chapter（表X.Y-Z）, simple（表1、表2...）
  */
 try {
   var doc = Application.ActiveDocument;
@@ -11,9 +12,12 @@ try {
   var scopeType = typeof scope !== 'undefined' ? scope : 'heading';
   var needHeading = scopeType === 'numbering' || scopeType === 'heading';
   var needFigure = scopeType === 'numbering' || scopeType === 'figure';
+  var needTable = scopeType === 'numbering' || scopeType === 'table';
 
   // 图编号格式：chapter=图X.Y-Z（章节式），simple=图1、图2...（顺序式）
   var figFormat = typeof figureFormat !== 'undefined' ? figureFormat : 'chapter';
+  // 表编号格式：chapter=表X.Y-Z（章节式），simple=表1、表2...（顺序式）
+  var tblFormat = typeof tableFormat !== 'undefined' ? tableFormat : 'chapter';
 
   var cn2num = { '一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'十一':11,'十二':12,'十三':13,'十四':14,'十五':15,'十六':16,'十七':17,'十八':18,'十九':19,'二十':20 };
   var num2cn = { 1:'一',2:'二',3:'三',4:'四',5:'五',6:'六',7:'七',8:'八',9:'九',10:'十',11:'十一',12:'十二',13:'十三',14:'十四',15:'十五',16:'十六',17:'十七',18:'十八',19:'十九',20:'二十' };
@@ -31,7 +35,7 @@ try {
   console.log('[scan] 开始规划，总段落数: ' + paras.length + ', scope=' + scopeType + ', figureFormat=' + figFormat);
 
   var plans = [];
-  var counts = { headings: 0, figures: 0 };
+  var counts = { headings: 0, figures: 0, tables: 0 };
 
   // 当前活跃的各级编号状态
   var state = { ch: 0, sec: 0, sub: 0, item: 0, subItem: 0 };
@@ -42,6 +46,11 @@ try {
   var figureCounters = {};        // 章节式：key = "章.节"
   var simpleFigureCounter = 0;    // 顺序式：全文递增
   var appendixFigureCounter = 0;
+
+  // 表编号计数器
+  var tableCounters = {};         // 章节式：key = "章.节"
+  var simpleTableCounter = 0;     // 顺序式：全文递增
+  var appendixTableCounter = 0;
 
   for (var i = 0; i < paras.length; i++) {
     var text = cleanText(paras[i]);
@@ -55,6 +64,7 @@ try {
       appState.l2 = 0;
       appState.l3 = 0;
       appendixFigureCounter = 0;
+      appendixTableCounter = 0;
       appState.letterIndex++;
       var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
       appState.letter = letters.charAt((appState.letterIndex - 1) % 26);
@@ -111,6 +121,19 @@ try {
             counts.figures++;
             var newText = '图' + appState.letter + appendixFigureCounter + ' ' + appFig[3];
             console.log('[scan] 附录图: ' + text + ' → ' + newText);
+            if (text !== newText) plans.push({ oldText: text, newText: newText });
+            continue;
+          }
+        }
+
+        // 附录内表编号：表A1、表A.1 或 表1
+        if (needTable) {
+          var appTbl = text.match(/^表\s*([A-Z])?\.?(\d+)\s+(.+)$/i);
+          if (appTbl) {
+            appendixTableCounter++;
+            counts.tables++;
+            var newText = '表' + appState.letter + appendixTableCounter + ' ' + appTbl[3];
+            console.log('[scan] 附录表: ' + text + ' → ' + newText);
             if (text !== newText) plans.push({ oldText: text, newText: newText });
             continue;
           }
@@ -234,9 +257,40 @@ try {
         continue;
       }
     }
+
+    // === 表编号 ===
+    if (needTable) {
+      // 格式：表X.Y-Z 标题 或 表X-Y 标题 或 表X 标题
+      var tblMatch = text.match(/^表\s*(\d+)(?:\.(\d+))?(?:-(\d+))?\s+(.+)$/);
+      if (tblMatch) {
+        counts.tables++;
+
+        if (tblFormat === 'simple') {
+          // 顺序式：表1、表2、表3... 全文递增
+          simpleTableCounter++;
+          var newText = '表' + simpleTableCounter + ' ' + tblMatch[4];
+          console.log('[scan] 表(顺序式): ' + text + ' → ' + newText);
+          if (text !== newText) plans.push({ oldText: text, newText: newText });
+        } else {
+          // 章节式：表X.Y-Z 格式
+          if (state.ch === 0) state.ch = 1;
+          var tblCh = state.ch;
+          var tblSec = state.sec > 0 ? state.sec : 1;
+          var tblKey = tblCh + '.' + tblSec;
+
+          tableCounters[tblKey] = (tableCounters[tblKey] || 0) + 1;
+          var tblNum = tableCounters[tblKey];
+
+          var newText = '表' + tblCh + '.' + tblSec + '-' + tblNum + ' ' + tblMatch[4];
+          console.log('[scan] 表(章节式): ' + text + ' → ' + newText);
+          if (text !== newText) plans.push({ oldText: text, newText: newText });
+        }
+        continue;
+      }
+    }
   }
 
-  console.log('[scan] 规划完成：标题' + counts.headings + ' 图' + counts.figures + '，待修复' + plans.length + '处');
+  console.log('[scan] 规划完成：标题' + counts.headings + ' 图' + counts.figures + ' 表' + counts.tables + '，待修复' + plans.length + '处');
 
   // 从后往前替换
   var origTrack = doc.TrackRevisions;

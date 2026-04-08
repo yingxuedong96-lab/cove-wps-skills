@@ -15,15 +15,16 @@ compatibility:
 
 ### 触发词 → 参数映射表
 
-| 触发词 | scope | figureFormat | 执行脚本 |
-|-------|-------|--------------|---------|
-| 校对编号、校对所有编号、编号校对 | `numbering` | `chapter` | scan-structure.js |
-| 校对标题编号、标题编号校对 | `heading` | - | scan-structure.js |
-| 校对图编号、图编号校对、校对图编号（章节式） | `figure` | `chapter` | scan-structure.js |
-| 校对图编号（顺序式）、顺序式图编号 | `figure` | `simple` | scan-structure.js |
-| 校对表编号、表编号校对 | `table` | - | scan-structure.js |
-| 校对公式编号、公式编号校对 | `formula` | - | scan-structure.js |
-| 校对引用、引用校对 | `reference` | - | scan-structure.js |
+| 触发词 | scope | figureFormat | tableFormat | 执行脚本 |
+|-------|-------|--------------|-------------|---------|
+| 校对编号、校对所有编号、编号校对 | `numbering` | `chapter` | `chapter` | scan-structure.js |
+| 校对标题编号、标题编号校对 | `heading` | - | - | scan-structure.js |
+| 校对图编号、图编号校对、校对图编号（章节式） | `figure` | `chapter` | - | scan-structure.js |
+| 校对图编号（顺序式）、顺序式图编号 | `figure` | `simple` | - | scan-structure.js |
+| 校对表编号、表编号校对、校对表编号（章节式） | `table` | - | `chapter` | scan-structure.js |
+| 校对表编号（顺序式）、顺序式表编号 | `table` | - | `simple` | scan-structure.js |
+| 校对公式编号、公式编号校对 | `formula` | - | - | scan-structure.js |
+| 校对引用、引用校对 | `reference` | - | - | scan-structure.js |
 
 ---
 
@@ -34,7 +35,7 @@ compatibility:
 ```
 executeFile:
   filePath: "skills/generalcheck/scripts/scan-structure.js"
-  params: { "scope": "<匹配的scope>", "figureFormat": "<匹配的figureFormat>" }
+  params: { "scope": "<匹配的scope>", "figureFormat": "<匹配的figureFormat>", "tableFormat": "<匹配的tableFormat>" }
 ```
 
 **参数说明**：
@@ -42,6 +43,9 @@ executeFile:
 - `figureFormat`: 可选，仅 scope=figure 时有效
   - `chapter` = 章节式编号（图X.Y-Z），默认值
   - `simple` = 顺序式编号（图1、图2...）
+- `tableFormat`: 可选，仅 scope=table 时有效
+  - `chapter` = 章节式编号（表X.Y-Z），默认值
+  - `simple` = 顺序式编号（表1、表2...）
 
 ---
 
@@ -61,7 +65,9 @@ executeFile:
 | G-001 | 图编号（章节式） | 图X.Y-Z 格式，同一章节内连续 |
 | G-002 | 图编号（顺序式） | 图1、图2... 全文递增 |
 | G-003 | 附录图编号 | 图A1、图A2... 按附录内顺序 |
-| T-001 | 表编号连续性 | 表1-1 → 表1-3，应为 表1-2 |
+| T-001 | 表编号（章节式） | 表X.Y-Z 格式，同一章节内连续 |
+| T-002 | 表编号（顺序式） | 表1、表2... 全文递增 |
+| T-003 | 附录表编号 | 表A1、表A2... 按附录内顺序 |
 | E-001 | 公式编号连续性 | (2-1) → (2-3)，应为 (2-2) |
 
 ---

@@ -37,6 +37,37 @@ try {
     return 0;
   }
 
+  // 从文本中解析格式（如"黑体五号居中" → {fontCN:'黑体', fontSize:10.5, alignment:1}）
+  function parseFormatFromText(text) {
+    var result = {};
+    text = text || '';
+
+    // 字体
+    if (text.indexOf('黑体') !== -1) result.fontCN = '黑体';
+    else if (text.indexOf('宋体') !== -1) result.fontCN = '宋体';
+    else if (text.indexOf('楷体') !== -1) result.fontCN = '楷体';
+    else if (text.indexOf('仿宋') !== -1) result.fontCN = '仿宋';
+
+    // 字号
+    for (var sizeName in FONT_SIZE_MAP) {
+      if (text.indexOf(sizeName) !== -1) {
+        result.fontSize = FONT_SIZE_MAP[sizeName];
+        break;
+      }
+    }
+
+    // 对齐
+    if (text.indexOf('居中') !== -1) result.alignment = 1;
+    else if (text.indexOf('靠右') !== -1 || text.indexOf('右对齐') !== -1) result.alignment = 2;
+    else if (text.indexOf('靠左') !== -1 || text.indexOf('左对齐') !== -1) result.alignment = 0;
+    else if (text.indexOf('两端对齐') !== -1) result.alignment = 3;
+
+    // 加粗
+    if (text.indexOf('加粗') !== -1) result.bold = true;
+
+    return result;
+  }
+
   // 解析配置
   var configData = typeof config === 'string' ? JSON.parse(config) : config;
   var rules = configData.paragraphRules || {};
@@ -139,6 +170,27 @@ try {
   }
   if (missingTypes.length > 0) {
     console.log('[format] ⚠️ 规范提到但配置缺失的类型: ' + missingTypes.join(', '));
+
+    // 自动补全缺失的表格类型配置
+    for (var mi = 0; mi < missingTypes.length; mi++) {
+      var missingType = missingTypes[mi];
+      if (missingType === 'tableHeader' && specText.indexOf('表头') !== -1) {
+        // 从 specText 提取表头格式
+        var headerMatch = specText.match(/表头用([^。，]+)/);
+        if (headerMatch) {
+          rules.tableHeader = parseFormatFromText(headerMatch[1]);
+          console.log('[format] 自动补全 tableHeader: ' + JSON.stringify(rules.tableHeader));
+        }
+      }
+      if (missingType === 'tableContent' && specText.indexOf('表格内容') !== -1) {
+        // 从 specText 提取表格内容格式
+        var contentMatch = specText.match(/表格内容用([^。，]+)/);
+        if (contentMatch) {
+          rules.tableContent = parseFormatFromText(contentMatch[1]);
+          console.log('[format] 自动补全 tableContent: ' + JSON.stringify(rules.tableContent));
+        }
+      }
+    }
   }
 
   rules = filteredRules;

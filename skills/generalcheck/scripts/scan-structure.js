@@ -1,9 +1,10 @@
 /**
  * scan-structure.js
- * 校对标题编号、图编号、表编号
- * scope: heading（标题）, figure（图）, table（表）, numbering（全部）
+ * 校对标题编号、图编号、表编号、公式编号
+ * scope: heading（标题）, figure（图）, table（表）, formula（公式）, numbering（全部）
  * figureFormat: chapter（图X.Y-Z）, simple（图1、图2...）
  * tableFormat: chapter（表X.Y-Z）, simple（表1、表2...）
+ * formulaFormat: chapter（(X.Y-Z)）, simple（(1)、(2)...）
  */
 try {
   var doc = Application.ActiveDocument;
@@ -13,11 +14,14 @@ try {
   var needHeading = scopeType === 'numbering' || scopeType === 'heading';
   var needFigure = scopeType === 'numbering' || scopeType === 'figure';
   var needTable = scopeType === 'numbering' || scopeType === 'table';
+  var needFormula = scopeType === 'numbering' || scopeType === 'formula';
 
   // 图编号格式：chapter=图X.Y-Z（章节式），simple=图1、图2...（顺序式）
   var figFormat = typeof figureFormat !== 'undefined' ? figureFormat : 'chapter';
   // 表编号格式：chapter=表X.Y-Z（章节式），simple=表1、表2...（顺序式）
   var tblFormat = typeof tableFormat !== 'undefined' ? tableFormat : 'chapter';
+  // 公式编号格式：chapter=(X.Y-Z)（章节式），simple=(1)、(2)...（顺序式）
+  var frmFormat = typeof formulaFormat !== 'undefined' ? formulaFormat : 'chapter';
 
   var cn2num = { '一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'十一':11,'十二':12,'十三':13,'十四':14,'十五':15,'十六':16,'十七':17,'十八':18,'十九':19,'二十':20 };
   var num2cn = { 1:'一',2:'二',3:'三',4:'四',5:'五',6:'六',7:'七',8:'八',9:'九',10:'十',11:'十一',12:'十二',13:'十三',14:'十四',15:'十五',16:'十六',17:'十七',18:'十八',19:'十九',20:'二十' };
@@ -35,7 +39,7 @@ try {
   console.log('[scan] 开始规划，总段落数: ' + paras.length + ', scope=' + scopeType + ', figureFormat=' + figFormat);
 
   var plans = [];
-  var counts = { headings: 0, figures: 0, tables: 0 };
+  var counts = { headings: 0, figures: 0, tables: 0, formulas: 0 };
 
   // 当前活跃的各级编号状态
   var state = { ch: 0, sec: 0, sub: 0, item: 0, subItem: 0 };
@@ -52,6 +56,11 @@ try {
   var simpleTableCounter = 0;     // 顺序式：全文递增
   var appendixTableCounter = 0;
 
+  // 公式编号计数器
+  var formulaCounters = {};       // 章节式：key = "章.节"
+  var simpleFormulaCounter = 0;   // 顺序式：全文递增
+  var appendixFormulaCounter = 0;
+
   for (var i = 0; i < paras.length; i++) {
     var text = cleanText(paras[i]);
     if (!text) continue;
@@ -65,6 +74,7 @@ try {
       appState.l3 = 0;
       appendixFigureCounter = 0;
       appendixTableCounter = 0;
+      appendixFormulaCounter = 0;
       appState.letterIndex++;
       var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
       appState.letter = letters.charAt((appState.letterIndex - 1) % 26);
@@ -134,6 +144,19 @@ try {
             counts.tables++;
             var newText = '表' + appState.letter + appendixTableCounter + ' ' + appTbl[3];
             console.log('[scan] 附录表: ' + text + ' → ' + newText);
+            if (text !== newText) plans.push({ oldText: text, newText: newText });
+            continue;
+          }
+        }
+
+        // 附录内公式编号：(A1)、(A.1) 或 (1)
+        if (needFormula) {
+          var appFrm = text.match(/\(([A-Z])?\.?(\d+)\)$/);
+          if (appFrm) {
+            appendixFormulaCounter++;
+            counts.formulas++;
+            var newText = '(' + appState.letter + appendixFormulaCounter + ')';
+            console.log('[scan] 附录公式: ' + text + ' → ' + newText);
             if (text !== newText) plans.push({ oldText: text, newText: newText });
             continue;
           }
@@ -288,9 +311,40 @@ try {
         continue;
       }
     }
+
+    // === 公式编号 ===
+    if (needFormula) {
+      // 格式：(X.Y-Z) 或 (X-Y) 或 (X) 在段落末尾
+      var frmMatch = text.match(/\((\d+)(?:\.(\d+))?(?:-(\d+))?\)$/);
+      if (frmMatch) {
+        counts.formulas++;
+
+        if (frmFormat === 'simple') {
+          // 顺序式：(1)、(2)、(3)... 全文递增
+          simpleFormulaCounter++;
+          var newText = text.replace(/\((\d+)(?:\.(\d+))?(?:-(\d+))?\)$/, '(' + simpleFormulaCounter + ')');
+          console.log('[scan] 公式(顺序式): ' + text + ' → ' + newText);
+          if (text !== newText) plans.push({ oldText: text, newText: newText });
+        } else {
+          // 章节式：(X.Y-Z) 格式
+          if (state.ch === 0) state.ch = 1;
+          var frmCh = state.ch;
+          var frmSec = state.sec > 0 ? state.sec : 1;
+          var frmKey = frmCh + '.' + frmSec;
+
+          formulaCounters[frmKey] = (formulaCounters[frmKey] || 0) + 1;
+          var frmNum = formulaCounters[frmKey];
+
+          var newText = text.replace(/\((\d+)(?:\.(\d+))?(?:-(\d+))?\)$/, '(' + frmCh + '.' + frmSec + '-' + frmNum + ')');
+          console.log('[scan] 公式(章节式): ' + text + ' → ' + newText);
+          if (text !== newText) plans.push({ oldText: text, newText: newText });
+        }
+        continue;
+      }
+    }
   }
 
-  console.log('[scan] 规划完成：标题' + counts.headings + ' 图' + counts.figures + ' 表' + counts.tables + '，待修复' + plans.length + '处');
+  console.log('[scan] 规划完成：标题' + counts.headings + ' 图' + counts.figures + ' 表' + counts.tables + ' 公式' + counts.formulas + '，待修复' + plans.length + '处');
 
   // 从后往前替换
   var origTrack = doc.TrackRevisions;

@@ -136,9 +136,9 @@
       }
     }
 
-    // 调试：打印前几个段落的匹配结果
-    if (text.length < 30 && matches.length > 0) {
-      console.log("[detectByPattern] 文本: " + text + " => 匹配: " + matches.map(m => m.tagId).join(","));
+    // 调试：打印所有段落的匹配结果
+    if (matches.length > 0) {
+      console.log("[detectByPattern] 文本: " + text.substring(0, 25) + " => 匹配: " + matches.map(m => m.tagId).join(","));
     }
 
     // 如果有多个匹配，选择最具体的那个（优先选择模式长的）

@@ -252,7 +252,7 @@ try {
       }
     } catch (e) {}
 
-    // 3.6 表格格式（逐单元格处理，不依赖table.Columns）
+    // 3.6 表格格式（参考generalformat的实现）
     try {
       var tableCount = doc.Tables ? doc.Tables.Count : 0;
       console.log('[designformat] 开始处理表格: ' + tableCount + '个');
@@ -263,17 +263,7 @@ try {
           if (!table || !table.Rows) continue;
 
           var rowCount = table.Rows.Count;
-          // 用第一行单元格数获取列数（不依赖table.Columns）
-          var colCount = 4;  // 默认值
-          try {
-            if (rowCount > 0) {
-              var firstRow = table.Rows.Item(1);
-              if (firstRow && firstRow.Cells) {
-                colCount = firstRow.Cells.Count;
-              }
-            }
-          } catch (e) {}
-          console.log('[designformat] 表格' + tIdx + ': ' + rowCount + '行 x ' + colCount + '列');
+          console.log('[designformat] 表格' + tIdx + ': ' + rowCount + '行');
 
           // 设置表格宽度
           try {
@@ -289,49 +279,55 @@ try {
             }
           } catch (e) {}
 
-          var cellCount = 0;
+          // 【表头】第一行：黑体五号加粗居中（用整行Range）
+          try {
+            var headerRow = table.Rows.Item(1);
+            if (headerRow && headerRow.Range) {
+              headerRow.Range.Font.NameFarEast = '黑体';
+              headerRow.Range.Font.Name = '黑体';
+              headerRow.Range.Font.Size = 10.5;
+              headerRow.Range.Font.Bold = -1;
+              if (headerRow.Range.ParagraphFormat) {
+                headerRow.Range.ParagraphFormat.Alignment = 1;
+              }
+              console.log('[designformat] 表格' + tIdx + '表头设置完成');
+            }
+          } catch (e) {}
 
-          // 【表头】第一行：黑体五号加粗居中
-          for (var cIdx = 1; cIdx <= colCount; cIdx++) {
+          // 【内容】第2行起：宋体五号靠左（用Range覆盖多行）
+          if (rowCount > 1) {
             try {
-              var cell = table.Cell(1, cIdx);
-              if (cell && cell.Range) {
-                cell.Range.Font.NameFarEast = '黑体';
-                cell.Range.Font.Name = '黑体';
-                cell.Range.Font.Size = 10.5;
-                cell.Range.Font.Bold = -1;
-                if (cell.Range.ParagraphFormat) {
-                  cell.Range.ParagraphFormat.Alignment = 1;
+              var startRow = table.Rows.Item(2);
+              var endRow = table.Rows.Item(rowCount);
+              if (startRow && startRow.Range && endRow && endRow.Range) {
+                var contentRange = doc.Range(startRow.Range.Start, endRow.Range.End);
+                contentRange.Font.NameFarEast = '宋体';
+                contentRange.Font.Name = '宋体';
+                contentRange.Font.Size = 10.5;
+                if (contentRange.ParagraphFormat) {
+                  contentRange.ParagraphFormat.Alignment = 0;
                 }
-                cellCount++;
+                console.log('[designformat] 表格' + tIdx + '内容设置完成(整体Range)');
               }
             } catch (e) {
-              console.log('[designformat] 表格' + tIdx + '表头单元格[' + cIdx + ']设置失败: ' + e);
-            }
-          }
-
-          // 【内容】第2行起：宋体五号不加粗靠左
-          if (rowCount > 1) {
-            for (var rIdx = 2; rIdx <= rowCount; rIdx++) {
-              for (var cIdx = 1; cIdx <= colCount; cIdx++) {
+              // 备用：逐行处理
+              console.log('[designformat] 表格' + tIdx + '整体Range失败，逐行处理');
+              for (var rIdx = 2; rIdx <= rowCount; rIdx++) {
                 try {
-                  var cell = table.Cell(rIdx, cIdx);
-                  if (cell && cell.Range) {
-                    cell.Range.Font.NameFarEast = '宋体';
-                    cell.Range.Font.Name = '宋体';
-                    cell.Range.Font.Size = 10.5;
-                    cell.Range.Font.Bold = 0;
-                    if (cell.Range.ParagraphFormat) {
-                      cell.Range.ParagraphFormat.Alignment = 0;  // 靠左
+                  var row = table.Rows.Item(rIdx);
+                  if (row && row.Range) {
+                    row.Range.Font.NameFarEast = '宋体';
+                    row.Range.Font.Name = '宋体';
+                    row.Range.Font.Size = 10.5;
+                    if (row.Range.ParagraphFormat) {
+                      row.Range.ParagraphFormat.Alignment = 0;
                     }
-                    cellCount++;
                   }
-                } catch (e) {}
+                } catch (e2) {}
               }
             }
           }
 
-          console.log('[designformat] 表格' + tIdx + '单元格格式设置: ' + cellCount + '个');
           applied++;
           details.tables++;
         } catch (e) {

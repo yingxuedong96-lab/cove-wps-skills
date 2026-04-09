@@ -44,6 +44,135 @@ try {
   var fontDefaults = configData.fontDefaults || { fontCN: '宋体', fontEN: 'Times New Roman' };
 
   // ========================================
+  // 自动解析 specText 生成 paragraphRules（如果为空）
+  // ========================================
+  var specText = configData.specText || '';
+
+  // 解析中文字号
+  function parseFontSizeAuto(sizeText) {
+    if (!sizeText) return 0;
+    var s = sizeText.replace(/\s/g, '');
+    if (FONT_SIZE_MAP[s]) return FONT_SIZE_MAP[s];
+    var num = parseFloat(s);
+    if (num > 0) return num;
+    return 0;
+  }
+
+  // 从 specText 自动解析规则
+  function autoParseRules(text) {
+    var autoRules = {};
+    var lowerText = text.toLowerCase();
+
+    // 解析字体
+    function parseFont(t) {
+      if (t.indexOf('黑体') !== -1) return '黑体';
+      if (t.indexOf('宋体') !== -1) return '宋体';
+      if (t.indexOf('楷体') !== -1) return '楷体';
+      if (t.indexOf('仿宋') !== -1) return '仿宋';
+      return '宋体';
+    }
+
+    // 解析字号
+    function parseSize(t) {
+      var match = t.match(/(初号|小初|一号|小一|二号|小二|三号|小三|四号|小四|五号|小五|六号|小六)/);
+      return match ? parseFontSizeAuto(match[1]) : 0;
+    }
+
+    // 解析对齐
+    function parseAlign(t) {
+      if (t.indexOf('居中') !== -1) return 1;
+      if (t.indexOf('右对齐') !== -1 || t.indexOf('靠右') !== -1) return 2;
+      if (t.indexOf('两端对齐') !== -1) return 3;
+      if (t.indexOf('左对齐') !== -1 || t.indexOf('靠左') !== -1) return 0;
+      return -1;
+    }
+
+    // 解析加粗
+    function parseBold(t) {
+      return t.indexOf('加粗') !== -1;
+    }
+
+    // 图名规则
+    if (text.indexOf('图名') !== -1 || text.indexOf('图标题') !== -1) {
+      var figMatch = text.match(/图名[^。；,，]*/);
+      var figText = figMatch ? figMatch[0] : '';
+      autoRules.figureCaption = {
+        fontCN: parseFont(figText),
+        fontSize: parseSize(figText) || 9,
+        alignment: parseAlign(figText) >= 0 ? parseAlign(figText) : 1,
+        bold: parseBold(figText)
+      };
+      console.log('[format] 自动解析图名规则: ' + JSON.stringify(autoRules.figureCaption));
+    }
+
+    // 表名规则
+    if (text.indexOf('表名') !== -1 || text.indexOf('表标题') !== -1) {
+      var tcMatch = text.match(/表名[^。；,，]*/);
+      var tcText = tcMatch ? tcMatch[0] : '';
+      autoRules.tableCaption = {
+        fontCN: parseFont(tcText),
+        fontSize: parseSize(tcText) || 9,
+        alignment: parseAlign(tcText) >= 0 ? parseAlign(tcText) : 1,
+        bold: parseBold(tcText)
+      };
+      console.log('[format] 自动解析表名规则: ' + JSON.stringify(autoRules.tableCaption));
+    }
+
+    // 表头规则
+    if (text.indexOf('表头') !== -1) {
+      var thMatch = text.match(/表头[^。；,，]*/);
+      var thText = thMatch ? thMatch[0] : '';
+      autoRules.tableHeader = {
+        fontCN: parseFont(thText),
+        fontSize: parseSize(thText) || 10.5,
+        alignment: parseAlign(thText) >= 0 ? parseAlign(thText) : 1,
+        bold: parseBold(thText) || true
+      };
+      console.log('[format] 自动解析表头规则: ' + JSON.stringify(autoRules.tableHeader));
+    }
+
+    // 表格内容规则
+    if (text.indexOf('表格内容') !== -1) {
+      var tcmMatch = text.match(/表格内容[^。；,，]*/);
+      var tcmText = tcmMatch ? tcmMatch[0] : '';
+      autoRules.tableContent = {
+        fontCN: parseFont(tcmText),
+        fontSize: parseSize(tcmText) || 10.5,
+        alignment: parseAlign(tcmText) >= 0 ? parseAlign(tcmText) : 0,
+        bold: parseBold(tcmText)
+      };
+      console.log('[format] 自动解析表格内容规则: ' + JSON.stringify(autoRules.tableContent));
+    }
+
+    // 正文规则
+    if (text.indexOf('正文') !== -1) {
+      var bodyMatch = text.match(/正文[^。；,，]*/);
+      var bodyText = bodyMatch ? bodyMatch[0] : '';
+      autoRules.body = {
+        fontCN: parseFont(bodyText),
+        fontSize: parseSize(bodyText) || 12,
+        alignment: parseAlign(bodyText) >= 0 ? parseAlign(bodyText) : 3,
+        bold: parseBold(bodyText)
+      };
+      // 首行缩进
+      var indentMatch = bodyText.match(/首行缩进(\d)字符/);
+      if (indentMatch) {
+        autoRules.body.firstLineIndent = parseInt(indentMatch[1]) * 12;
+      }
+      console.log('[format] 自动解析正文规则: ' + JSON.stringify(autoRules.body));
+    }
+
+    return autoRules;
+  }
+
+  // 如果 paragraphRules 为空，自动解析
+  if (Object.keys(rules).length === 0 && specText) {
+    console.log('[format] paragraphRules 为空，自动解析 specText');
+    rules = autoParseRules(specText);
+    console.log('[format] 自动解析结果: ' + JSON.stringify(rules));
+  }
+
+  // ========================================
   // 规范文本校验（关键：只接受用户明确提到的类型）
   // ========================================
   var TYPE_KEYWORDS = {

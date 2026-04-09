@@ -3,7 +3,7 @@ name: generalformat
 description: >
   文档格式排版。根据排版规则自动识别段落类型并应用格式。
   支持两种模式：(1)快捷指令模式：直接从prompt获取规则 (2)规范文档模式：从规范文档提取规则。
-  触发词：排版标题、排版正文、排版图表、排版表格、排版页面、排版列表、完整排版。
+  触发词：排版标题、排版正文、排版图表、排版图、排版表格、排版页面、排版页眉页脚、完整排版。
 compatibility:
   runtime: WPS JS 宏 / WPS 加载项（JSAPI）
 ---
@@ -16,37 +16,31 @@ compatibility:
 1. **快捷指令模式**：prompt 中直接包含排版规则 → 直接生成配置并执行
 2. **规范文档模式**：用户提供规范文档文件 → 解析后生成配置执行
 
+**⚠️ 立即执行：不要探索文档，直接调用 format-engine.js**
+
 ---
 
 ## 执行步骤
 
 ### Step 1 — 解析排版规则
 
-从用户输入或快捷指令 prompt 中提取排版规则，生成配置 JSON。
-
-**⚠️ 规则来源（按优先级）：**
-1. 如果 prompt 中包含排版规则文字 → 直接使用
-2. 如果用户指定了规范文档 → 调用 parse-spec.js 读取
-3. 如果用户说"当前文档就是规范文档" → 调用 parse-spec.js
+从用户输入中提取排版规则，生成配置 JSON。
 
 **⚠️ 关键规则：**
 
 1. **specText 必须完整**：将排版规则**完整**放入 specText 字段
 2. **类型必须完整覆盖**：规则提到多少种类型，配置就必须有多少种
-3. **属性必须完整提取**：字体、字号、对齐、段前段后、行距、缩进等，全部提取
-4. **不要添加未提及的类型**：规则没说四级标题，就不要添加 heading4
-5. **加粗规则**：说"加粗"设置 `bold: true`，说"不加粗"设置 `bold: false`，都没说则不设置
-6. 直接输出 JSON，不要写代码，不要解释
+3. **直接输出 JSON**，不要写代码，不要解释
 
 ---
 
 ### Step 2 — 调用脚本执行
 
+**必须调用：**
 ```yaml
-executeFile:
-  filePath: "skills/generalformat/scripts/format-engine.js"
-  params:
-    config: <生成的JSON配置>
+executeFile: skills/generalformat/scripts/format-engine.js
+params:
+  config: <生成的JSON配置>
 ```
 
 返回值：

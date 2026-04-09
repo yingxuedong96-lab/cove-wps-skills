@@ -1,0 +1,139 @@
+[
+  {
+    "id": "1775701963383_q1k9q4u",
+    "role": "user",
+    "content": "generalformat：排版表格。\n\n表头用黑体五号居中加粗，表格内容用宋体五号靠左对齐。",
+    "timestamp": 1775701963383,
+    "commandMeta": {
+      "name": "排版表格内容"
+    }
+  },
+  {
+    "id": "1775701963383_9ad4a79",
+    "role": "assistant",
+    "content": "我将使用 `generalformat` Skill 来处理表格排版任务。首先读取该 Skill 的指令文档。\n\n",
+    "timestamp": 1775701963383,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775701965938_mgyo",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775701965938,
+    "toolCall": {
+      "toolName": "skill",
+      "input": {
+        "name": "generalformat"
+      },
+      "output": "<skill_content name=\"generalformat\">\n# Skill: generalformat\n\n---\nname: generalformat\ndescription: >\n  文档格式排版。根据排版规则自动识别段落类型并应用格式。\n  支持两种模式：(1)快捷指令模式：直接从prompt获取规则 (2)规范文档模式：从规范文档提取规则。\n  触发词：排版标题、排版正文、排版图表、排版表格、排版页面、排版列表、完整排版。\ncompatibility:\n  runtime: WPS JS 宏 / WPS 加载项（JSAPI）\n---\n\n# 通用文档排版\n\n## 使用方式\n\n**两种模式：**\n1. **快捷指令模式**：prompt 中直接包含排版规则 → 直接生成配置并执行\n2. **规范文档模式**：用户提供规范文档文件 → 解析后生成配置执行\n\n---\n\n## 执行步骤\n\n### Step 1 — 解析排版规则\n\n从用户输入或快捷指令 prompt 中提取排版规则，生成配置 JSON。\n\n**⚠️ 规则来源（按优先级）：**\n1. 如果 prompt 中包含排版规则文字 → 直接使用\n2. 如果用户指定了规范文档 → 调用 parse-spec.js 读取\n3. 如果用户说\"当前文档就是规范文档\" → 调用 parse-spec.js\n\n**⚠️ 关键规则：**\n\n1. **specText 必须完整**：将排版规则**完整**放入 specText 字段\n2. **类型必须完整覆盖**：规则提到多少种类型，配置就必须有多少种\n3. **属性必须完整提取**：字体、字号、对齐、段前段后、行距、缩进等，全部提取\n4. **不要添加未提及的类型**：规则没说四级标题，就不要添加 heading4\n5. **加粗规则**：说\"加粗\"设置 `bold: true`，说\"不加粗\"设置 `bold: false`，都没说则不设置\n6. 直接输出 JSON，不要写代码，不要解释\n\n---\n\n### Step 2 — 调用脚本执行\n\n```yaml\nexecuteFile:\n  filePath: \"skills/generalformat/scripts/format-engine.js\"\n  params:\n    config: <生成的JSON配置>\n```\n\n返回值：\n```json\n{\n  \"success\": true,\n  \"applied\": 5656,\n  \"elapsedMs\": 2882,\n  \"typeCounts\": { \"zhangTitle\": 20, \"heading2\": 421, \"body\": 5207 }\n}\n```\n\n---\n\n## 类型映射表\n\n| 规范中的叫法 | 配置中的类型名 | 说明 |\n|-------------|---------------|------|\n| 主标题、文档标题、报告标题 | docTitle | 文档第一个段落 |\n| 章标题、一级标题、标题一 | zhangTitle | 如\"1 引言\"、\"第1章\" |\n| 二级标题、标题二 | heading2 | 如\"1.1 设计依据\" |\n| 三级标题、标题三 | heading3 | 如\"1.1.1 具体内容\" |\n| 四级标题、标题四 | heading4 | 如\"1.1.1.1 详细说明\" |\n| 五级标题、标题五 | heading5 | 如\"1.1.1.1.1 补充说明\" |\n| 正文、正文格式 | body | 普通段落 |\n| 图名、图标题、图号 | figureCaption | 图标题 |\n| 表名、表标题、表号 | tableCaption | 表标题 |\n| 参考文献 | ref | 参考文献 |\n\n---\n\n## 字号对照表\n\n| 中文字号 | 磅值(fontSize) |\n|---------|---------------|\n| 初号 | 42 |\n| 小初 | 36 |\n| 一号 | 26 |\n| 小一 | 24 |\n| 二号 | 22 |\n| 小二 | 18 |\n| 三号 | 16 |\n| 小三 | 15 |\n| 四号 | 14 |\n| 小四 | 12 |\n| 五号 | 10.5 |\n| 小五 | 9 |\n\n---\n\n## 字段说明\n\n| 字段 | 类型 | 说明 |\n|------|------|------|\n| fontCN | string | 中文字体（宋体、黑体、楷体、仿宋） |\n| fontEN | string | 西文字体（Times New Roman） |\n| fontSize | number | 字号磅值 |\n| bold | boolean | 是否加粗 |\n| alignment | number | 对齐：0=左对齐，1=居中，2=右对齐，3=两端对齐 |\n| spaceBefore | number | 段前间距（磅） |\n| spaceAfter | number | 段后间距（磅） |\n| firstLineIndent | number | 首行缩进（磅，2字符≈24磅） |\n| lineSpacingRule | number | 行距：0=单倍，1=1.5倍，2=2倍，4=固定值 |\n\n---\n\n## 配置格式\n\n```json\n{\n  \"version\": \"1.0\",\n  \"specText\": \"排版规则原文（必须完整）\",\n  \"fontDefaults\": { \"fontCN\": \"宋体\", \"fontEN\": \"Times New Roman\" },\n  \"paragraphRules\": {\n    \"zhangTitle\": { \"fontCN\": \"黑体\", \"fontSize\": 16, \"bold\": true, \"alignment\": 1, ... },\n    \"body\": { \"fontCN\": \"宋体\", \"fontSize\": 12, \"alignment\": 3, \"firstLineIndent\": 24, ... }\n  }\n}\n```\n\n---\n\n## 特殊规则（从 specText 自动识别）\n\n| 关键词 | 功能 |\n|-------|------|\n| 图片居中 | 图片段落居中 |\n| 表格等宽 | 表格宽度等于页面宽度 |\n| 跨页重复表头 | 表格首行跨页重复 |\n| 公式居中 | 公式段落居中 |\n| 公式编号右对齐 | 公式编号右对齐 |\n| 页码居中/左对齐/右对齐 | 页码位置 |\n| 页码阿拉伯/罗马/中文 | 页码格式 |\n\n---\n\n## 快捷指令示例\n\n**排版标题：**\n```\ngeneralformat：排版主标题和各级标题。\n主标题用黑体二号居中加粗，\n一级标题用黑体三号靠左加粗，\n二级标题用黑体小三号靠左加粗，\n三级标题用黑体四号靠左加粗，\n四级标题用黑体四号靠左加粗，\n五级标题用黑体四号靠左对齐，\n附录标题用黑体三号居中，\n所有标题无缩进。\n```\n\n**排版正文：**\n```\ngeneralformat：排版正文段落格式。\n正文用宋体小四号两端对齐首行缩进2字符行距固定值22磅。\n```\n\n**排版图表：**\n```\ngeneralformat：排版图名表名。\n图名用黑体小五号居中，表名用黑体小五号居中，图片居中对齐，表格与页面等宽。\n```\n\n---\n\n## 段落类型自动识别\n\n脚本自动识别段落类型并设置大纲级别：\n\n| 类型 | 匹配规则 | 大纲级别 |\n|------|---------|---------|\n| zhangTitle | 第X章、数字+空格+汉字 | 1级 |\n| heading2 | X.X 二级编号 | 2级 |\n| heading3 | X.X.X 三级编号 | 3级 |\n| heading4 | X.X.X.X 四级编号 | 4级 |\n| figureCaption | 图X... | - |\n| tableCaption | 表X... | - |\n| body | 其他正文 | - |\n\n相对路径（如 scripts/、resources/）均相对于该 Skill 目录。\n调用 executeFile 时完整路径格式：`skills/generalformat/scripts/<文件名>`\n</skill_content>",
+      "durationMs": 6
+    }
+  },
+  {
+    "id": "1775701970247_f6psyhz",
+    "role": "assistant",
+    "content": "我将根据您提供的排版规则（表头黑体五号居中加粗，表格内容宋体五号靠左对齐）执行表格排版。\n\n首先读取文档段落以识别表格相关段落：\n\n",
+    "timestamp": 1775701970247,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775701970952_ixji",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775701970953,
+    "toolCall": {
+      "toolName": "getDocumentParagraphs",
+      "input": {
+        "scope": "document",
+        "page": 1,
+        "pageSize": 25
+      },
+      "output": "共 4405 个段落,其中 4 个空行已忽略，显示第 1 页（每页 25 条）：\n\n[pid_680643044] 某水电站工程设计报告\n[pid_136029173] （长文档排版校对测试用例）\n[pid_1238000577] 本文件包含200+页内容，涵盖各类排版问题测试\n[pid_409869113] 设计单位：XX水利水电设计院\n[pid_147399507] 二〇二五年三月\n[pid_243861867] 第一章 工程概况\n[pid_2098563851] 1.1 设计依据\n[pid_536249014] 大坝为混凝土双曲拱坝，坝顶高程2900.00m，最大坝高230m，坝顶弧长550m。坝体混凝土总量约350万m³，主要建筑材料包括水泥约40万吨、钢筋约5万吨。引水系统采用一洞四机布置方式，由进水口、引水隧洞、调压室和压力管道组成，引水隧洞直径9.5m，总长约8.5km。 该区域岩体完整率为3～5Lu，透水率为3～5Lu。测区位于扬子准地台西缘，区域构造稳定性较好。近场区范围内无全新世活动断裂分布，历史地震记录显示最大震级为4.5级，属弱震区，区域稳定条件满足工程建设要求。\n[pid_79008174] 地下厂房位于右岸山体内，采用中部开发方式。主厂房尺寸为220m×28m×65m(长×宽×高)，安装4台立轴混流式水轮发电机组。施工导流采用全断面围堰、隧洞导流方式，导流洞布置在左岸，断面尺寸为14m×16m(宽×高)，长约1.2km。工程总投资约72亿元，静态投资约65亿元，建设工期48个月。\n[pid_1794161431] 工程区地震基本烈度为Ⅶ度，地震动峰值加速度为0.10g，地震动反应谱特征周期为0.40s。建筑物抗震设防类别为乙类，抗震设防烈度为Ⅶ度。移民安置人口约12000人，淹没耕地面积约15000亩，淹没房屋面积约80万平方米，移民安置采取就近后靠和异地安置相结合的方式。\n[pid_1482083625] 枢纽工程由挡水建筑物、泄水建筑物、引水建筑物和发电厂房等组成。挡水建筑物采用混凝土双曲拱坝，泄水建筑物包括表孔溢洪道和深孔泄洪洞，引水建筑物采用一洞四机布置方式。电站厂房为地下式厂房，安装4台单机容量212.5MW的混流式水轮发电机组。 施工期间环境温度控制在28℃±3℃范围内。\n[pid_121094936] 本工程为Ⅰ等工程，工程规模为大(1)型。主要建筑物级别为1级，次要建筑物级别为3级，临时建筑物级别为4级。设计使用年限为100年，结构安全等级为一级。工程主要任务为发电，兼顾防洪、灌溉、供水等综合利用要求。\n[pid_766505993] 根据水文气象资料，本流域多年平均降水量为1200mm，多年平均流量为350m³/s，多年平均径流量为110亿m³。设计洪水标准按百年一遇设计，千年一遇校核，相应洪峰流量分别为8500m³/s和10200m³/s。施工导流标准采用十年一遇，相应流量为4200m³/s。\n[pid_165444553] 表1 材料统计表\n[pid_1214063968] 材料名称\u0007\n[pid_1453937580] 规格\u0007\n[pid_2072944041] 数量\u0007\n[pid_265787099] 备注\u0007\n[pid_505926330] \u0007\n[pid_107186541] 材料统计项目1\u0007\n[pid_850117333] 设计值\u0007\n\n... 还有 4380 个段落，请使用 page:2 继续翻页",
+      "durationMs": 10
+    }
+  },
+  {
+    "id": "1775701973268_dn4g6ew",
+    "role": "assistant",
+    "content": "我需要先了解文档中表格的分布情况，然后对表头和表格内容进行排版。让我先检查更多段落以找到所有表格。\n\n",
+    "timestamp": 1775701973268,
+    "streaming": false
+  },
+  {
+    "id": "tool_1775701973864_rq5z",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775701973864,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "// 统计文档中的表格数量并获取表格信息\nvar doc = Application.ActiveDocument;\nvar tables = doc.Tables;\nvar tableCount = tables.Count;\nvar result = \"文档中共有 \" + tableCount + \" 个表格\\n\";\n\nfor (var i = 1; i <= tableCount; i++) {\n    var table = tables.Item(i);\n    var rows = table.Rows.Count;\n    var cols = table.Columns.Count;\n    result += \"表格\" + i + \": \" + rows + \"行 × \" + cols + \"列\\n\";\n}\n\nreturn result;"
+      },
+      "output": "$artifact:20260409-z5o3dz\n文档中共有 31 个表格\n表格1: 21行 × 4列\n表格2: 36行 × 4列\n表格3: 16行 × 4列\n表格4: 26行 × 5列\n表格5: 31行 × 4列\n表格6: 21行 × 4列\n表格7: 21行 × 4列\n表格8: 31行 × 4列\n表格9: 16行 × 4列\n表格10: 16行 × 4列\n表格11: 36行 × 4列\n表格12: 16行 × 4列\n表格13: 16行 × 4列\n表格14: 16行 × 4列\n表格15: 26行 × 5列\n表格16: 19行 × 4列\n表格17: 16行 × 4列\n表格18: 36行 × 4列\n表格19: 26行 × 5列\n表格20: 31行 ×…[共469字]",
+      "durationMs": 1137
+    }
+  },
+  {
+    "id": "tool_1775701977940_rd4f",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775701977940,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "// 对文档中所有表格进行排版：表头黑体五号居中加粗，表格内容宋体五号靠左对齐\nvar doc = Application.ActiveDocument;\nvar tables = doc.Tables;\nvar tableCount = tables.Count;\nvar modifiedCount = 0;\n\nfor (var i = 1; i <= tableCount; i++) {\n    var table = tables.Item(i);\n    var rows = table.Rows.Count;\n    \n    // 处理表头（第一行）- 黑体五号居中加粗\n    var headerRow = table.Rows.Item(1);\n    var headerCells = headerRow.Cells;\n    for (var j = 1; j <= headerCells.Count; j++) {\n        var cell = headerCells.Item(j);\n        var range = cell.Range;\n        var font = range.Font;\n        \n        // 设置字体：黑体、五号(10.5磅)、加粗、居中\n        font.NameFarEast = \"黑体\";\n        font.Size = 10.5;\n        font.Bold = true;\n        \n        // 设置段落居中对齐\n        var paraFormat = range.ParagraphFormat;\n        paraFormat.Alignment = 1; // 1=居中\n    }\n    \n    // 处理表格内容（除第一行外的所有行）- 宋体五号靠左对齐\n    for (var r = 2; r <= rows; r++) {\n        var row = table.Rows.Item(r);\n        var cells = row.Cells;\n        for (var k = 1; k <= cells.Count; k++) {\n            var cell = cells.Item(k);\n            var range = cell.Range;\n            var font = range.Font;\n            \n            // 设置字体：宋体、五号(10.5磅)、不加粗\n            font.NameFarEast = \"宋体\";\n            font.Size = 10.5;\n            font.Bold = false;\n            \n            // 设置段落左对齐\n            var paraFormat = range.ParagraphFormat;\n            paraFormat.Alignment = 0; // 0=左对齐\n        }\n    }\n    \n    modifiedCount++;\n}\n\nreturn \"已完成表格排版：共处理 \" + tableCount + \" 个表格，表头设置为黑体五号居中加粗，表格内容设置为宋体五号靠左对齐。\";"
+      },
+      "output": "[ExecutionError] [LoopGuard] 循环执行超限：超过 20000ms 或 100000 次迭代，已强制终止",
+      "durationMs": 28824
+    }
+  },
+  {
+    "id": "tool_1775702014455_rwza",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775702014455,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "// 对文档中所有表格进行排版：表头黑体五号居中加粗，表格内容宋体五号靠左对齐\nvar doc = Application.ActiveDocument;\nvar tables = doc.Tables;\nvar tableCount = tables.Count;\n\nfor (var i = 1; i <= tableCount; i++) {\n    var table = tables.Item(i);\n    var rows = table.Rows.Count;\n    var cols = table.Columns.Count;\n    \n    // 处理表头（第一行）- 黑体五号居中加粗\n    for (var j = 1; j <= cols; j++) {\n        var cell = table.Cell(1, j);\n        var range = cell.Range;\n        range.Font.NameFarEast = \"黑体\";\n        range.Font.Size = 10.5;\n        range.Font.Bold = true;\n        range.ParagraphFormat.Alignment = 1; // 居中\n    }\n    \n    // 处理表格内容（第2行到最后）- 宋体五号靠左对齐\n    for (var r = 2; r <= rows; r++) {\n        for (var k = 1; k <= cols; k++) {\n            var cell = table.Cell(r, k);\n            var range = cell.Range;\n            range.Font.NameFarEast = \"宋体\";\n            range.Font.Size = 10.5;\n            range.Font.Bold = false;\n            range.ParagraphFormat.Alignment = 0; // 左对齐\n        }\n    }\n}\n\nreturn \"已完成 \" + tableCount + \" 个表格的排版\";"
+      },
+      "output": "[ExecutionError] [LoopGuard] 循环执行超限：超过 20000ms 或 100000 次迭代，已强制终止",
+      "durationMs": 26552
+    }
+  },
+  {
+    "id": "tool_1775702046863_o2rp",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775702046863,
+    "toolCall": {
+      "toolName": "executeCode",
+      "input": {
+        "code": "// 对文档中所有表格进行排版：表头黑体五号居中加粗，表格内容宋体五号靠左对齐\nvar doc = Application.ActiveDocument;\nvar tables = doc.Tables;\nvar tableCount = tables.Count;\n\nfor (var i = 1; i <= tableCount; i++) {\n    var table = tables.Item(i);\n    \n    // 处理表头行 - 黑体五号居中加粗\n    var headerRow = table.Rows.Item(1);\n    headerRow.Range.Font.NameFarEast = \"黑体\";\n    headerRow.Range.Font.Size = 10.5;\n    headerRow.Range.Font.Bold = true;\n    headerRow.Range.ParagraphFormat.Alignment = 1; // 居中\n    \n    // 处理表格内容行（从第2行开始）- 宋体五号靠左对齐\n    if (table.Rows.Count > 1) {\n        var contentRange = doc.Range(table.Rows.Item(2).Range.Start, table.Rows.Item(table.Rows.Count).Range.End);\n        contentRange.Font.NameFarEast = \"宋体\";\n        contentRange.Font.Size = 10.5;\n        contentRange.Font.Bold = false;\n        contentRange.ParagraphFormat.Alignment = 0; // 左对齐\n    }\n}\n\nreturn \"已完成 \" + tableCount + \" 个表格的排版\";"
+      },
+      "output": "已完成 31 个表格的排版",
+      "durationMs": 9632
+    }
+  },
+  {
+    "id": "tool_1775702062436_c0fi",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775702062436,
+    "toolCall": {
+      "toolName": "confirmEdits",
+      "input": {
+        "mode": "format",
+        "summary": "## 格式修改报告\n\n1. **表头排版（31个表格）**\n   - 统一为黑体五号\n   - 居中对齐\n   - 加粗\n\n2. **表格内容排版（31个表格）**\n   - 统一为宋体五号\n   - 靠左对齐\n   - 不加粗"
+      },
+      "output": "[UserCancelled] 已取消本次格式调整。",
+      "durationMs": 11833
+    }
+  },
+  {
+    "id": "confirm_edits_note_1775702074099_dvhd48",
+    "role": "assistant",
+    "content": "已取消本次格式调整。",
+    "timestamp": 1775702074099
+  }
+]

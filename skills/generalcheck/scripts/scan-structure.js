@@ -357,7 +357,19 @@ try {
     try {
       var planPara = plans[p].para;
       var rng = planPara.Range;
-      rng.Text = plans[p].newText;
+      // 保留段落标记（最后一位是 \r 或 \u0007）
+      var rngEnd = rng.End;
+      var contentEnd = rngEnd;
+      try {
+        // 检查最后是否是段落标记
+        var lastChar = doc.Range(rngEnd - 1, rngEnd).Text;
+        if (lastChar === '\r' || lastChar === '\u0007' || lastChar.charCodeAt(0) === 13) {
+          contentEnd = rngEnd - 1;
+        }
+      } catch (e) {}
+      // 只替换内容部分，保留段落标记
+      var contentRng = doc.Range(rng.Start, contentEnd);
+      contentRng.Text = plans[p].newText;
       totalFixed++;
       log.push({ original: plans[p].oldText, suggested: plans[p].newText });
     } catch (e) {

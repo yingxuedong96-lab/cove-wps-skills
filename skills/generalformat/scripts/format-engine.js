@@ -674,6 +674,7 @@ try {
           } catch (e) {}
         }
 
+        applied += tablesProcessed;  // 计入已处理数量
         if (tablesProcessed > 0) {
           console.log('[format] 表格处理: ' + tablesProcessed + '个');
         }

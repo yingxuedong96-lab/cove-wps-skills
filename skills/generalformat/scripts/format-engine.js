@@ -1136,6 +1136,13 @@ try {
                 // 清除现有页码（主页脚）
                 var primaryFooter = footers.Item(1);  // wdHeaderFooterPrimary
                 if (primaryFooter) {
+                  // 先清除页脚中的旧内容
+                  try {
+                    if (primaryFooter.Range) {
+                      primaryFooter.Range.Delete();
+                    }
+                  } catch (e) {}
+
                   // 添加页码域
                   try {
                     var pn = primaryFooter.PageNumbers;

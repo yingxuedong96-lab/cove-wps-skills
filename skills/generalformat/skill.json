@@ -1,15 +1,16 @@
 {
-  "description": "文档格式排版。触发词：排版图、排版表格、排版正文、排版标题、排版页面。",
+  "description": "文档格式排版。触发词：排版图、排版表格。",
   "displayName": "通用文档排版",
   "emoji": "📝",
   "files": [
     "skill.json",
     "SKILL.md",
-    "scripts/format-engine.js"
+    "scripts/format-figure.js",
+    "scripts/format-table.js"
   ],
   "name": "generalformat",
   "resources": [],
   "snapshot": "before_task",
   "source": "server",
-  "version": "26.0409.1220"
+  "version": "26.0409.1230"
 }

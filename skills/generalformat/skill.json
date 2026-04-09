@@ -1,26 +1,15 @@
 {
-  "description": "从规范文档提取排版规则，自动识别段落类型并应用格式。触发词：排版、排版图、排版表格、排版正文、排版标题、排版页面、排版页眉页脚。",
+  "description": "文档格式排版。根据排版规则自动识别段落类型并应用格式。触发词：排版、排版图、排版表格、排版正文、排版标题、排版页面、排版页眉页脚。",
   "displayName": "通用文档排版",
   "emoji": "📝",
   "files": [
     "skill.json",
     "SKILL.md",
-    "scripts/parse-spec.js",
-    "scripts/format-engine.js",
-    "scripts/apply-page-setup.js",
-    "scripts/validate-config.js",
-    "prompts/parse-spec-doc.md",
-    "prompts/classify-paras.md",
-    "references/config-schema.md"
+    "scripts/format-engine.js"
   ],
   "name": "generalformat",
-  "resources": [
-    "references/config-schema.md",
-    "prompts/parse-spec-doc.md",
-    "prompts/classify-paras.md"
-  ],
+  "resources": [],
   "snapshot": "before_task",
   "source": "server",
-  "subAgentSystemPrompt": "【排版任务执行规则】\n\n1. 直接调用脚本，不探索文档，不写代码\n2. 把用户规则原文放入 specText\n3. 从规则中提取类型配置放入 paragraphRules\n\n【调用格式】\nexecuteFile: skills/generalformat/scripts/format-engine.js\nparams: {config: {specText, paragraphRules}}\n\n【类型名】\nfigureCaption(图名), tableCaption(表名), tableHeader(表头), tableContent(表格内容), body(正文), zhangTitle(章标题), heading2-5, headerFooter(页眉页脚)\n\n【字号】9=小五, 10.5=五号, 12=小四, 14=四号\n【对齐】0=左, 1=居中, 2=右, 3=两端\n\n【示例-排版图】\n{specText:\"图名用黑体小五号居中，图片居中对齐\",paragraphRules:{figureCaption:{fontCN:\"黑体\",fontSize:9,alignment:1}}}\n\n【示例-排版表格】\n{specText:\"表格与页面等宽、跨页重复表头，表头用黑体五号居中加粗，表格内容用宋体五号靠左\",paragraphRules:{tableHeader:{fontCN:\"黑体\",fontSize:10.5,alignment:1,bold:true},tableContent:{fontCN:\"宋体\",fontSize:10.5,alignment:0}}}",
-  "version": "26.0409.1145"
+  "version": "26.0409.1200"
 }

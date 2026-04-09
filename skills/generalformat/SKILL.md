@@ -15,7 +15,7 @@ description: >
 | 触发词 | specText | paragraphRules |
 |-------|----------|----------------|
 | 排版图 | 图名用黑体小五号居中，图片居中对齐 | `{figureCaption:{fontCN:黑体,fontSize:9,alignment:1}}` |
-| 排版表格 | 表格与页面等宽、跨页重复表头，表头用黑体五号居中加粗，表格内容用宋体五号靠左 | `{tableHeader:{fontCN:黑体,fontSize:10.5,alignment:1,bold:true},tableContent:{fontCN:宋体,fontSize:10.5,alignment:0}}` |
+| 排版表格 | 表名用黑体小五号居中，表格与页面等宽、跨页重复表头，表头用黑体五号居中加粗，表格内容用宋体五号靠左对齐 | `{tableCaption:{fontCN:黑体,fontSize:9,alignment:1},tableHeader:{fontCN:黑体,fontSize:10.5,alignment:1,bold:true},tableContent:{fontCN:宋体,fontSize:10.5,alignment:0}}` |
 | 排版正文 | 正文用宋体小四号两端对齐首行缩进2字符 | `{body:{fontCN:宋体,fontSize:12,alignment:3,firstLineIndent:24}}` |
 | 排版标题 | 章标题用黑体三号居中加粗，二级标题用黑体小三左对齐 | `{zhangTitle:{fontCN:黑体,fontSize:16,alignment:1,bold:true},heading2:{fontCN:黑体,fontSize:15,alignment:0}}` |
 
@@ -53,8 +53,9 @@ params:
 filePath: skills/generalformat/scripts/format-engine.js
 params:
   config:
-    specText: 表格与页面等宽、跨页重复表头，表头用黑体五号居中加粗，表格内容用宋体五号靠左
+    specText: 表名用黑体小五号居中，表格与页面等宽、跨页重复表头，表头用黑体五号居中加粗，表格内容用宋体五号靠左对齐
     paragraphRules:
+      tableCaption: {fontCN: 黑体, fontSize: 9, alignment: 1}
       tableHeader: {fontCN: 黑体, fontSize: 10.5, alignment: 1, bold: true}
       tableContent: {fontCN: 宋体, fontSize: 10.5, alignment: 0}
 ```

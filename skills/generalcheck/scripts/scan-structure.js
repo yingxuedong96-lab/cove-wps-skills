@@ -1,8 +1,10 @@
 /**
  * scan-structure.js
  * 校对标题编号、图编号、表编号、公式编号
- * 支持自动编号检测与转换
- * scope: heading/figure/table/formula/numbering
+ * scope: heading（标题）, figure（图）, table（表）, formula（公式）, numbering（全部）
+ * figureFormat: chapter（图X.Y-Z）, simple（图1、图2...）
+ * tableFormat: chapter（表X.Y-Z）, simple（表1、表2...）
+ * formulaFormat: chapter（(X.Y-Z)）, simple（(1)、(2)...）
  */
 try {
   var doc = Application.ActiveDocument;
@@ -14,224 +16,367 @@ try {
   var needTable = scopeType === 'numbering' || scopeType === 'table';
   var needFormula = scopeType === 'numbering' || scopeType === 'formula';
 
+  // 图编号格式：chapter=图X.Y-Z（章节式），simple=图1、图2...（顺序式）
   var figFormat = typeof figureFormat !== 'undefined' ? figureFormat : 'chapter';
+  // 表编号格式：chapter=表X.Y-Z（章节式），simple=表1、表2...（顺序式）
   var tblFormat = typeof tableFormat !== 'undefined' ? tableFormat : 'chapter';
+  // 公式编号格式：chapter=(X.Y-Z)（章节式），simple=(1)、(2)...（顺序式）
   var frmFormat = typeof formulaFormat !== 'undefined' ? formulaFormat : 'chapter';
 
   var cn2num = { '一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'十一':11,'十二':12,'十三':13,'十四':14,'十五':15,'十六':16,'十七':17,'十八':18,'十九':19,'二十':20 };
   var num2cn = { 1:'一',2:'二',3:'三',4:'四',5:'五',6:'六',7:'七',8:'八',9:'九',10:'十',11:'十一',12:'十二',13:'十三',14:'十四',15:'十五',16:'十六',17:'十七',18:'十八',19:'十九',20:'二十' };
 
-  function clean(t) { return String(t || '').replace(/\u0007/g, '').replace(/[\r\n]/g, '').trim(); }
-  function isChinese(s) { return s && /^[\u4e00-\u9fa5]/.test(s); }
+  function cleanText(text) {
+    return String(text || '').replace(/\u0007/g, '').replace(/[\r\n]/g, '').trim();
+  }
 
-  console.log('[scan] 开始, scope=' + scopeType);
+  function isChineseTitle(str) {
+    return str && /^[\u4e00-\u9fa5]/.test(str);
+  }
 
-  var state = { ch: 0, sec: 0, sub: 0, item: 0, subItem: 0 };
-  var appState = { letter: '', letterIdx: 0, l1: 0, l2: 0, l3: 0 };
-  var inApp = false;
-  var figCtr = {}, figSim = 0, figApp = 0;
-  var tblCtr = {}, tblSim = 0, tblApp = 0;
-  var frmCtr = {}, frmSim = 0, frmApp = 0;
+  var docText = doc.Content && doc.Content.Text ? String(doc.Content.Text) : '';
+  var paras = docText.split('\r');
+  console.log('[scan] 开始规划，总段落数: ' + paras.length + ', scope=' + scopeType + ', figureFormat=' + figFormat);
 
-  var counts = { headings: 0, figures: 0, tables: 0, formulas: 0, autoConverted: 0 };
   var plans = [];
-  var autoLog = [];
+  var counts = { headings: 0, figures: 0, tables: 0, formulas: 0 };
 
-  // 开启修订
-  var origTrack = doc.TrackRevisions;
-  doc.TrackRevisions = true;
+  // 当前活跃的各级编号状态
+  var state = { ch: 0, sec: 0, sub: 0, item: 0, subItem: 0 };
+  var appState = { letter: '', letterIndex: 0, l1: 0, l2: 0, l3: 0 };
+  var inAppendix = false;
 
-  var paras = doc.Paragraphs;
-  var total = paras.Count;
-  console.log('[scan] 段落数: ' + total);
+  // 图编号计数器
+  var figureCounters = {};        // 章节式：key = "章.节"
+  var simpleFigureCounter = 0;    // 顺序式：全文递增
+  var appendixFigureCounter = 0;
 
-  // 分批处理，每批100段
-  var batchSize = 100;
-  var batches = Math.ceil(total / batchSize);
+  // 表编号计数器
+  var tableCounters = {};         // 章节式：key = "章.节"
+  var simpleTableCounter = 0;     // 顺序式：全文递增
+  var appendixTableCounter = 0;
 
-  for (var batch = 0; batch < batches; batch++) {
-    var start = batch * batchSize + 1;
-    var end = Math.min((batch + 1) * batchSize, total);
+  // 公式编号计数器
+  var formulaCounters = {};       // 章节式：key = "章.节"
+  var simpleFormulaCounter = 0;   // 顺序式：全文递增
+  var appendixFormulaCounter = 0;
 
-    for (var i = start; i <= end; i++) {
-      var para = paras.Item(i);
-      var rng = para.Range;
-      var text = clean(rng.Text);
-      if (!text) continue;
+  for (var i = 0; i < paras.length; i++) {
+    var text = cleanText(paras[i]);
+    if (!text) continue;
 
-      // 检测并转换自动编号（轻量级）
-      try {
-        var lf = rng.ListFormat;
-        if (lf && lf.ListType !== 0) {
-          var ls = lf.ListString;
-          if (ls) {
-            rng.InsertBefore(ls + ' ');
-            lf.RemoveNumbers();
-            counts.autoConverted++;
-            autoLog.push(ls);
-            text = clean(rng.Text);
-          }
-        }
-      } catch (e) {}
-
-      // === 处理逻辑（精简版）===
-      // 附录
-      var am = text.match(/^附\s*录\s*([A-Z一二三四五六七八九十]+)[\s　]*(.*)$/i);
-      if (am) {
-        inApp = true;
-        appState.l1 = 0; appState.l2 = 0; appState.l3 = 0;
-        figApp = 0; tblApp = 0; frmApp = 0;
-        appState.letterIdx++;
-        appState.letter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.charAt((appState.letterIdx - 1) % 26);
-        if (needHeading) {
-          counts.headings++;
-          var nt = '附录' + appState.letter + (am[2] ? ' ' + am[2] : '');
-          if (text !== nt) plans.push({ para: para, old: text, new: nt });
-        }
-        continue;
+    // === 检测附录 ===
+    var appMatch = text.match(/^附\s*录\s*([A-Z一二三四五六七八九十]+)[\s　]*(.*)$/i);
+    if (appMatch) {
+      inAppendix = true;
+      appState.l1 = 0;
+      appState.l2 = 0;
+      appState.l3 = 0;
+      appendixFigureCounter = 0;
+      appendixTableCounter = 0;
+      appendixFormulaCounter = 0;
+      appState.letterIndex++;
+      var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      appState.letter = letters.charAt((appState.letterIndex - 1) % 26);
+      if (needHeading) {
+        counts.headings++;
+        var newText = '附录' + appState.letter + (appMatch[2] ? ' ' + appMatch[2] : '');
+        console.log('[scan] 附录: ' + text + ' → ' + newText);
+        if (text !== newText) plans.push({ oldText: text, newText: newText });
       }
+      continue;
+    }
 
-      // 附录内
-      if (inApp && !/^第[一二三四五六七八九十]+章/.test(text)) {
+    // === 附录内处理 ===
+    if (inAppendix) {
+      if (/^第[一二三四五六七八九十]+章/.test(text)) {
+        inAppendix = false;
+      } else {
+        // 附录内标题
         if (needHeading) {
           var m1 = text.match(/^[A-Z]\.(\d+)\s+(.+)$/);
-          if (m1 && isChinese(m1[2])) {
-            appState.l1++; counts.headings++;
-            var nt = appState.letter + '.' + appState.l1 + ' ' + m1[2];
-            if (text !== nt) plans.push({ para: para, old: text, new: nt });
+          if (m1 && isChineseTitle(m1[2])) {
+            appState.l1++; appState.l2 = 0; appState.l3 = 0;
+            counts.headings++;
+            var newText = appState.letter + '.' + appState.l1 + ' ' + m1[2];
+            if (text !== newText) plans.push({ oldText: text, newText: newText });
+            continue;
+          }
+          var m2 = text.match(/^[A-Z]\.(\d+)\.(\d+)\s+(.+)$/);
+          if (m2 && isChineseTitle(m2[3])) {
+            if (appState.l1 === 0) appState.l1 = 1;
+            appState.l2++; appState.l3 = 0;
+            counts.headings++;
+            var newText = appState.letter + '.' + appState.l1 + '.' + appState.l2 + ' ' + m2[3];
+            if (text !== newText) plans.push({ oldText: text, newText: newText });
+            continue;
+          }
+          var m3 = text.match(/^[A-Z]\.(\d+)\.(\d+)\.(\d+)\s+(.+)$/);
+          if (m3 && isChineseTitle(m3[4])) {
+            if (appState.l1 === 0) appState.l1 = 1;
+            if (appState.l2 === 0) appState.l2 = 1;
+            appState.l3++;
+            counts.headings++;
+            var newText = appState.letter + '.' + appState.l1 + '.' + appState.l2 + '.' + appState.l3 + ' ' + m3[4];
+            if (text !== newText) plans.push({ oldText: text, newText: newText });
             continue;
           }
         }
-        if (needFigure && /^图\s*([A-Z])?\.?(\d+)\s+/i.test(text)) {
-          figApp++; counts.figures++;
-          var m = text.match(/^图\s*([A-Z])?\.?(\d+)\s+(.+)$/i);
-          if (m) { var nt = '图' + appState.letter + figApp + ' ' + m[3]; if (text !== nt) plans.push({ para: para, old: text, new: nt }); }
-          continue;
+
+        // 附录内图编号：图A1、图A.1 或 图1
+        if (needFigure) {
+          var appFig = text.match(/^图\s*([A-Z])?\.?(\d+)\s+(.+)$/i);
+          if (appFig) {
+            appendixFigureCounter++;
+            counts.figures++;
+            var newText = '图' + appState.letter + appendixFigureCounter + ' ' + appFig[3];
+            console.log('[scan] 附录图: ' + text + ' → ' + newText);
+            if (text !== newText) plans.push({ oldText: text, newText: newText });
+            continue;
+          }
         }
-        if (needTable && /^表\s*([A-Z])?\.?(\d+)\s+/i.test(text)) {
-          tblApp++; counts.tables++;
-          var m = text.match(/^表\s*([A-Z])?\.?(\d+)\s+(.+)$/i);
-          if (m) { var nt = '表' + appState.letter + tblApp + ' ' + m[3]; if (text !== nt) plans.push({ para: para, old: text, new: nt }); }
-          continue;
+
+        // 附录内表编号：表A1、表A.1 或 表1
+        if (needTable) {
+          var appTbl = text.match(/^表\s*([A-Z])?\.?(\d+)\s+(.+)$/i);
+          if (appTbl) {
+            appendixTableCounter++;
+            counts.tables++;
+            var newText = '表' + appState.letter + appendixTableCounter + ' ' + appTbl[3];
+            console.log('[scan] 附录表: ' + text + ' → ' + newText);
+            if (text !== newText) plans.push({ oldText: text, newText: newText });
+            continue;
+          }
         }
-        if (needFormula && /\(([A-Z])?\.?(\d+)\)$/.test(text)) {
-          frmApp++; counts.formulas++;
-          var nt = text.replace(/\(([A-Z])?\.?(\d+)\)$/, '(' + appState.letter + frmApp + ')');
-          if (text !== nt) plans.push({ para: para, old: text, new: nt });
-          continue;
+
+        // 附录内公式编号：(A1)、(A.1) 或 (1)
+        if (needFormula) {
+          var appFrm = text.match(/\(([A-Z])?\.?(\d+)\)$/);
+          if (appFrm) {
+            appendixFormulaCounter++;
+            counts.formulas++;
+            var newText = '(' + appState.letter + appendixFormulaCounter + ')';
+            console.log('[scan] 附录公式: ' + text + ' → ' + newText);
+            if (text !== newText) plans.push({ oldText: text, newText: newText });
+            continue;
+          }
         }
         continue;
-      }
-      inApp = false;
-
-      // 一级：第X章
-      var h1 = text.match(/^第([一二三四五六七八九十]+)章\s*(.*)$/);
-      if (h1) {
-        state.ch++; state.sec = 0; state.sub = 0; state.item = 0; state.subItem = 0;
-        if (needHeading) { counts.headings++; var nt = '第' + (num2cn[state.ch] || state.ch) + '章 ' + h1[2]; if (text !== nt) plans.push({ para: para, old: text, new: nt }); }
-        continue;
-      }
-
-      // 一级：数字
-      var h1n = text.match(/^(\d+)\s+([^\d\s].*)$/);
-      if (h1n && isChinese(h1n[2]) && !/^\d+\.\d/.test(text)) {
-        state.ch++; state.sec = 0; state.sub = 0; state.item = 0; state.subItem = 0;
-        if (needHeading) { counts.headings++; var nt = state.ch + ' ' + h1n[2]; if (text !== nt) plans.push({ para: para, old: text, new: nt }); }
-        continue;
-      }
-
-      // 二级
-      var h2 = text.match(/^(\d+)\.(\d+)\s+(.+)$/);
-      if (h2 && isChinese(h2[3]) && text.indexOf('表') !== 0 && text.indexOf('图') !== 0) {
-        if (state.ch === 0) state.ch = 1; state.sec++; state.sub = 0; state.item = 0; state.subItem = 0;
-        if (needHeading) { counts.headings++; var nt = state.ch + '.' + state.sec + ' ' + h2[3]; if (text !== nt) plans.push({ para: para, old: text, new: nt }); }
-        continue;
-      }
-
-      // 三级
-      var h3 = text.match(/^(\d+)\.(\d+)\.(\d+)\s+(.+)$/);
-      if (h3 && isChinese(h3[4])) {
-        if (state.ch === 0) state.ch = 1; if (state.sec === 0) state.sec = 1;
-        state.sub++; state.item = 0; state.subItem = 0;
-        if (needHeading) { counts.headings++; var nt = state.ch + '.' + state.sec + '.' + state.sub + ' ' + h3[4]; if (text !== nt) plans.push({ para: para, old: text, new: nt }); }
-        continue;
-      }
-
-      // 四级
-      var h4 = text.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)\s+(.+)$/);
-      if (h4 && isChinese(h4[5])) {
-        if (state.ch === 0) state.ch = 1; if (state.sec === 0) state.sec = 1; if (state.sub === 0) state.sub = 1;
-        state.item++; state.subItem = 0;
-        if (needHeading) { counts.headings++; var nt = state.ch + '.' + state.sec + '.' + state.sub + '.' + state.item + ' ' + h4[5]; if (text !== nt) plans.push({ para: para, old: text, new: nt }); }
-        continue;
-      }
-
-      // 五级
-      var h5 = text.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)\.(\d+)\s+(.+)$/);
-      if (h5 && isChinese(h5[6])) {
-        if (state.ch === 0) state.ch = 1; if (state.sec === 0) state.sec = 1; if (state.sub === 0) state.sub = 1; if (state.item === 0) state.item = 1;
-        state.subItem++;
-        if (needHeading) { counts.headings++; var nt = state.ch + '.' + state.sec + '.' + state.sub + '.' + state.item + '.' + state.subItem + ' ' + h5[6]; if (text !== nt) plans.push({ para: para, old: text, new: nt }); }
-        continue;
-      }
-
-      // 图
-      if (needFigure) {
-        var fm = text.match(/^图\s*(\d+)(?:\.(\d+))?(?:-(\d+))?\s+(.+)$/);
-        if (fm) {
-          counts.figures++;
-          if (figFormat === 'simple') { figSim++; var nt = '图' + figSim + ' ' + fm[4]; if (text !== nt) plans.push({ para: para, old: text, new: nt }); }
-          else { var fc = state.ch || 1, fs = state.sec || 1, fk = fc + '.' + fs; figCtr[fk] = (figCtr[fk] || 0) + 1; var nt = '图' + fc + '.' + fs + '-' + figCtr[fk] + ' ' + fm[4]; if (text !== nt) plans.push({ para: para, old: text, new: nt }); }
-          continue;
-        }
-      }
-
-      // 表
-      if (needTable) {
-        var tm = text.match(/^表\s*(\d+)(?:\.(\d+))?(?:-(\d+))?\s+(.+)$/);
-        if (tm) {
-          counts.tables++;
-          if (tblFormat === 'simple') { tblSim++; var nt = '表' + tblSim + ' ' + tm[4]; if (text !== nt) plans.push({ para: para, old: text, new: nt }); }
-          else { var tc = state.ch || 1, ts = state.sec || 1, tk = tc + '.' + ts; tblCtr[tk] = (tblCtr[tk] || 0) + 1; var nt = '表' + tc + '.' + ts + '-' + tblCtr[tk] + ' ' + tm[4]; if (text !== nt) plans.push({ para: para, old: text, new: nt }); }
-          continue;
-        }
-      }
-
-      // 公式
-      if (needFormula) {
-        var pm = text.match(/\((\d+)(?:\.(\d+))?(?:-(\d+))?\)$/);
-        if (pm) {
-          counts.formulas++;
-          if (frmFormat === 'simple') { frmSim++; var nt = text.replace(/\((\d+)(?:\.(\d+))?(?:-(\d+))?\)$/, '(' + frmSim + ')'); if (text !== nt) plans.push({ para: para, old: text, new: nt }); }
-          else { var fc = state.ch || 1, fs = state.sec || 1, fk = fc + '.' + fs; frmCtr[fk] = (frmCtr[fk] || 0) + 1; var nt = text.replace(/\((\d+)(?:\.(\d+))?(?:-(\d+))?\)$/, '(' + fc + '.' + fs + '-' + frmCtr[fk] + ')'); if (text !== nt) plans.push({ para: para, old: text, new: nt }); }
-          continue;
-        }
       }
     }
-    // 每批处理后输出进度
-    if (batch % 5 === 0 || batch === batches - 1) {
-      console.log('[scan] 进度: ' + Math.min(end, total) + '/' + total);
+
+    // === 正文标题（同时更新章节状态） ===
+    // 一级：第X章
+    var h1 = text.match(/^第([一二三四五六七八九十]+)章\s*(.*)$/);
+    if (h1) {
+      state.ch++;
+      state.sec = 0; state.sub = 0; state.item = 0; state.subItem = 0;
+      if (needHeading) {
+        counts.headings++;
+        var newText = '第' + (num2cn[state.ch] || state.ch) + '章 ' + h1[2];
+        if (text !== newText) plans.push({ oldText: text, newText: newText });
+      }
+      continue;
+    }
+
+    // 一级：数字格式
+    var h1n = text.match(/^(\d+)\s+([^\d\s].*)$/);
+    if (h1n && isChineseTitle(h1n[2]) && !text.match(/^\d+\.\d/)) {
+      state.ch++;
+      state.sec = 0; state.sub = 0; state.item = 0; state.subItem = 0;
+      if (needHeading) {
+        counts.headings++;
+        var newText = state.ch + ' ' + h1n[2];
+        if (text !== newText) plans.push({ oldText: text, newText: newText });
+      }
+      continue;
+    }
+
+    // 二级：X.X
+    var h2 = text.match(/^(\d+)\.(\d+)\s+(.+)$/);
+    if (h2 && isChineseTitle(h2[3]) && text.indexOf('表') !== 0 && text.indexOf('图') !== 0) {
+      if (state.ch === 0) state.ch = 1;
+      state.sec++; state.sub = 0; state.item = 0; state.subItem = 0;
+      if (needHeading) {
+        counts.headings++;
+        var newText = state.ch + '.' + state.sec + ' ' + h2[3];
+        if (text !== newText) plans.push({ oldText: text, newText: newText });
+      }
+      continue;
+    }
+
+    // 三级：X.X.X
+    var h3 = text.match(/^(\d+)\.(\d+)\.(\d+)\s+(.+)$/);
+    if (h3 && isChineseTitle(h3[4])) {
+      if (state.ch === 0) state.ch = 1;
+      if (state.sec === 0) state.sec = 1;
+      state.sub++; state.item = 0; state.subItem = 0;
+      if (needHeading) {
+        counts.headings++;
+        var newText = state.ch + '.' + state.sec + '.' + state.sub + ' ' + h3[4];
+        if (text !== newText) plans.push({ oldText: text, newText: newText });
+      }
+      continue;
+    }
+
+    // 四级：X.X.X.X
+    var h4 = text.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)\s+(.+)$/);
+    if (h4 && isChineseTitle(h4[5])) {
+      if (state.ch === 0) state.ch = 1;
+      if (state.sec === 0) state.sec = 1;
+      if (state.sub === 0) state.sub = 1;
+      state.item++; state.subItem = 0;
+      if (needHeading) {
+        counts.headings++;
+        var newText = state.ch + '.' + state.sec + '.' + state.sub + '.' + state.item + ' ' + h4[5];
+        if (text !== newText) plans.push({ oldText: text, newText: newText });
+      }
+      continue;
+    }
+
+    // 五级：X.X.X.X.X
+    var h5 = text.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)\.(\d+)\s+(.+)$/);
+    if (h5 && isChineseTitle(h5[6])) {
+      if (state.ch === 0) state.ch = 1;
+      if (state.sec === 0) state.sec = 1;
+      if (state.sub === 0) state.sub = 1;
+      if (state.item === 0) state.item = 1;
+      state.subItem++;
+      if (needHeading) {
+        counts.headings++;
+        var newText = state.ch + '.' + state.sec + '.' + state.sub + '.' + state.item + '.' + state.subItem + ' ' + h5[6];
+        if (text !== newText) plans.push({ oldText: text, newText: newText });
+      }
+      continue;
+    }
+
+    // === 图编号 ===
+    if (needFigure) {
+      // 格式：图X.Y-Z 标题 或 图X-Y 标题 或 图X 标题
+      var figMatch = text.match(/^图\s*(\d+)(?:\.(\d+))?(?:-(\d+))?\s+(.+)$/);
+      if (figMatch) {
+        counts.figures++;
+
+        if (figFormat === 'simple') {
+          // 顺序式：图1、图2、图3... 全文递增
+          simpleFigureCounter++;
+          var newText = '图' + simpleFigureCounter + ' ' + figMatch[4];
+          console.log('[scan] 图(顺序式): ' + text + ' → ' + newText);
+          if (text !== newText) plans.push({ oldText: text, newText: newText });
+        } else {
+          // 章节式：图X.Y-Z 格式
+          if (state.ch === 0) state.ch = 1;
+          var figCh = state.ch;
+          var figSec = state.sec > 0 ? state.sec : 1;
+          var figKey = figCh + '.' + figSec;
+
+          figureCounters[figKey] = (figureCounters[figKey] || 0) + 1;
+          var figNum = figureCounters[figKey];
+
+          var newText = '图' + figCh + '.' + figSec + '-' + figNum + ' ' + figMatch[4];
+          console.log('[scan] 图(章节式): ' + text + ' → ' + newText);
+          if (text !== newText) plans.push({ oldText: text, newText: newText });
+        }
+        continue;
+      }
+    }
+
+    // === 表编号 ===
+    if (needTable) {
+      // 格式：表X.Y-Z 标题 或 表X-Y 标题 或 表X 标题
+      var tblMatch = text.match(/^表\s*(\d+)(?:\.(\d+))?(?:-(\d+))?\s+(.+)$/);
+      if (tblMatch) {
+        counts.tables++;
+
+        if (tblFormat === 'simple') {
+          // 顺序式：表1、表2、表3... 全文递增
+          simpleTableCounter++;
+          var newText = '表' + simpleTableCounter + ' ' + tblMatch[4];
+          console.log('[scan] 表(顺序式): ' + text + ' → ' + newText);
+          if (text !== newText) plans.push({ oldText: text, newText: newText });
+        } else {
+          // 章节式：表X.Y-Z 格式
+          if (state.ch === 0) state.ch = 1;
+          var tblCh = state.ch;
+          var tblSec = state.sec > 0 ? state.sec : 1;
+          var tblKey = tblCh + '.' + tblSec;
+
+          tableCounters[tblKey] = (tableCounters[tblKey] || 0) + 1;
+          var tblNum = tableCounters[tblKey];
+
+          var newText = '表' + tblCh + '.' + tblSec + '-' + tblNum + ' ' + tblMatch[4];
+          console.log('[scan] 表(章节式): ' + text + ' → ' + newText);
+          if (text !== newText) plans.push({ oldText: text, newText: newText });
+        }
+        continue;
+      }
+    }
+
+    // === 公式编号 ===
+    if (needFormula) {
+      // 格式：(X.Y-Z) 或 (X-Y) 或 (X) 在段落末尾
+      var frmMatch = text.match(/\((\d+)(?:\.(\d+))?(?:-(\d+))?\)$/);
+      if (frmMatch) {
+        counts.formulas++;
+
+        if (frmFormat === 'simple') {
+          // 顺序式：(1)、(2)、(3)... 全文递增
+          simpleFormulaCounter++;
+          var newText = text.replace(/\((\d+)(?:\.(\d+))?(?:-(\d+))?\)$/, '(' + simpleFormulaCounter + ')');
+          console.log('[scan] 公式(顺序式): ' + text + ' → ' + newText);
+          if (text !== newText) plans.push({ oldText: text, newText: newText });
+        } else {
+          // 章节式：(X.Y-Z) 格式
+          if (state.ch === 0) state.ch = 1;
+          var frmCh = state.ch;
+          var frmSec = state.sec > 0 ? state.sec : 1;
+          var frmKey = frmCh + '.' + frmSec;
+
+          formulaCounters[frmKey] = (formulaCounters[frmKey] || 0) + 1;
+          var frmNum = formulaCounters[frmKey];
+
+          var newText = text.replace(/\((\d+)(?:\.(\d+))?(?:-(\d+))?\)$/, '(' + frmCh + '.' + frmSec + '-' + frmNum + ')');
+          console.log('[scan] 公式(章节式): ' + text + ' → ' + newText);
+          if (text !== newText) plans.push({ oldText: text, newText: newText });
+        }
+        continue;
+      }
     }
   }
 
-  console.log('[scan] 规划完成，待修复' + plans.length + '处');
+  console.log('[scan] 规划完成：标题' + counts.headings + ' 图' + counts.figures + ' 表' + counts.tables + ' 公式' + counts.formulas + '，待修复' + plans.length + '处');
 
-  // 执行修复
-  var fixed = 0, log = [];
+  // 从后往前替换
+  var origTrack = doc.TrackRevisions;
+  doc.TrackRevisions = true;
+  var totalFixed = 0;
+  var log = [];
+
+  var replaceList = [];
   for (var p = 0; p < plans.length; p++) {
     try {
-      plans[p].para.Range.Text = plans[p].new;
-      fixed++;
-      log.push({ original: plans[p].old, suggested: plans[p].new });
+      var sr = doc.Range(0, doc.Content.End);
+      sr.Find.ClearFormatting();
+      sr.Find.Forward = true;
+      sr.Find.Wrap = 0;
+      if (sr.Find.Execute(plans[p].oldText, false, false, false, false, false, true, 1, false)) {
+        replaceList.push({ start: sr.Start, end: sr.End, newText: plans[p].newText, oldText: plans[p].oldText });
+      }
     } catch (e) {}
   }
-
+  replaceList.sort(function(a, b) { return b.start - a.start; });
+  for (var r = 0; r < replaceList.length; r++) {
+    try {
+      var rng = doc.Range(replaceList[r].start, replaceList[r].end);
+      rng.Text = replaceList[r].newText;
+      totalFixed++;
+      log.push({ original: replaceList[r].oldText, suggested: replaceList[r].newText });
+    } catch (e) {}
+  }
   doc.TrackRevisions = origTrack;
 
-  var msg = '编号校对完成：修复 ' + fixed + ' 处';
-  if (counts.autoConverted > 0) msg += '，转换自动编号 ' + counts.autoConverted + ' 处';
-
-  return { success: true, totalFixed: fixed, fixed: fixed, details: log, structure: counts, autoNumberConversions: autoLog, summary: { totalIssues: fixed, autoNumberDetected: counts.autoConverted }, message: msg };
+  console.log('[scan] 完成，修复: ' + totalFixed);
+  return { success: true, totalFixed: totalFixed, fixed: totalFixed, details: log, structure: counts, summary: { totalIssues: totalFixed } };
 } catch (e) {
   return { success: false, error: String(e) };
 }

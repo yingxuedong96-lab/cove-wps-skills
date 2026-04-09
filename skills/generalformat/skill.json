@@ -1,5 +1,5 @@
 {
-  "description": "文档格式排版。根据排版规则自动识别段落类型并应用格式。触发词：排版、排版图、排版表格、排版正文、排版标题、排版页面、排版页眉页脚。",
+  "description": "文档格式排版。触发词：排版图、排版表格、排版正文、排版标题、排版页面。",
   "displayName": "通用文档排版",
   "emoji": "📝",
   "files": [
@@ -11,5 +11,5 @@
   "resources": [],
   "snapshot": "before_task",
   "source": "server",
-  "version": "26.0409.1200"
+  "version": "26.0409.1144"
 }

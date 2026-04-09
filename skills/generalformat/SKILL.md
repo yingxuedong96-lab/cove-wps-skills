@@ -1,54 +1,67 @@
 ---
 name: generalformat
 description: >
-  文档格式排版。根据排版规则自动识别段落类型并应用格式。触发词：排版、排版图、排版表格、排版正文、排版标题。
+  文档格式排版。触发词：排版图、排版表格、排版正文、排版标题、排版页面。
 ---
 
 # 通用文档排版
 
-## 执行步骤
+## ⚠️ 执行流程
 
-### Step 1 — 调用排版脚本
+根据用户输入的触发词，直接执行对应配置的脚本。
 
-调用 `executeFile`：
+### 触发词 → 配置映射表
 
-```text
-filePath: "skills/generalformat/scripts/format-engine.js"
-params:
-  config:
-    specText: "图名用黑体小五号居中，图片居中对齐"
-    paragraphRules:
-      figureCaption:
-        fontCN: 黑体
-        fontSize: 9
-        alignment: 1
+| 触发词 | specText | paragraphRules |
+|-------|----------|----------------|
+| 排版图 | 图名用黑体小五号居中，图片居中对齐 | `{figureCaption:{fontCN:黑体,fontSize:9,alignment:1}}` |
+| 排版表格 | 表格与页面等宽、跨页重复表头，表头用黑体五号居中加粗，表格内容用宋体五号靠左 | `{tableHeader:{fontCN:黑体,fontSize:10.5,alignment:1,bold:true},tableContent:{fontCN:宋体,fontSize:10.5,alignment:0}}` |
+| 排版正文 | 正文用宋体小四号两端对齐首行缩进2字符 | `{body:{fontCN:宋体,fontSize:12,alignment:3,firstLineIndent:24}}` |
+| 排版标题 | 章标题用黑体三号居中加粗，二级标题用黑体小三左对齐 | `{zhangTitle:{fontCN:黑体,fontSize:16,alignment:1,bold:true},heading2:{fontCN:黑体,fontSize:15,alignment:0}}` |
+
+---
+
+## 执行方式
+
+**⚠️ 直接调用脚本，不要做任何额外处理。**
+
 ```
-
-**排版图示例**：
-```yaml
-specText: "图名用黑体小五号居中，图片居中对齐"
-paragraphRules:
-  figureCaption: {fontCN: 黑体, fontSize: 9, alignment: 1}
-```
-
-**排版表格示例**：
-```yaml
-specText: "表格与页面等宽、跨页重复表头，表头用黑体五号居中加粗，表格内容用宋体五号靠左"
-paragraphRules:
-  tableHeader: {fontCN: 黑体, fontSize: 10.5, alignment: 1, bold: true}
-  tableContent: {fontCN: 宋体, fontSize: 10.5, alignment: 0}
-```
-
-**排版正文示例**：
-```yaml
-specText: "正文用宋体小四号两端对齐首行缩进2字符"
-paragraphRules:
-  body: {fontCN: 宋体, fontSize: 12, alignment: 3, firstLineIndent: 24}
+executeFile:
+  filePath: "skills/generalformat/scripts/format-engine.js"
+  params:
+    config:
+      specText: "<匹配的specText>"
+      paragraphRules: <匹配的paragraphRules>
 ```
 
 ---
 
-### 类型名
+## 完整示例
+
+**排版图**：
+```yaml
+filePath: skills/generalformat/scripts/format-engine.js
+params:
+  config:
+    specText: 图名用黑体小五号居中，图片居中对齐
+    paragraphRules:
+      figureCaption: {fontCN: 黑体, fontSize: 9, alignment: 1}
+```
+
+**排版表格**：
+```yaml
+filePath: skills/generalformat/scripts/format-engine.js
+params:
+  config:
+    specText: 表格与页面等宽、跨页重复表头，表头用黑体五号居中加粗，表格内容用宋体五号靠左
+    paragraphRules:
+      tableHeader: {fontCN: 黑体, fontSize: 10.5, alignment: 1, bold: true}
+      tableContent: {fontCN: 宋体, fontSize: 10.5, alignment: 0}
+```
+
+---
+
+## 类型名
 
 | 规范叫法 | 类型名 |
 |---------|-------|
@@ -61,7 +74,7 @@ paragraphRules:
 
 ---
 
-### 字号
+## 字号对照
 
 | 中文 | 磅值 |
 |-----|-----|
@@ -69,10 +82,12 @@ paragraphRules:
 | 五号 | 10.5 |
 | 小四 | 12 |
 | 四号 | 14 |
+| 小三 | 15 |
+| 三号 | 16 |
 
 ---
 
-### 对齐
+## 对齐值
 
 | 方式 | 值 |
 |-----|---|
@@ -83,7 +98,7 @@ paragraphRules:
 
 ---
 
-### 自动关键词
+## 自动关键词
 
 | specText包含 | 自动处理 |
 |-------------|---------|

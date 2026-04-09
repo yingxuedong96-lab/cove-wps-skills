@@ -19,7 +19,9 @@ try {
   // 解析字号
   function parseSize(text) {
     var match = text.match(/(初号|小初|一号|小一|二号|小二|三号|小三|四号|小四|五号|小五|六号|小六)/);
-    return match ? FONT_SIZE_MAP[match[1]] : 0;
+    var result = match ? FONT_SIZE_MAP[match[1]] : 0;
+    console.log('[format-表格] parseSize: text=' + text + ', match=' + (match ? match[1] : 'null') + ', result=' + result);
+    return result;
   }
 
   // 解析字体
@@ -73,9 +75,14 @@ try {
     var headerMatch = userInput.match(/表头[^。；,，]*/);
     if (headerMatch) {
       var ht = headerMatch[0];
-      if (parseFont(ht)) rules.tableHeader.fontCN = parseFont(ht);
-      if (parseSize(ht)) rules.tableHeader.fontSize = parseSize(ht);
-      if (parseAlign(ht) >= 0) rules.tableHeader.alignment = parseAlign(ht);
+      console.log('[format-表格] 表头匹配文本: ' + ht);
+      var parsedFont = parseFont(ht);
+      var parsedSize = parseSize(ht);
+      var parsedAlign = parseAlign(ht);
+      console.log('[format-表格] 解析结果: font=' + parsedFont + ', size=' + parsedSize + ', align=' + parsedAlign);
+      if (parsedFont) rules.tableHeader.fontCN = parsedFont;
+      if (parsedSize) rules.tableHeader.fontSize = parsedSize;
+      if (parsedAlign >= 0) rules.tableHeader.alignment = parsedAlign;
       if (parseBold(ht)) rules.tableHeader.bold = true;
       console.log('[format-表格] 解析表头规则: ' + JSON.stringify(rules.tableHeader));
     }

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "tool_1775710148920_62fy",
+    "role": "tool",
+    "content": "",
+    "timestamp": 1775710148920,
+    "toolCall": {
+      "toolName": "confirmEdits",
+      "input": {
+        "mode": "format",
+        "summary": "操作已中止，以下是已应用的变更，请选择是否保留"
+      },
+      "output": "操作已中止，以下是已应用的变更，请选择是否保留"
+    }
+  }
+]

@@ -288,54 +288,57 @@ try {
       console.log('[designformat] 表格: ' + tableCount + '个, 宽度=' + usableWidth.toFixed(1) + '磅');
     } catch (e) {}
 
-    // 3.6.1 表格内容格式（最后处理，避免被覆盖）
+    // 3.6.1 表格内容格式（逐单元格处理）
     try {
       var tableCount = doc.Tables ? doc.Tables.Count : 0;
       for (var tIdx = 1; tIdx <= tableCount; tIdx++) {
         try {
           var table = doc.Tables.Item(tIdx);
-          if (!table || !table.Rows) continue;
+          if (!table || !table.Rows || !table.Columns) continue;
 
           var rowCount = table.Rows.Count;
+          var colCount = table.Columns.Count;
 
-          // 表头（第一行）：黑体五号加粗居中
-          try {
-            var headerRow = table.Rows.Item(1);
-            if (headerRow && headerRow.Range) {
-              if (headerRow.Range.Font) {
-                headerRow.Range.Font.NameFarEast = '黑体';
-                headerRow.Range.Font.Name = '黑体';
-                headerRow.Range.Font.Size = 10.5;  // 五号
-                headerRow.Range.Font.Bold = -1;
-              }
-              if (headerRow.Range.ParagraphFormat) {
-                headerRow.Range.ParagraphFormat.Alignment = 1;  // 居中
-              }
-            }
-          } catch (e) {}
-
-          // 表格内容（第2行起）：宋体五号靠左
-          if (rowCount > 1) {
+          // 表头（第一行）：逐单元格，黑体五号加粗居中
+          for (var cIdx = 1; cIdx <= colCount; cIdx++) {
             try {
-              var startRow = table.Rows.Item(2);
-              var endRow = table.Rows.Item(rowCount);
-              if (startRow && startRow.Range && endRow && endRow.Range) {
-                var contentRange = doc.Range(startRow.Range.Start, endRow.Range.End);
-                if (contentRange.Font) {
-                  contentRange.Font.NameFarEast = '宋体';
-                  contentRange.Font.Name = '宋体';
-                  contentRange.Font.Size = 10.5;  // 五号
-                  contentRange.Font.Bold = 0;
-                }
-                if (contentRange.ParagraphFormat) {
-                  contentRange.ParagraphFormat.Alignment = 0;  // 靠左
+              var cell = table.Cell(1, cIdx);
+              if (cell && cell.Range) {
+                cell.Range.Font.Reset();
+                cell.Range.Font.NameFarEast = '黑体';
+                cell.Range.Font.Name = '黑体';
+                cell.Range.Font.Size = 10.5;
+                cell.Range.Font.Bold = -1;
+                if (cell.Range.ParagraphFormat) {
+                  cell.Range.ParagraphFormat.Alignment = 1;  // 居中
                 }
               }
             } catch (e) {}
           }
+
+          // 表格内容（第2行起）：逐单元格，宋体五号不加粗靠左
+          if (rowCount > 1) {
+            for (var rIdx = 2; rIdx <= rowCount; rIdx++) {
+              for (var cIdx = 1; cIdx <= colCount; cIdx++) {
+                try {
+                  var cell = table.Cell(rIdx, cIdx);
+                  if (cell && cell.Range) {
+                    cell.Range.Font.Reset();
+                    cell.Range.Font.NameFarEast = '宋体';
+                    cell.Range.Font.Name = '宋体';
+                    cell.Range.Font.Size = 10.5;
+                    cell.Range.Font.Bold = 0;
+                    if (cell.Range.ParagraphFormat) {
+                      cell.Range.ParagraphFormat.Alignment = 0;  // 靠左
+                    }
+                  }
+                } catch (e) {}
+              }
+            }
+          }
         } catch (e) {}
       }
-      console.log('[designformat] 表格内容格式: ' + tableCount + '个');
+      console.log('[designformat] 表格内容格式(单元格级): ' + tableCount + '个');
     } catch (e) {}
 
     // 3.7 页眉页脚

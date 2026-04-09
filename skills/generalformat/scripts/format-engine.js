@@ -1010,7 +1010,7 @@ try {
     // ========================================
     // 页面设置处理
     // ========================================
-    if (specTextLower.indexOf('页边距') !== -1 || specTextLower.indexOf('页眉距') !== -1 || specTextLower.indexOf('页脚距') !== -1) {
+    if (specTextLower.indexOf('页边距') !== -1 || specTextLower.indexOf('纸张') !== -1 || specTextLower.indexOf('A4') !== -1 || specTextLower.indexOf('A3') !== -1) {
       console.log('[format] 启用页面设置');
       try {
         var pageSetupCount = 0;
@@ -1020,24 +1020,75 @@ try {
           return cm * 72 / 2.54;
         }
 
-        // 解析页边距（支持cm和厘米两种格式）
+        // 解析页边距（兼容多种格式）
         var topMargin = 0, bottomMargin = 0, leftMargin = 0, rightMargin = 0;
-        var marginMatch = specTextLower.match(/页边距[：:]?\s*上下\s*([\d.]+)\s*(?:cm|厘米)\s*[，,、]\s*左右\s*([\d.]+)\s*(?:cm|厘米)/);
-        if (marginMatch) {
-          topMargin = cmToPoints(parseFloat(marginMatch[1]));
+
+        // 格式1: 页边距上下2.5cm左右2.5cm（无空格无逗号）
+        var marginMatch1 = specTextLower.match(/页边距\s*上下\s*([\d.]+)\s*(?:cm|厘米)?\s*左右\s*([\d.]+)\s*(?:cm|厘米)?/);
+        if (marginMatch1) {
+          topMargin = cmToPoints(parseFloat(marginMatch1[1]));
           bottomMargin = topMargin;
-          leftMargin = cmToPoints(parseFloat(marginMatch[2]));
+          leftMargin = cmToPoints(parseFloat(marginMatch1[2]));
           rightMargin = leftMargin;
-          console.log('[format] 页边距: 上下=' + marginMatch[1] + 'cm, 左右=' + marginMatch[2] + 'cm → ' + topMargin + '/' + leftMargin + '磅');
+          console.log('[format] 页边距解析(格式1): 上下=' + marginMatch1[1] + ', 左右=' + marginMatch1[2]);
         }
 
-        // 解析页眉页脚距边界（支持cm和厘米）
+        // 格式2: 页边距上下 2.5cm，左右 2.5cm（有空格有逗号）
+        if (!marginMatch1) {
+          var marginMatch2 = specTextLower.match(/页边距[：:]?\s*上下\s*([\d.]+)\s*(?:cm|厘米)\s*[，,、]\s*左右\s*([\d.]+)\s*(?:cm|厘米)/);
+          if (marginMatch2) {
+            topMargin = cmToPoints(parseFloat(marginMatch2[1]));
+            bottomMargin = topMargin;
+            leftMargin = cmToPoints(parseFloat(marginMatch2[2]));
+            rightMargin = leftMargin;
+            console.log('[format] 页边距解析(格式2): 上下=' + marginMatch2[1] + ', 左右=' + marginMatch2[2]);
+          }
+        }
+
+        // 格式3: 页边距2.5cm（四边相同）
+        if (!marginMatch1 && !marginMatch2) {
+          var marginMatch3 = specTextLower.match(/页边距\s*([\d.]+)\s*(?:cm|厘米)/);
+          if (marginMatch3) {
+            topMargin = cmToPoints(parseFloat(marginMatch3[1]));
+            bottomMargin = topMargin;
+            leftMargin = topMargin;
+            rightMargin = topMargin;
+            console.log('[format] 页边距解析(格式3): 四边=' + marginMatch3[1]);
+          }
+        }
+
+        // 解析纸张大小
+        var paperWidth = 0, paperHeight = 0;
+        if (specTextLower.indexOf('a4') !== -1) {
+          paperWidth = 595.35;   // A4宽度 210mm ≈ 595.35磅
+          paperHeight = 841.95;  // A4高度 297mm ≈ 841.95磅
+          console.log('[format] 纸张: A4');
+        } else if (specTextLower.indexOf('a3') !== -1) {
+          paperWidth = 841.95;   // A3宽度 297mm
+          paperHeight = 1190.7;  // A3高度 420mm
+          console.log('[format] 纸张: A3');
+        }
+
+        // 解析纸张方向
+        var orientation = 0;  // 0=纵向, 1=横向
+        if (specTextLower.indexOf('横向') !== -1) {
+          orientation = 1;
+          // 横向时交换宽高
+          var temp = paperWidth;
+          paperWidth = paperHeight;
+          paperHeight = temp;
+          console.log('[format] 方向: 横向');
+        } else {
+          console.log('[format] 方向: 纵向');
+        }
+
+        // 解析页眉页脚距边界
         var headerDist = 0, footerDist = 0;
         var hfDistMatch = specTextLower.match(/页眉页脚距边界\s*([\d.]+)\s*(?:cm|厘米)/);
         if (hfDistMatch) {
           headerDist = cmToPoints(parseFloat(hfDistMatch[1]));
           footerDist = headerDist;
-          console.log('[format] 页眉页脚距边界: ' + hfDistMatch[1] + 'cm → ' + headerDist + '磅');
+          console.log('[format] 页眉页脚距边界: ' + hfDistMatch[1] + 'cm');
         }
 
         // 应用到所有节
@@ -1053,6 +1104,9 @@ try {
               if (bottomMargin > 0) ps.BottomMargin = bottomMargin;
               if (leftMargin > 0) ps.LeftMargin = leftMargin;
               if (rightMargin > 0) ps.RightMargin = rightMargin;
+              if (paperWidth > 0) ps.PageWidth = paperWidth;
+              if (paperHeight > 0) ps.PageHeight = paperHeight;
+              ps.Orientation = orientation;
               if (headerDist > 0) ps.HeaderDistance = headerDist;
               if (footerDist > 0) ps.FooterDistance = footerDist;
               pageSetupCount++;

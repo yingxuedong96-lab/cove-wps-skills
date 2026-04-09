@@ -1,0 +1,12 @@
+{
+  "name": "jd-jswj",
+  "description": "对Word文档进行全面校对（标题编号、数值符号、错别字、标点规范），以修订模式（Track Changes）写回源文件，方便逐条审阅。触发词：校对、公文校对、文档校对、修订模式校对、错别字检查。",
+  "version": "1.0",
+  "snapshot": "before_task",
+  "resources": [
+    "scripts/apply-corrections.js",
+    "scripts/get-doc-info.js",
+    "scripts/init-schedule.js"
+  ],
+  "source": "server"
+}

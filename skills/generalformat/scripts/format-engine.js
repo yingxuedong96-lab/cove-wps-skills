@@ -58,7 +58,8 @@ try {
     figureCaption: ['图名', '图片名', '图标题', '图号', '图片标题', '插图名', 'figure'],
     ref: ['参考文献', '引用文献', 'reference'],
     tableHeader: ['表头', '表格标题行', '表格头部'],
-    tableContent: ['表格内容', '表内容', '表格正文', '单元格', '表格']
+    tableContent: ['表格内容', '表内容', '表格正文', '单元格', '表格'],
+    headerFooter: ['页眉页脚', '页眉', '页脚', '页码']
   };
 
   var specText = configData.specText || '';
@@ -678,6 +679,109 @@ try {
         }
       } catch (e) {
         console.log('[format] 表格处理失败: ' + e);
+      }
+    }
+
+    // ========================================
+    // 页眉页脚处理
+    // ========================================
+    var hfRule = rules.headerFooter;
+    if (hfRule || specTextLower.indexOf('页眉') !== -1 || specTextLower.indexOf('页脚') !== -1 || specTextLower.indexOf('页码') !== -1) {
+      console.log('[format] 启用页眉页脚处理');
+      try {
+        var sections = doc.Sections;
+        var sectionCount = sections ? sections.Count : 0;
+        var hfProcessed = 0;
+
+        // 解析页眉页脚格式
+        var hfFontSize = 9;  // 默认小五号
+        var hfFontCN = '宋体';
+        var hfFontEN = 'Times New Roman';
+        var pageNumAlign = 1;  // 默认居中
+        var pageNumStyle = 0;  // 默认阿拉伯数字
+        var headerLine = false;  // 页眉线
+
+        // 从 specText 解析
+        var fontSizeMatch = specTextLower.match(/小五号|五号|小四号|四号/);
+        if (fontSizeMatch) {
+          hfFontSize = parseFontSize(fontSizeMatch[0]);
+        }
+
+        if (specTextLower.indexOf('页码居中') !== -1) pageNumAlign = 1;
+        else if (specTextLower.indexOf('页码左') !== -1) pageNumAlign = 0;
+        else if (specTextLower.indexOf('页码右') !== -1) pageNumAlign = 2;
+
+        if (specTextLower.indexOf('阿拉伯') !== -1) pageNumStyle = 0;
+        else if (specTextLower.indexOf('罗马') !== -1) pageNumStyle = 3;
+
+        if (specTextLower.indexOf('页眉线') !== -1 || specTextLower.indexOf('单细线') !== -1) {
+          headerLine = true;
+        }
+
+        // 从规则中获取字体
+        if (hfRule) {
+          if (hfRule.fontCN) hfFontCN = hfRule.fontCN;
+          if (hfRule.fontEN) hfFontEN = hfRule.fontEN;
+          if (hfRule.fontSize) hfFontSize = hfRule.fontSize;
+        }
+
+        console.log('[format] 页眉页脚设置: 字号=' + hfFontSize + ', 页码对齐=' + pageNumAlign);
+
+        for (var si = 1; si <= sectionCount; si++) {
+          try {
+            var section = sections.Item(si);
+            if (!section) continue;
+
+            // 处理页眉
+            try {
+              var header = section.Headers.Item(1);  // wdHeaderFooterPrimary
+              if (header && header.Range) {
+                // 设置字体
+                if (header.Range.Font) {
+                  header.Range.Font.NameFarEast = hfFontCN;
+                  header.Range.Font.Name = hfFontEN;
+                  header.Range.Font.Size = hfFontSize;
+                }
+                // 设置页眉线（下划线）
+                if (headerLine && header.Range.ParagraphFormat) {
+                  try {
+                    header.Range.ParagraphFormat.Borders.Item(-3).LineStyle = 1;  // wdBorderBottom = -3
+                  } catch (e) {}
+                }
+                hfProcessed++;
+              }
+            } catch (e) {}
+
+            // 处理页脚（页码）
+            try {
+              var footer = section.Footers.Item(1);  // wdHeaderFooterPrimary
+              if (footer) {
+                // 设置字体
+                if (footer.Range && footer.Range.Font) {
+                  footer.Range.Font.NameFarEast = hfFontCN;
+                  footer.Range.Font.Name = hfFontEN;
+                  footer.Range.Font.Size = hfFontSize;
+                }
+
+                // 添加/设置页码
+                try {
+                  var pageNumbers = footer.PageNumbers;
+                  if (pageNumbers) {
+                    pageNumbers.NumberStyle = pageNumStyle;
+                    pageNumbers.Add(pageNumAlign);
+                  }
+                } catch (e) {}
+
+                hfProcessed++;
+              }
+            } catch (e) {}
+          } catch (e) {}
+        }
+
+        applied += hfProcessed;
+        console.log('[format] 页眉页脚处理: ' + sectionCount + '节, ' + hfProcessed + '个');
+      } catch (e) {
+        console.log('[format] 页眉页脚处理失败: ' + e);
       }
     }
 

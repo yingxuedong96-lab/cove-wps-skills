@@ -553,36 +553,54 @@ try {
     }
 
     // ========================================
-    // 图片处理（居中对齐）
+    // 图片处理（居中/左对齐/右对齐）
     // ========================================
     var elementSettings = configData.elementSettings || {};
     var specTextLower = specText.toLowerCase();
 
-    // 从 specText 自动识别图片居中规则（支持多种写法）
-    if (specTextLower.indexOf('图片居中') !== -1 ||
-        specTextLower.indexOf('图片段落居中') !== -1 ||
-        (specTextLower.indexOf('图片') !== -1 && specTextLower.indexOf('居中') !== -1) ||
-        elementSettings.imageCenter) {
-      elementSettings.imageCenter = true;
-      console.log('[format] 启用图片居中');
+    // 从 specText 自动识别图片对齐规则（支持多种写法）
+    // ⚠️ 优先级：明确指定 > 隐含居中
+    var imageAlign = -1;  // -1=未指定, 0=左, 1=居中, 2=右
+
+    // 明确指定对齐方式
+    if (specTextLower.indexOf('图片左对齐') !== -1 || specTextLower.indexOf('图片靠左') !== -1) {
+      imageAlign = 0;
+      console.log('[format] 图片对齐: 左对齐');
+    } else if (specTextLower.indexOf('图片右对齐') !== -1 || specTextLower.indexOf('图片靠右') !== -1) {
+      imageAlign = 2;
+      console.log('[format] 图片对齐: 右对齐');
+    } else if (specTextLower.indexOf('图片居中') !== -1 ||
+               specTextLower.indexOf('图片段落居中') !== -1 ||
+               (specTextLower.indexOf('图片') !== -1 && specTextLower.indexOf('居中') !== -1) ||
+               elementSettings.imageCenter) {
+      imageAlign = 1;
+      console.log('[format] 图片对齐: 居中');
     }
 
-    if (elementSettings.imageCenter) {
+    if (imageAlign >= 0) {
+      elementSettings.imageAlign = imageAlign;
+    }
+
+    if (elementSettings.imageAlign >= 0 || elementSettings.imageCenter) {
+      // 兼容旧配置
+      var finalAlign = elementSettings.imageAlign || (elementSettings.imageCenter ? 1 : -1);
+      if (finalAlign < 0) finalAlign = 1;  // 默认居中
+
       try {
         var inlineCount = doc.InlineShapes ? doc.InlineShapes.Count : 0;
-        var imageCentered = 0;
+        var imageAligned = 0;
         for (var imgIdx = 1; imgIdx <= inlineCount; imgIdx++) {
           try {
             var inlineShape = doc.InlineShapes.Item(imgIdx);
             if (inlineShape && inlineShape.Range && inlineShape.Range.ParagraphFormat) {
-              inlineShape.Range.ParagraphFormat.Alignment = 1;  // 居中
-              imageCentered++;
+              inlineShape.Range.ParagraphFormat.Alignment = finalAlign;
+              imageAligned++;
             }
           } catch (e) {}
         }
-        if (imageCentered > 0) {
-          applied += imageCentered;
-          console.log('[format] 图片居中: ' + imageCentered + '个');
+        if (imageAligned > 0) {
+          applied += imageAligned;
+          console.log('[format] 图片对齐(' + (finalAlign===0?'左':finalAlign===1?'居中':'右') + '): ' + imageAligned + '个');
         }
       } catch (e) {
         console.log('[format] 图片处理失败: ' + e);

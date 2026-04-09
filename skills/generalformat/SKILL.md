@@ -2,7 +2,6 @@
 name: generalformat
 description: >
   文档格式排版。根据排版规则自动识别段落类型并应用格式。
-  支持两种模式：(1)快捷指令模式：直接从prompt获取规则 (2)规范文档模式：从规范文档提取规则。
   触发词：排版标题、排版正文、排版图表、排版图、排版表格、排版页面、排版页眉页脚、完整排版。
 compatibility:
   runtime: WPS JS 宏 / WPS 加载项（JSAPI）
@@ -10,184 +9,104 @@ compatibility:
 
 # 通用文档排版
 
-## 使用方式
-
-**两种模式：**
-1. **快捷指令模式**：prompt 中直接包含排版规则 → 直接生成配置并执行
-2. **规范文档模式**：用户提供规范文档文件 → 解析后生成配置执行
-
-**⚠️ 立即执行：不要探索文档，直接调用 format-engine.js**
+**⚠️ 核心原则：直接调用脚本，不探索文档，不写代码**
 
 ---
 
-## 执行步骤
+## Step 1 — 调用脚本执行排版
 
-### Step 1 — 解析排版规则
-
-从用户输入中提取排版规则，生成配置 JSON。
-
-**⚠️ 关键规则：**
-
-1. **specText 必须完整**：将排版规则**完整**放入 specText 字段
-2. **类型必须完整覆盖**：规则提到多少种类型，配置就必须有多少种
-3. **直接输出 JSON**，不要写代码，不要解释
-
----
-
-### Step 2 — 调用脚本执行
-
-**必须调用：**
-```yaml
-executeFile: skills/generalformat/scripts/format-engine.js
+**直接调用：**
+```text
+filePath: "skills/generalformat/scripts/format-engine.js"
 params:
-  config: <生成的JSON配置>
+  config:
+    specText: "<用户输入的排版规则原文>"
+    paragraphRules: <从规则中提取的类型配置>
 ```
 
-返回值：
+**示例：**
+
+排版图：
 ```json
 {
-  "success": true,
-  "applied": 5656,
-  "elapsedMs": 2882,
-  "typeCounts": { "zhangTitle": 20, "heading2": 421, "body": 5207 }
+  "specText": "图名用黑体小五号居中，图片居中对齐",
+  "paragraphRules": {
+    "figureCaption": {"fontCN":"黑体","fontSize":9,"alignment":1}
+  }
 }
 ```
 
----
-
-## 类型映射表
-
-| 规范中的叫法 | 配置中的类型名 | 说明 |
-|-------------|---------------|------|
-| 主标题、文档标题、报告标题 | docTitle | 文档第一个段落 |
-| 章标题、一级标题、标题一 | zhangTitle | 如"1 引言"、"第1章" |
-| 二级标题、标题二 | heading2 | 如"1.1 设计依据" |
-| 三级标题、标题三 | heading3 | 如"1.1.1 具体内容" |
-| 四级标题、标题四 | heading4 | 如"1.1.1.1 详细说明" |
-| 五级标题、标题五 | heading5 | 如"1.1.1.1.1 补充说明" |
-| 正文、正文格式 | body | 普通段落 |
-| 图名、图标题、图号 | figureCaption | 图标题 |
-| 表名、表标题、表号 | tableCaption | 表标题 |
-| 参考文献 | ref | 参考文献 |
-
----
-
-## 字号对照表
-
-| 中文字号 | 磅值(fontSize) |
-|---------|---------------|
-| 初号 | 42 |
-| 小初 | 36 |
-| 一号 | 26 |
-| 小一 | 24 |
-| 二号 | 22 |
-| 小二 | 18 |
-| 三号 | 16 |
-| 小三 | 15 |
-| 四号 | 14 |
-| 小四 | 12 |
-| 五号 | 10.5 |
-| 小五 | 9 |
-
----
-
-## 字段说明
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| fontCN | string | 中文字体（宋体、黑体、楷体、仿宋） |
-| fontEN | string | 西文字体（Times New Roman） |
-| fontSize | number | 字号磅值 |
-| bold | boolean | 是否加粗 |
-| alignment | number | 对齐：0=左对齐，1=居中，2=右对齐，3=两端对齐 |
-| spaceBefore | number | 段前间距（磅） |
-| spaceAfter | number | 段后间距（磅） |
-| firstLineIndent | number | 首行缩进（磅，2字符≈24磅） |
-| lineSpacingRule | number | 行距：0=单倍，1=1.5倍，2=2倍，4=固定值 |
-
----
-
-## 配置格式
-
+排版表格：
 ```json
 {
-  "version": "1.0",
-  "specText": "排版规则原文（必须完整）",
-  "fontDefaults": { "fontCN": "宋体", "fontEN": "Times New Roman" },
+  "specText": "表名用黑体小五号居中，表格与页面等宽、跨页重复表头，表头用黑体五号居中加粗，表格内容用宋体五号靠左对齐",
   "paragraphRules": {
-    "zhangTitle": { "fontCN": "黑体", "fontSize": 16, "bold": true, "alignment": 1, ... },
-    "body": { "fontCN": "宋体", "fontSize": 12, "alignment": 3, "firstLineIndent": 24, ... }
+    "tableCaption": {"fontCN":"黑体","fontSize":9,"alignment":1},
+    "tableHeader": {"fontCN":"黑体","fontSize":10.5,"alignment":1,"bold":true},
+    "tableContent": {"fontCN":"宋体","fontSize":10.5,"alignment":0}
+  }
+}
+```
+
+排版正文：
+```json
+{
+  "specText": "正文用宋体小四号两端对齐首行缩进2字符行距固定值22磅",
+  "paragraphRules": {
+    "body": {"fontCN":"宋体","fontSize":12,"alignment":3,"firstLineIndent":24,"lineSpacingRule":4}
   }
 }
 ```
 
 ---
 
-## 特殊规则（从 specText 自动识别）
+## 类型名映射
 
-| 关键词 | 功能 |
-|-------|------|
-| 图片居中 | 图片段落居中 |
-| 表格等宽 | 表格宽度等于页面宽度 |
+| 规范叫法 | 配置类型名 |
+|---------|-----------|
+| 主标题 | docTitle |
+| 章标题/一级标题 | zhangTitle |
+| 二级标题 | heading2 |
+| 三级标题 | heading3 |
+| 四级标题 | heading4 |
+| 五级标题 | heading5 |
+| 正文 | body |
+| 图名/图号 | figureCaption |
+| 表名/表号 | tableCaption |
+| 表头 | tableHeader |
+| 表格内容 | tableContent |
+| 页眉页脚 | headerFooter |
+
+---
+
+## 字号对照
+
+| 中文 | 磅值 |
+|-----|-----|
+| 小五 | 9 |
+| 五号 | 10.5 |
+| 小四 | 12 |
+| 四号 | 14 |
+
+---
+
+## 对齐值
+
+| 对齐方式 | 值 |
+|---------|---|
+| 左对齐 | 0 |
+| 居中 | 1 |
+| 右对齐 | 2 |
+| 两端对齐 | 3 |
+
+---
+
+## 特殊关键词（自动处理）
+
+| specText包含 | 自动处理 |
+|-------------|---------|
+| 图片居中/图片居中对齐 | 图片段落居中 |
+| 图片左对齐/图片靠左 | 图片段落左对齐 |
+| 图片右对齐/图片靠右 | 图片段落右对齐 |
+| 表格等宽/与页面等宽 | 表格宽度=页面宽度 |
 | 跨页重复表头 | 表格首行跨页重复 |
-| 公式居中 | 公式段落居中 |
-| 公式编号右对齐 | 公式编号右对齐 |
-| 页码居中/左对齐/右对齐 | 页码位置 |
-| 页码阿拉伯/罗马/中文 | 页码格式 |
-
----
-
-## 快捷指令示例
-
-**排版标题：**
-```
-generalformat：排版主标题和各级标题。
-主标题用黑体二号居中加粗，
-一级标题用黑体三号靠左加粗，
-二级标题用黑体小三号靠左加粗，
-三级标题用黑体四号靠左加粗，
-四级标题用黑体四号靠左加粗，
-五级标题用黑体四号靠左对齐，
-附录标题用黑体三号居中，
-所有标题无缩进。
-```
-
-**排版正文：**
-```
-generalformat：排版正文段落格式。
-正文用宋体小四号两端对齐首行缩进2字符行距固定值22磅。
-```
-
-**排版图表：**
-```
-generalformat：排版图名表名。
-图名用黑体小五号居中，表名用黑体小五号居中，图片居中对齐，表格与页面等宽。
-```
-
-**排版表格：**
-```
-generalformat：排版表格。
-表头用黑体五号居中加粗，表格内容用宋体五号靠左对齐。
-```
-
-**排版页眉页脚：**
-```
-generalformat：排版页眉页脚。
-页眉页脚小五号，页码居中阿拉伯数字，页眉线单细线。
-```
-
----
-
-## 段落类型自动识别
-
-脚本自动识别段落类型并设置大纲级别：
-
-| 类型 | 匹配规则 | 大纲级别 |
-|------|---------|---------|
-| zhangTitle | 第X章、数字+空格+汉字 | 1级 |
-| heading2 | X.X 二级编号 | 2级 |
-| heading3 | X.X.X 三级编号 | 3级 |
-| heading4 | X.X.X.X 四级编号 | 4级 |
-| figureCaption | 图X... | - |
-| tableCaption | 表X... | - |
-| body | 其他正文 | - |

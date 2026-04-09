@@ -655,9 +655,8 @@ try {
                   table.AllowAutoFit = false;
                 } catch (e4) {}
 
-                console.log('[format] 表格' + tblIdx + '宽度设置为: ' + usableWidth + '磅');
               } catch (e) {
-                console.log('[format] 表格宽度设置失败: ' + e);
+                // console.log('[format] 表格宽度设置失败: ' + e);
               }
             }
 

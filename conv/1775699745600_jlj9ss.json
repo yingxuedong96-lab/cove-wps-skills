@@ -1,0 +1,19 @@
+[
+  {
+    "id": "1775699745656_mipwz9q",
+    "role": "user",
+    "content": "generalformat：排版页眉页脚。\n\n页眉页脚小五号，页码居中阿拉伯数字，页眉线单细线。",
+    "timestamp": 1775699745656,
+    "commandMeta": {
+      "name": "排版页眉页脚"
+    },
+    "taskId": "task_1775699745658_atw5ac"
+  },
+  {
+    "id": "1775699745656_7ernd7x",
+    "role": "assistant",
+    "content": "[错误] 会话异常结束（unknown），可能是 API 请求失败或模型端错误",
+    "timestamp": 1775699745656,
+    "streaming": false
+  }
+]

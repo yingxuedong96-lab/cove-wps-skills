@@ -59,20 +59,25 @@ try {
   };
 
   // 尝试从用户输入解析表名规则
-  if (userInput.indexOf('表名') !== -1) {
-    var captionMatch = userInput.match(/表名[^。；,，]*/);
+  if (userInput.indexOf('表名用') !== -1) {
+    var captionMatch = userInput.match(/表名用[^。；,，]*/);
     if (captionMatch) {
       var ct = captionMatch[0];
-      if (parseFont(ct)) rules.tableCaption.fontCN = parseFont(ct);
-      if (parseSize(ct)) rules.tableCaption.fontSize = parseSize(ct);
-      if (parseAlign(ct) >= 0) rules.tableCaption.alignment = parseAlign(ct);
+      console.log('[format-表格] 表名匹配文本: ' + ct);
+      var parsedFont = parseFont(ct);
+      var parsedSize = parseSize(ct);
+      var parsedAlign = parseAlign(ct);
+      console.log('[format-表格] 解析结果: font=' + parsedFont + ', size=' + parsedSize + ', align=' + parsedAlign);
+      if (parsedFont) rules.tableCaption.fontCN = parsedFont;
+      if (parsedSize) rules.tableCaption.fontSize = parsedSize;
+      if (parsedAlign >= 0) rules.tableCaption.alignment = parsedAlign;
       console.log('[format-表格] 解析表名规则: ' + JSON.stringify(rules.tableCaption));
     }
   }
 
   // 尝试从用户输入解析表头规则
-  if (userInput.indexOf('表头') !== -1) {
-    var headerMatch = userInput.match(/表头[^。；,，]*/);
+  if (userInput.indexOf('表头用') !== -1) {
+    var headerMatch = userInput.match(/表头用[^。；,，]*/);
     if (headerMatch) {
       var ht = headerMatch[0];
       console.log('[format-表格] 表头匹配文本: ' + ht);
@@ -89,13 +94,18 @@ try {
   }
 
   // 尝试从用户输入解析表格内容规则
-  if (userInput.indexOf('表格内容') !== -1) {
-    var contentMatch = userInput.match(/表格内容[^。；,，]*/);
+  if (userInput.indexOf('表格内容用') !== -1) {
+    var contentMatch = userInput.match(/表格内容用[^。；,，]*/);
     if (contentMatch) {
       var cnt = contentMatch[0];
-      if (parseFont(cnt)) rules.tableContent.fontCN = parseFont(cnt);
-      if (parseSize(cnt)) rules.tableContent.fontSize = parseSize(cnt);
-      if (parseAlign(cnt) >= 0) rules.tableContent.alignment = parseAlign(cnt);
+      console.log('[format-表格] 表格内容匹配文本: ' + cnt);
+      var parsedFont = parseFont(cnt);
+      var parsedSize = parseSize(cnt);
+      var parsedAlign = parseAlign(cnt);
+      console.log('[format-表格] 解析结果: font=' + parsedFont + ', size=' + parsedSize + ', align=' + parsedAlign);
+      if (parsedFont) rules.tableContent.fontCN = parsedFont;
+      if (parsedSize) rules.tableContent.fontSize = parsedSize;
+      if (parsedAlign >= 0) rules.tableContent.alignment = parsedAlign;
       console.log('[format-表格] 解析表格内容规则: ' + JSON.stringify(rules.tableContent));
     }
   }

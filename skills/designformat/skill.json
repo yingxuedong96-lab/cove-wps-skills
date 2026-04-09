@@ -1,0 +1,14 @@
+{
+  "name": "designformat",
+  "description": "设计文档短文档一键排版。适合10页以内的设计报告，内置标准格式，无需参数，一键完成标题、正文、图表、表格、页眉页脚、页面设置排版。触发词：一键排版、综合排版、设计文档排版。",
+  "version": "1.0.0",
+  "snapshot": "before_task",
+  "emoji": "📄",
+  "files": [
+    "skill.json",
+    "SKILL.md",
+    "scripts/format-all.js"
+  ],
+  "resources": [],
+  "source": "local"
+}

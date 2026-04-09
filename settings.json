@@ -1,5 +1,5 @@
 {
-  "modelName": "custom/qwen3.5-plus",
+  "modelName": "aliyun/qwen3.5-27b",
   "enableThinking": false,
   "maxRetries": 2,
   "snapshotPolicy": "before_task",

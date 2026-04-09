@@ -6,6 +6,20 @@ description: >
 
 # 设计文档一键排版
 
+## ⚠️ 重要：执行规则
+
+**检测到触发词后，立即调用脚本，不要询问用户。**
+
+触发词：`一键排版`、`综合排版`、`设计文档排版`
+
+**直接调用：**
+```text
+filePath: "skills/designformat/scripts/format-all.js"
+params: {}
+```
+
+---
+
 ## 定位
 
 专为 **10页以内设计文档** 设计的一键排版技能。
@@ -14,20 +28,6 @@ description: >
 - 内置标准格式，无需参数
 - 一键完成全部排版
 - 不做编号校对，只做格式排版
-
----
-
-## 执行方式
-
-### 一键排版
-
-触发词：`一键排版`、`综合排版`、设计文档排版`
-
-**直接调用：**
-```text
-filePath: "skills/designformat/scripts/format-all.js"
-params: {}
-```
 
 ---
 

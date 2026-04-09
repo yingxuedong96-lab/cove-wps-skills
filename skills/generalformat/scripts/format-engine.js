@@ -57,9 +57,9 @@ try {
     tableCaption: ['表名', '表格名', '表标题', '表号'],
     figureCaption: ['图名', '图片名', '图标题', '图号', '图片标题', '插图名', 'figure'],
     ref: ['参考文献', '引用文献', 'reference'],
-    tableHeader: ['表头', '表格标题行', '表格头部'],
-    tableContent: ['表格内容', '表内容', '表格正文', '单元格', '表格'],
-    headerFooter: ['页眉页脚', '页眉', '页脚', '页码']
+    tableHeader: ['表头用', '表头字体', '表头格式'],  // 只匹配字体格式相关的
+    tableContent: ['表格内容用', '表格内容字体', '单元格用', '表格正文用'],  // 更具体
+    headerFooter: ['页眉页脚', '页眉用', '页脚用', '页码']
   };
 
   var specText = configData.specText || '';

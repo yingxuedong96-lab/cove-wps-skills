@@ -77,17 +77,16 @@ try {
   }
 
   // ========================================
-  // 1. 先设置页面（这样表格宽度计算才能用正确的值）
+  // 1. 先设置页面
   // ========================================
   var applied = 0;
   var details = { headings: 0, bodyParas: 0, figures: 0, tables: 0, pages: 0 };
 
-  // 固定的页面参数
-  var PAGE_WIDTH = 595.35;   // A4宽度（磅）
-  var PAGE_HEIGHT = 841.95;  // A4高度（磅）
-  var MARGIN_TOP = 72;       // 2.54cm
+  var PAGE_WIDTH = 595.35;
+  var PAGE_HEIGHT = 841.95;
+  var MARGIN_TOP = 72;
   var MARGIN_BOTTOM = 72;
-  var MARGIN_LEFT = 90;      // 约3.17cm
+  var MARGIN_LEFT = 90;
   var MARGIN_RIGHT = 90;
 
   try {
@@ -97,7 +96,6 @@ try {
         try {
           var sec = sections.Item(si);
           if (!sec || !sec.PageSetup) continue;
-
           var ps = sec.PageSetup;
           ps.TopMargin = MARGIN_TOP;
           ps.BottomMargin = MARGIN_BOTTOM;
@@ -106,7 +104,6 @@ try {
           ps.PageWidth = PAGE_WIDTH;
           ps.PageHeight = PAGE_HEIGHT;
           ps.Orientation = 0;
-
           applied++;
           details.pages++;
         } catch (e) {}
@@ -115,8 +112,7 @@ try {
     }
   } catch (e) {}
 
-  // 计算表格可用宽度
-  var usableWidth = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;  // 595.35 - 90 - 90 = 415.35
+  var usableWidth = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
   console.log('[designformat] 表格可用宽度: ' + usableWidth.toFixed(1) + '磅');
 
   // ========================================
@@ -175,9 +171,6 @@ try {
             if (applyFormat(para.Range, rule)) {
               applied++;
               details.headings++;
-            }
-            if (outlineLevelMap[hType] && para.Range.ParagraphFormat) {
-              try { para.Range.ParagraphFormat.OutlineLevel = outlineLevelMap[hType]; } catch (e) {}
             }
           }
         } catch (e) {}
@@ -259,7 +252,7 @@ try {
       }
     } catch (e) {}
 
-    // 3.6 表格格式（合并处理，确保样式生效）
+    // 3.6 表格格式（逐单元格处理，不依赖table.Columns）
     try {
       var tableCount = doc.Tables ? doc.Tables.Count : 0;
       console.log('[designformat] 开始处理表格: ' + tableCount + '个');
@@ -267,135 +260,85 @@ try {
       for (var tIdx = 1; tIdx <= tableCount; tIdx++) {
         try {
           var table = doc.Tables.Item(tIdx);
-          if (!table) continue;
+          if (!table || !table.Rows) continue;
 
-          // 【关键1】清除表格自动套用格式，避免样式继承
-          try { table.AutoFormatType = -1; } catch (e) {}
-          try { table.Style = null; } catch (e) {}
-
-          // 设置表格宽度为可用宽度
+          var rowCount = table.Rows.Count;
+          // 用第一行单元格数获取列数（不依赖table.Columns）
+          var colCount = 4;  // 默认值
           try {
-            table.PreferredWidthType = 3;  // wdPreferredWidthPoints
+            if (rowCount > 0) {
+              var firstRow = table.Rows.Item(1);
+              if (firstRow && firstRow.Cells) {
+                colCount = firstRow.Cells.Count;
+              }
+            }
+          } catch (e) {}
+          console.log('[designformat] 表格' + tIdx + ': ' + rowCount + '行 x ' + colCount + '列');
+
+          // 设置表格宽度
+          try {
+            table.PreferredWidthType = 3;
             table.PreferredWidth = usableWidth;
           } catch (e) {}
           try { table.AllowAutoFit = false; } catch (e) {}
 
           // 跨页重复表头
           try {
-            if (table.Rows && table.Rows.Count > 0) {
+            if (rowCount > 0) {
               table.Rows.Item(1).HeadingFormat = true;
             }
           } catch (e) {}
 
-          // 【关键2】表格内容格式设置
-          try {
-            if (!table.Rows || !table.Columns) continue;
-            var rowCount = table.Rows.Count;
-            var colCount = table.Columns.Count;
-            var tableFormatApplied = 0;
+          var cellCount = 0;
 
-            // 表头（第一行）：黑体五号加粗居中
-            // 【方案A】尝试使用整行Range设置（更高效）
+          // 【表头】第一行：黑体五号加粗居中
+          for (var cIdx = 1; cIdx <= colCount; cIdx++) {
             try {
-              var headerRow = table.Rows.Item(1);
-              if (headerRow && headerRow.Range) {
-                headerRow.Range.ClearFormatting();
-                headerRow.Range.Font.NameFarEast = '黑体';
-                headerRow.Range.Font.Name = '黑体';
-                headerRow.Range.Font.Size = 10.5;
-                headerRow.Range.Font.SizeBi = 10.5;  // 双字节字体大小
-                headerRow.Range.Font.Bold = -1;
-                headerRow.Range.Font.BoldBi = -1;    // 双字节加粗
-                if (headerRow.Range.ParagraphFormat) {
-                  headerRow.Range.ParagraphFormat.Alignment = 1;
+              var cell = table.Cell(1, cIdx);
+              if (cell && cell.Range) {
+                cell.Range.Font.NameFarEast = '黑体';
+                cell.Range.Font.Name = '黑体';
+                cell.Range.Font.Size = 10.5;
+                cell.Range.Font.Bold = -1;
+                if (cell.Range.ParagraphFormat) {
+                  cell.Range.ParagraphFormat.Alignment = 1;
                 }
-                tableFormatApplied++;
+                cellCount++;
               }
-            } catch (e1) {
-              // 【备用方案】逐单元格设置
-              for (var cIdx = 1; cIdx <= colCount; cIdx++) {
-                try {
-                  var cell = table.Cell(1, cIdx);
-                  if (cell && cell.Range) {
-                    cell.Range.ClearFormatting();
-                    cell.Range.Font.NameFarEast = '黑体';
-                    cell.Range.Font.Name = '黑体';
-                    cell.Range.Font.Size = 10.5;
-                    cell.Range.Font.SizeBi = 10.5;
-                    cell.Range.Font.Bold = -1;
-                    cell.Range.Font.BoldBi = -1;
-                    if (cell.Range.ParagraphFormat) {
-                      cell.Range.ParagraphFormat.Alignment = 1;
-                    }
-                    tableFormatApplied++;
-                  }
-                } catch (e2) {}
-              }
+            } catch (e) {
+              console.log('[designformat] 表格' + tIdx + '表头单元格[' + cIdx + ']设置失败: ' + e);
             }
-
-            // 表格内容（第2行起）：宋体五号不加粗
-            if (rowCount > 1) {
-              for (var rIdx = 2; rIdx <= rowCount; rIdx++) {
-                // 尝试整行设置
-                try {
-                  var contentRow = table.Rows.Item(rIdx);
-                  if (contentRow && contentRow.Range) {
-                    contentRow.Range.ClearFormatting();
-                    contentRow.Range.Font.NameFarEast = '宋体';
-                    contentRow.Range.Font.Name = '宋体';
-                    contentRow.Range.Font.Size = 10.5;
-                    contentRow.Range.Font.SizeBi = 10.5;
-                    contentRow.Range.Font.Bold = 0;
-                    contentRow.Range.Font.BoldBi = 0;
-                    tableFormatApplied++;
-                  }
-                } catch (e1) {
-                  // 逐单元格备用
-                  for (var cIdx = 1; cIdx <= colCount; cIdx++) {
-                    try {
-                      var cell = table.Cell(rIdx, cIdx);
-                      if (cell && cell.Range) {
-                        cell.Range.ClearFormatting();
-                        cell.Range.Font.NameFarEast = '宋体';
-                        cell.Range.Font.Name = '宋体';
-                        cell.Range.Font.Size = 10.5;
-                        cell.Range.Font.SizeBi = 10.5;
-                        cell.Range.Font.Bold = 0;
-                        cell.Range.Font.BoldBi = 0;
-                        tableFormatApplied++;
-                      }
-                    } catch (e2) {}
-                  }
-                }
-
-                // 【关键3】单独设置对齐方式：第一列靠左，其他列居中
-                for (var cIdx = 1; cIdx <= colCount; cIdx++) {
-                  try {
-                    var cell = table.Cell(rIdx, cIdx);
-                    if (cell && cell.Range && cell.Range.ParagraphFormat) {
-                      if (cIdx === 1) {
-                        cell.Range.ParagraphFormat.Alignment = 0;  // 第一列靠左
-                      } else {
-                        cell.Range.ParagraphFormat.Alignment = 1;  // 其他列居中
-                      }
-                    }
-                  } catch (e) {}
-                }
-              }
-            }
-
-            console.log('[designformat] 表格' + tIdx + '格式设置: ' + tableFormatApplied + '处');
-          } catch (e) {
-            console.log('[designformat] 表格' + tIdx + '格式设置异常: ' + e);
           }
 
+          // 【内容】第2行起：宋体五号不加粗靠左
+          if (rowCount > 1) {
+            for (var rIdx = 2; rIdx <= rowCount; rIdx++) {
+              for (var cIdx = 1; cIdx <= colCount; cIdx++) {
+                try {
+                  var cell = table.Cell(rIdx, cIdx);
+                  if (cell && cell.Range) {
+                    cell.Range.Font.NameFarEast = '宋体';
+                    cell.Range.Font.Name = '宋体';
+                    cell.Range.Font.Size = 10.5;
+                    cell.Range.Font.Bold = 0;
+                    if (cell.Range.ParagraphFormat) {
+                      cell.Range.ParagraphFormat.Alignment = 0;  // 靠左
+                    }
+                    cellCount++;
+                  }
+                } catch (e) {}
+              }
+            }
+          }
+
+          console.log('[designformat] 表格' + tIdx + '单元格格式设置: ' + cellCount + '个');
           applied++;
           details.tables++;
         } catch (e) {
           console.log('[designformat] 表格' + tIdx + '处理异常: ' + e);
         }
       }
-      console.log('[designformat] 表格处理完成: ' + details.tables + '个, 宽度=' + usableWidth.toFixed(1) + '磅');
+      console.log('[designformat] 表格处理完成: ' + details.tables + '个');
     } catch (e) {
       console.log('[designformat] 表格处理整体异常: ' + e);
     }
@@ -409,50 +352,36 @@ try {
             var sec = sections.Item(si);
             if (!sec) continue;
 
-            // 页眉：设置格式（不清除内容）
+            // 页眉
             try {
               var header = sec.Headers.Item(1);
               if (header && header.Range) {
-                // 设置字体
                 if (header.Range.Font) {
                   header.Range.Font.NameFarEast = '宋体';
                   header.Range.Font.Name = 'Arial';
                   header.Range.Font.Size = 9;
                 }
-                // 居中对齐
                 if (header.Range.ParagraphFormat) {
-                  header.Range.ParagraphFormat.Alignment = 1;  // 居中
+                  header.Range.ParagraphFormat.Alignment = 1;
                 }
-                // 页眉线
-                try {
-                  var borders = header.Range.ParagraphFormat.Borders;
-                  if (borders) {
-                    var bottom = borders.Item(-3);
-                    bottom.LineStyle = 1;
-                    bottom.LineWidth = 6;
-                  }
-                } catch (e) {}
               }
             } catch (e) {}
 
-            // 页脚：设置页码居中
+            // 页脚
             try {
               var footer = sec.Footers.Item(1);
               if (footer && footer.Range) {
-                // 清除原有内容
                 footer.Range.Text = '';
-                // 设置字体
                 if (footer.Range.Font) {
                   footer.Range.Font.NameFarEast = '宋体';
                   footer.Range.Font.Name = 'Arial';
                   footer.Range.Font.Size = 9;
                 }
-                // 添加页码
                 try {
                   var pn = footer.PageNumbers;
                   if (pn) {
                     pn.NumberStyle = 0;
-                    pn.Add(1);  // 居中
+                    pn.Add(1);
                   }
                 } catch (e) {}
               }

@@ -1,6 +1,48 @@
 {
   "conversations": [
     {
+      "id": "1775716206307_dxctei",
+      "title": "designformat：一键排版。",
+      "createdAt": 1775716206307,
+      "updatedAt": 1775716206307,
+      "messageCount": 0,
+      "pinned": false,
+      "skillName": "designformat",
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/设计文档排版测试.docx",
+      "documentName": "设计文档排版测试.docx"
+    },
+    {
+      "id": "1775716100512_6zbkba",
+      "title": "generalcheck：对文档进行全面的编号校对。\n\n【章",
+      "createdAt": 1775716100512,
+      "updatedAt": 1775716171833,
+      "messageCount": 7,
+      "pinned": false,
+      "skillName": "generalcheck",
+      "documentPath": "/Users/cassia/Desktop/dyx/wpsjs/机载/228页长文档校对排版.docx",
+      "documentName": "228页长文档校对排版.docx"
+    },
+    {
+      "id": "1775715972309_xl5k2x",
+      "title": "纠正文档中的错别字、语法错误、大小写错误、标点符号错误。",
+      "createdAt": 1775715972309,
+      "updatedAt": 1775715988721,
+      "messageCount": 5,
+      "pinned": false,
+      "documentPath": "/Users/cassia/Desktop/OfficeAI演示用例20251210/1.1 校对 - 错别字语法.docx",
+      "documentName": "1.1 校对 - 错别字语法.docx"
+    },
+    {
+      "id": "1775715816437_x8v57j",
+      "title": "请对当前合同文档进行法律风险审查，按以下维度逐条分析：\n\n1",
+      "createdAt": 1775715816437,
+      "updatedAt": 1775715957236,
+      "messageCount": 0,
+      "pinned": false,
+      "documentPath": "/Users/cassia/Desktop/合同demo.docx",
+      "documentName": "合同demo.docx"
+    },
+    {
       "id": "1775715015013_o5bmh5",
       "title": "designformat：一键排版。",
       "createdAt": 1775715015013,
